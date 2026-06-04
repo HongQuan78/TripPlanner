@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using AutoMapper;
 using TripPlanner.API.Services.Interface;
 using TripPlanner.API.Data;
 using FluentValidation;
@@ -18,8 +19,9 @@ public static class AppServicesExtension
         services.AddScoped<ITripService, TripService>();
         services.AddScoped<ITripDayService, TripDayService>();
 
-        services.AddValidatorsFromAssemblyContaining<CreateTripValidator>();
-        services.AddAutoMapper(typeof(MappingProfile));
+        services.AddValidatorsFromAssembly(typeof(CreateTripValidator).Assembly);
+
+        services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
 
         services.AddProblemDetails();
         services.AddExceptionHandler<ExceptionHandlingMiddleware>();

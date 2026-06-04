@@ -1,5 +1,4 @@
 using FluentValidation;
-using FluentValidation.TestHelper;
 using TripPlanner.API.DTOs.Requests;
 using TripPlanner.API.Helpers;
 
@@ -23,8 +22,11 @@ public class CreateTripValidator : AbstractValidator<CreateTripRequest>
         .NotEmpty()
         .WithMessage("End date is required.")
         .Must(DateHelper.IsValidDateOnly!)
-        .WithMessage("Date must be formatted as YYYY-MM-DD.")
-        .GreaterThanOrEqualTo(x => x.StartDate)
+        .WithMessage("Date must be formatted as YYYY-MM-DD.");
+
+        RuleFor(x => x)
+        .Must(x => DateHelper.ToDateOnly(x.EndDate!) >= DateHelper.ToDateOnly(x.StartDate!))
+        .When(x => DateHelper.IsValidDateOnly(x.StartDate!) && DateHelper.IsValidDateOnly(x.EndDate!))
         .WithMessage("End date must be after start date.");
     }
 
