@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/Tripplanner.api/">
+    <Project Path="Tripplanner.api/TripPlanner.API.csproj" />
+  </Folder>
+  <Folder Name="/Tripplanner.Application/">
+    <Project Path="Tripplanner.Application/TripPlanner.Application.csproj" />
+  </Folder>
+  <Folder Name="/Tripplanner.Domain/">
+    <Project Path="Tripplanner.Domain/TripPlanner.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Tripplanner.Infrastructure/">
+    <Project Path="Tripplanner.Infrastructure/TripPlanner.Infrastructure.csproj" />
+  </Folder>
+</Solution>
