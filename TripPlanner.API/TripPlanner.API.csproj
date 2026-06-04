@@ -16,4 +16,9 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.2.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\TripPlanner.Application\TripPlanner.Application.csproj" />
+    <ProjectReference Include="..\TripPlanner.Infrastructure\TripPlanner.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
