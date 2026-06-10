@@ -1,15 +1,19 @@
 namespace TripPlanner.Domain.Models;
+
 public class Trip
 {
-    public int Id {get; set;}
-    public string Name {get; set;}
-    public DateOnly StartDate {get;set;}
-    public DateOnly EndDate {get;set;}
-    public List<TripDay> Days { get; set; } = [];
+    private readonly List<TripDay> _days = [];
 
-    public Trip(int id, string name, DateOnly startDate, DateOnly endDate)
+    public int Id { get; private set; }
+    public string Name { get; private set; } = string.Empty;
+    public DateOnly StartDate { get; private set; }
+    public DateOnly EndDate { get; private set; }
+    public IReadOnlyList<TripDay> Days => _days;
+
+    private Trip() { }
+
+    public Trip(string name, DateOnly startDate, DateOnly endDate)
     {
-        Id = id;
         Name = name;
         StartDate = startDate;
         EndDate = endDate;
@@ -20,7 +24,7 @@ public class Trip
     {
         for (DateOnly date = StartDate; date <= EndDate; date = date.AddDays(1))
         {
-            Days.Add(new TripDay(date));
-        } 
+            _days.Add(new TripDay(date));
+        }
     }
 }

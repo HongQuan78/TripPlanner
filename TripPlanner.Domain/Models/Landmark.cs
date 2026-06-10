@@ -1,7 +1,14 @@
 namespace TripPlanner.Domain.Models;
 
-public class Landmark(int id, string name, double rating, string openingHours) : Destination(id, name, rating)
+public class Landmark : Destination
 {
-    public string OpeningHours { get; set; } = openingHours;
+    public string OpeningHours { get; private set; } = string.Empty;
     public override string Category => "Landmark";
+
+    private Landmark() { }
+
+    public Landmark(string name, double rating, string openingHours) : base(name, rating)
+    {
+        OpeningHours = openingHours;
+    }
 }
