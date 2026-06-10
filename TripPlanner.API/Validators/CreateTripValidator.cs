@@ -1,6 +1,6 @@
 using FluentValidation;
-using TripPlanner.API.DTOs.Requests;
-using TripPlanner.API.Helpers;
+using TripPlanner.Application.DTOs.Requests;
+using TripPlanner.Application.Helpers;
 
 namespace TripPlanner.API.Validators;
 

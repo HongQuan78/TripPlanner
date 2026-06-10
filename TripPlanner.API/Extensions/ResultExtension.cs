@@ -1,4 +1,4 @@
-using TripPlanner.API.Common;
+using TripPlanner.Application.Common;
 
 namespace TripPlanner.API.Extensions;
 

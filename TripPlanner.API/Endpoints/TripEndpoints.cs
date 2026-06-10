@@ -1,7 +1,7 @@
-using TripPlanner.API.DTOs.Requests;
+using TripPlanner.Application.DTOs.Requests;
+using TripPlanner.Application.UseCases;
 using TripPlanner.API.Extensions;
 using TripPlanner.API.Parameters;
-using TripPlanner.API.Services.Interface;
 
 namespace TripPlanner.API.Endpoints;
 
@@ -10,38 +10,48 @@ public static class TripEndpoints
     public static RouteGroupBuilder MapTripEndpoints(this RouteGroupBuilder group)
     {
         group.MapGet("/", GetAllTrips);
-        group.MapGet("/{id:int}", GetTrip); 
+        group.MapGet("/{id:int}", GetTrip);
         group.MapPost("/", CreateTrip);
         group.MapPost("/{id:int}/days/{date}/destinations", AddDestinationToTripDay);
         group.MapDelete("/{id:int}/days/{date}/destinations/{destinationId:int}", RemoveDestinationFromTripDay);
         return group;
     }
 
-    private static IResult GetTrip(int id, ITripService tripService)
+    private static async Task<IResult> GetTrip(int id, ITripService tripService, CancellationToken cancellationToken)
     {
-        var result = tripService.GetTrip(id);
+        var result = await tripService.GetTripAsync(id, cancellationToken);
         return result.ToResponse(onSuccess => Results.Ok(result.Data));
     }
 
-    private static IResult GetAllTrips(ITripService tripService)
-    {   
-        var result = tripService.GetAllTrips();
+    private static async Task<IResult> GetAllTrips(ITripService tripService, CancellationToken cancellationToken)
+    {
+        var result = await tripService.GetAllTripsAsync(cancellationToken);
         return result.ToResponse(onSuccess => Results.Ok(result.Data));
     }
 
-    private static IResult CreateTrip(CreateTripRequest dto, ITripService tripService)
-    {   
-        var result = tripService.CreateTrip(dto);
+    private static async Task<IResult> CreateTrip(CreateTripRequest dto, ITripService tripService, CancellationToken cancellationToken)
+    {
+        var result = await tripService.CreateTripAsync(dto, cancellationToken);
         return result.ToResponse(onSuccess => Results.Created($"/api/trips/{result.Data!.Id}", result.Data));
     }
-    private static IResult AddDestinationToTripDay([AsParameters] AddDestinationToDayParameter parameter, ITripDayService tripDayService)
+
+    private static async Task<IResult> AddDestinationToTripDay(
+        [AsParameters] AddDestinationToDayParameter parameter,
+        ITripDayService tripDayService,
+        CancellationToken cancellationToken)
     {
-        var result = tripDayService.AddDestinationToTripDay(parameter.Id, parameter.Date!, parameter.AddDestinationToDayRequest!);
+        var result = await tripDayService.AddDestinationToTripDayAsync(
+            parameter.Id, parameter.Date!, parameter.AddDestinationToDayRequest!, cancellationToken);
         return result.ToResponse(onSuccess => Results.Ok(result.Data));
     }
-    private static IResult RemoveDestinationFromTripDay([AsParameters] RemoveDestinationFromDayParameter parameter, ITripDayService tripDayService)
+
+    private static async Task<IResult> RemoveDestinationFromTripDay(
+        [AsParameters] RemoveDestinationFromDayParameter parameter,
+        ITripDayService tripDayService,
+        CancellationToken cancellationToken)
     {
-        var result = tripDayService.RemoveDestinationFromTripDay(parameter.Id, parameter.Date!, parameter.DestinationId);
+        var result = await tripDayService.RemoveDestinationFromTripDayAsync(
+            parameter.Id, parameter.Date!, parameter.DestinationId, cancellationToken);
         return result.ToResponse(Results.NoContent);
     }
 }

@@ -1,5 +1,5 @@
 using FluentValidation;
-using TripPlanner.API.Helpers;
+using TripPlanner.Application.Helpers;
 using TripPlanner.API.Parameters;
 
 namespace TripPlanner.API.Validators;

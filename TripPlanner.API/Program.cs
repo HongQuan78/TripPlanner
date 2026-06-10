@@ -4,7 +4,7 @@ const string PolicyName = "AllowLocalhost";
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
-.AddApplicationServices()
+.AddApplicationServices(builder.Configuration)
 .AddCustomCors(PolicyName)
 .AddCustomSwagger();
 

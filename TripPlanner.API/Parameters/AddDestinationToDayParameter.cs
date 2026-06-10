@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using TripPlanner.API.DTOs.Requests;
+using TripPlanner.Application.DTOs.Requests;
 
 namespace TripPlanner.API.Parameters;
 
