@@ -2,7 +2,7 @@ using AutoMapper;
 using TripPlanner.Application.DTOs.Responses;
 using TripPlanner.Domain.Models;
 
-namespace TripPlanner.Infrastructure.Mappings;
+namespace TripPlanner.Application.Mappings;
 
 public class MappingProfile : Profile
 {

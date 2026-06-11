@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TripPlanner.Application.Interfaces;
+using TripPlanner.Application.Mappings;
 using TripPlanner.Infrastructure.Data;
-using TripPlanner.Infrastructure.Mappings;
 using TripPlanner.Infrastructure.Persistence;
 using TripPlanner.Infrastructure.Repositories;
 
@@ -23,9 +23,6 @@ public static class InfrastructureServicesExtension
 
         services.AddDbContext<TripPlannerDbContext>(options =>
             options.UseNpgsql(connectionString));
-
-        services.AddScoped<ITripPlannerDbContext>(sp =>
-            sp.GetRequiredService<TripPlannerDbContext>());
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<ITripRepository, TripRepository>();
