@@ -1,15 +1,15 @@
 <Solution>
-  <Folder Name="/Tripplanner.api/">
-    <Project Path="Tripplanner.api/TripPlanner.API.csproj" />
+  <Folder Name="/TripPlanner.API/">
+    <Project Path="TripPlanner.API/TripPlanner.API.csproj" />
   </Folder>
-  <Folder Name="/Tripplanner.Application/">
-    <Project Path="Tripplanner.Application/TripPlanner.Application.csproj" />
+  <Folder Name="/TripPlanner.Application/">
+    <Project Path="TripPlanner.Application/TripPlanner.Application.csproj" />
   </Folder>
-  <Folder Name="/Tripplanner.Domain/">
-    <Project Path="Tripplanner.Domain/TripPlanner.Domain.csproj" />
+  <Folder Name="/TripPlanner.Domain/">
+    <Project Path="TripPlanner.Domain/TripPlanner.Domain.csproj" />
   </Folder>
-  <Folder Name="/Tripplanner.Infrastructure/">
-    <Project Path="Tripplanner.Infrastructure/TripPlanner.Infrastructure.csproj" />
+  <Folder Name="/TripPlanner.Infrastructure/">
+    <Project Path="TripPlanner.Infrastructure/TripPlanner.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/TripPlanner.Tests/">
     <Project Path="TripPlanner.Tests/TripPlanner.Tests.csproj" />
