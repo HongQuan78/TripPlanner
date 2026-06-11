@@ -15,8 +15,11 @@ public static class InfrastructureServicesExtension
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        string connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+        string? connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new InvalidOperationException(
+                "Connection string 'DefaultConnection' is not configured. " +
+                "Ensure a .env file exists in the solution root with ConnectionStrings__DefaultConnection set.");
 
         services.AddDbContext<TripPlannerDbContext>(options =>
             options.UseNpgsql(connectionString));

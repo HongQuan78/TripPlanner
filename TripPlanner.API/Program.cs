@@ -2,7 +2,22 @@ using DotNetEnv;
 using TripPlanner.API.Extensions;
 using TripPlanner.API.Middleware;
 
-Env.Load();
+var envFile = FindEnvFile();
+if (envFile is not null)
+    Env.Load(envFile);
+
+static string? FindEnvFile()
+{
+    var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+    while (directory is not null)
+    {
+        var candidate = Path.Combine(directory.FullName, ".env");
+        if (File.Exists(candidate))
+            return candidate;
+        directory = directory.Parent;
+    }
+    return null;
+}
 
 const string PolicyName = "AllowLocalhost";
 var builder = WebApplication.CreateBuilder(args);
@@ -27,6 +42,8 @@ app.UseMiddleware<LoggingMiddleware>();
 app.AddRoute();
 app.UseCors(PolicyName);
 app.UseResponseCompression();
-app.UseHttpsRedirection();
+
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
 
 app.Run();
