@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "cicd-pipeline-generator": {
+      "source": "ailabs-393/ai-labs-claude-skills",
+      "sourceType": "github",
+      "skillPath": "packages/skills/cicd-pipeline-generator/SKILL.md",
+      "computedHash": "44bc43aad27639bcd52ebe4d71376aad7adc15d9a88ba81e13e2529f0dfbf713"
+    },
     "clean-architecture": {
       "source": "wondelai/skills",
       "sourceType": "github",
