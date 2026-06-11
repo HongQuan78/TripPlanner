@@ -75,4 +75,18 @@ public class TripServiceTests
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
         _tripRepository.Received(1).Add(Arg.Any<Trip>());
     }
+
+    [Fact]
+    public async Task GetAllTripsAsync_EmptyRepository_ReturnsSuccessWithEmptyList()
+    {
+        var trips = new List<Trip>();
+        var expected = new List<TripResponse>();
+        _tripRepository.GetAllWithDaysAndDestinationsAsync(Arg.Any<CancellationToken>()).Returns(trips);
+        _mapper.Map<List<TripResponse>>(trips).Returns(expected);
+
+        var result = await _sut.GetAllTripsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Empty(result.Data!);
+    }
 }

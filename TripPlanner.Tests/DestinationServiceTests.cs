@@ -85,4 +85,34 @@ public class DestinationServiceTests
         Assert.Equal(ErrorType.NotFound, result.Error!.ErrorType);
         Assert.Equal("Destination Id does not exist.", result.Error.Description);
     }
+
+    [Fact]
+    public async Task GetAllDestinationsAsync_WithSearchFilter_ReturnsSuccessResult()
+    {
+        var filter = new DestinationFilterParameter { Search = "Eiffel" };
+        var destinations = new List<Destination> { new Landmark("Eiffel Tower", 4.8, "9am-11pm") };
+        var expected = new List<DestinationResponse> { new DestinationResponse { Name = "Eiffel Tower" } };
+        _destinationRepository.GetFilteredAsync(filter, Arg.Any<CancellationToken>()).Returns(destinations);
+        _mapper.Map<List<DestinationResponse>>(destinations).Returns(expected);
+
+        var result = await _sut.GetAllDestinationsAsync(filter);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(expected, result.Data);
+    }
+
+    [Fact]
+    public async Task GetAllDestinationsAsync_EmptyRepository_ReturnsSuccessWithEmptyList()
+    {
+        var filter = new DestinationFilterParameter();
+        var destinations = new List<Destination>();
+        var expected = new List<DestinationResponse>();
+        _destinationRepository.GetFilteredAsync(filter, Arg.Any<CancellationToken>()).Returns(destinations);
+        _mapper.Map<List<DestinationResponse>>(destinations).Returns(expected);
+
+        var result = await _sut.GetAllDestinationsAsync(filter);
+
+        Assert.True(result.IsSuccess);
+        Assert.Empty(result.Data!);
+    }
 }

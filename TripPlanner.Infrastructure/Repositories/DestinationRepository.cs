@@ -8,9 +8,6 @@ namespace TripPlanner.Infrastructure.Repositories;
 
 public class DestinationRepository(TripPlannerDbContext context) : Repository<Destination>(context), IDestinationRepository
 {
-    public IQueryable<Destination> GetFiltered(DestinationFilterParameter filter) =>
-        ApplyFilters(Context.Destinations, filter);
-
     public async Task<List<Destination>> GetFilteredAsync(DestinationFilterParameter filter, CancellationToken cancellationToken = default) =>
         await ApplyFilters(Context.Destinations, filter).ToListAsync(cancellationToken);
 

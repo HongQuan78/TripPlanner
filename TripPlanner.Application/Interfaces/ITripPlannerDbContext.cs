@@ -7,6 +7,5 @@ public interface ITripPlannerDbContext
 {
     DbSet<Trip> Trips { get; }
     DbSet<Destination> Destinations { get; }
-    int SaveChanges();
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

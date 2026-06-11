@@ -7,12 +7,8 @@ public class Repository<T>(TripPlannerDbContext context) : IRepository<T> where 
 {
     protected readonly TripPlannerDbContext Context = context;
 
-    public T? GetById(int id) => Context.Set<T>().Find(id);
-
     public async Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         await Context.Set<T>().FindAsync([id], cancellationToken);
-
-    public IQueryable<T> GetAll() => Context.Set<T>();
 
     public void Add(T entity) => Context.Set<T>().Add(entity);
 
