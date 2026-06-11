@@ -11,4 +11,7 @@
   <Folder Name="/Tripplanner.Infrastructure/">
     <Project Path="Tripplanner.Infrastructure/TripPlanner.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/TripPlanner.Tests/">
+    <Project Path="TripPlanner.Tests/TripPlanner.Tests.csproj" />
+  </Folder>
 </Solution>

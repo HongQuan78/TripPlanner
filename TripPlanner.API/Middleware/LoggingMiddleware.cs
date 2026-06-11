@@ -4,41 +4,44 @@ namespace TripPlanner.API.Middleware;
 
 public class LoggingMiddleware(RequestDelegate next, ILogger<LoggingMiddleware> logger)
 {
+    private const string CorrelationIdHeader = "X-Correlation-ID";
+    public const string CorrelationIdKey = "CorrelationId";
+
     public async Task Invoke(HttpContext context)
     {
-        var correlationId = EnsureCorrelationId(context);
+        var correlationId = ExtractOrGenerateCorrelationId(context);
+        context.Items[CorrelationIdKey] = correlationId;
+        context.Response.Headers[CorrelationIdHeader] = correlationId;
+
         var watch = Stopwatch.StartNew();
 
-        try
+        using (logger.BeginScope(new Dictionary<string, object> { [CorrelationIdKey] = correlationId }))
         {
-            await next(context);
-        }
-        finally
-        {
-            watch.Stop();
-
-            logger.LogInformation(
-                "[{CorrelationId}] {Method} {Path} Responded {StatusCode} in {Elapsed} ms",
-                correlationId,
-                context.Request.Method,
-                context.Request.Path,
-                context.Response.StatusCode,
-                watch.ElapsedMilliseconds
-            );
+            try
+            {
+                await next(context);
+            }
+            finally
+            {
+                watch.Stop();
+                logger.LogInformation(
+                    "{Method} {Path} responded {StatusCode} in {Elapsed}ms",
+                    context.Request.Method,
+                    context.Request.Path,
+                    context.Response.StatusCode,
+                    watch.ElapsedMilliseconds);
+            }
         }
     }
 
-    private static string EnsureCorrelationId(HttpContext context)
+    private static string ExtractOrGenerateCorrelationId(HttpContext context)
     {
-        const string header = "X-Correlation-ID";
-
-        if (!context.Request.Headers.TryGetValue(header, out var correlationId))
+        if (context.Request.Headers.TryGetValue(CorrelationIdHeader, out var value)
+            && !string.IsNullOrWhiteSpace(value))
         {
-            correlationId = Guid.NewGuid().ToString();
-            context.Request.Headers[header] = correlationId;
+            return value!;
         }
 
-        context.Response.Headers[header] = correlationId;
-        return correlationId!;
+        return Guid.NewGuid().ToString();
     }
 }

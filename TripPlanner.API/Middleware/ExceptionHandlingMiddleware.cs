@@ -7,26 +7,30 @@ namespace TripPlanner.API.Middleware;
 public class ExceptionHandlingMiddleware(ILogger<ExceptionHandlingMiddleware> logger) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
-    {   
-        
-        logger.LogError(exception, "Unhandled exception occurred. Trace Id: {TraceId}", httpContext.TraceIdentifier);
+    {
+        var correlationId = httpContext.Items[LoggingMiddleware.CorrelationIdKey]?.ToString()
+            ?? httpContext.TraceIdentifier;
 
-        var (statusCode, title) = exception switch
+        logger.LogError(exception, "Unhandled exception. CorrelationId: {CorrelationId}", correlationId);
+
+        var (statusCode, title, detail) = exception switch
         {
-            BadHttpRequestException => (StatusCodes.Status400BadRequest, "Bad Request"),
-            JsonException => (StatusCodes.Status400BadRequest, "Bad Request"),
-            _ => (StatusCodes.Status500InternalServerError, "An Unexpected Error Occurred")
+            BadHttpRequestException e => (StatusCodes.Status400BadRequest, "Bad Request", e.Message),
+            JsonException e           => (StatusCodes.Status400BadRequest, "Bad Request", e.Message),
+            _                         => (StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred.")
         };
 
         var problemDetail = new ProblemDetails
         {
-            Status = statusCode,
-            Title = title,
-            Detail = "An unexpected error occurred.",
+            Status   = statusCode,
+            Title    = title,
+            Detail   = detail,
             Instance = httpContext.Request.Path,
+            Extensions = { ["correlationId"] = correlationId }
         };
 
-        httpContext.Response.StatusCode = problemDetail.Status.Value;
+        httpContext.Response.ContentType = "application/problem+json";
+        httpContext.Response.StatusCode  = statusCode;
         await httpContext.Response.WriteAsJsonAsync(problemDetail, cancellationToken);
 
         return true;

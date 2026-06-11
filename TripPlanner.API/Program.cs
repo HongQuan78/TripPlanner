@@ -1,5 +1,9 @@
+using DotNetEnv;
 using TripPlanner.API.Extensions;
 using TripPlanner.API.Middleware;
+
+Env.Load();
+
 const string PolicyName = "AllowLocalhost";
 var builder = WebApplication.CreateBuilder(args);
 
