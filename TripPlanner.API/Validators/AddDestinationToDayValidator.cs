@@ -7,8 +7,13 @@ public class AddDestinationToDayValidator : AbstractValidator<AddDestinationToDa
 {
     public AddDestinationToDayValidator()
     {
+        RuleFor(x => x)
+        .Must(x => x.DestinationId.HasValue || !string.IsNullOrWhiteSpace(x.Xid))
+        .WithMessage("Either DestinationId or Xid is required.");
+
         RuleFor(x => x.DestinationId)
-        .NotEmpty()
-        .WithMessage("Destination Id is required.");
+        .GreaterThan(0)
+        .When(x => x.DestinationId.HasValue)
+        .WithMessage("Destination Id must be greater than 0.");
     }
 }

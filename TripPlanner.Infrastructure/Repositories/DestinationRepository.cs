@@ -11,6 +11,9 @@ public class DestinationRepository(TripPlannerDbContext context) : Repository<De
     public async Task<List<Destination>> GetFilteredAsync(DestinationFilterParameter filter, CancellationToken cancellationToken = default) =>
         await ApplyFilters(Context.Destinations, filter).ToListAsync(cancellationToken);
 
+    public async Task<Destination?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default) =>
+        await Context.Destinations.FirstOrDefaultAsync(x => x.ExternalId == externalId, cancellationToken);
+
     private static IQueryable<Destination> ApplyFilters(IQueryable<Destination> query, DestinationFilterParameter filter)
     {
         if (!string.IsNullOrWhiteSpace(filter.Category))

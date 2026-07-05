@@ -34,15 +34,17 @@ public static class ResultExtension
 
     private static int ToStatusCode(ErrorType errorType) => errorType switch
     {
-        ErrorType.BadRequest => StatusCodes.Status400BadRequest,
-        ErrorType.NotFound   => StatusCodes.Status404NotFound,
-        _                    => StatusCodes.Status500InternalServerError
+        ErrorType.BadRequest         => StatusCodes.Status400BadRequest,
+        ErrorType.NotFound           => StatusCodes.Status404NotFound,
+        ErrorType.ServiceUnavailable => StatusCodes.Status503ServiceUnavailable,
+        _                            => StatusCodes.Status500InternalServerError
     };
 
     private static string ToTitle(ErrorType errorType) => errorType switch
     {
-        ErrorType.BadRequest => "Bad Request",
-        ErrorType.NotFound   => "Not Found",
-        _                    => "Internal Server Error"
+        ErrorType.BadRequest         => "Bad Request",
+        ErrorType.NotFound           => "Not Found",
+        ErrorType.ServiceUnavailable => "Service Unavailable",
+        _                            => "Internal Server Error"
     };
 }

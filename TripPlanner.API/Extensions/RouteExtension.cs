@@ -17,6 +17,11 @@ public static class RouteExtension
             .MapDestinationEndpoints()
             .AddFluentValidationAutoValidation();
 
+        app.MapGroup("/api/locations")
+            .WithTags("Locations")
+            .MapLocationEndpoints()
+            .AddFluentValidationAutoValidation();
+
         app.MapGroup("/api/trips")
             .WithTags("Trips")
             .RequireAuthorization()

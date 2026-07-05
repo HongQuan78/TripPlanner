@@ -6,4 +6,5 @@ namespace TripPlanner.Application.Interfaces.Repositories;
 public interface IDestinationRepository : IRepository<Destination>
 {
     Task<List<Destination>> GetFilteredAsync(DestinationFilterParameter filter, CancellationToken cancellationToken = default);
+    Task<Destination?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
 }

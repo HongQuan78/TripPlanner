@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using TripPlanner.Application.Interfaces.Mapping;
 using TripPlanner.Application.Interfaces.Repositories;
 using TripPlanner.Application.Interfaces.Services;
 using TripPlanner.Infrastructure.Data;
+using TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
 using TripPlanner.Infrastructure.Mappings;
 using TripPlanner.Infrastructure.Persistence;
 using TripPlanner.Infrastructure.Repositories;
@@ -45,6 +47,20 @@ public static class InfrastructureServicesExtension
         services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
         services.AddScoped<IApplicationMapper, ApplicationMapper>();
 
+        services.Configure<OpenTripMapSettings>(options =>
+            configuration.GetSection(OpenTripMapSettings.SectionName).Bind(options));
+
+        services.AddHttpClient<IGeocodingService, OpenTripMapGeocodingService>(ConfigureOpenTripMapClient);
+        services.AddHttpClient<IAttractionSearchService, OpenTripMapAttractionSearchService>(ConfigureOpenTripMapClient);
+        services.AddHttpClient<IDestinationDetailsService, OpenTripMapDestinationDetailsService>(ConfigureOpenTripMapClient);
+
         return services;
+    }
+
+    private static void ConfigureOpenTripMapClient(IServiceProvider serviceProvider, HttpClient client)
+    {
+        var settings = serviceProvider.GetRequiredService<IOptions<OpenTripMapSettings>>().Value;
+        client.BaseAddress = new Uri(settings.BaseUrl.TrimEnd('/') + "/");
+        client.Timeout = TimeSpan.FromMilliseconds(settings.TimeoutMilliseconds);
     }
 }

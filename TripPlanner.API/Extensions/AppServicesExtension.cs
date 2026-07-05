@@ -1,5 +1,6 @@
 using TripPlanner.Application.UseCases.Auth;
 using TripPlanner.Application.UseCases.Destination;
+using TripPlanner.Application.UseCases.Location;
 using TripPlanner.Application.UseCases.Trip;
 using TripPlanner.Application.UseCases.TripDay;
 using TripPlanner.Infrastructure.Extensions;
@@ -29,6 +30,9 @@ public static class AppServicesExtension
         services.AddScoped<IGetDestinationByIdUseCase, GetDestinationByIdUseCase>();
         services.AddScoped<IAddDestinationToTripDayUseCase, AddDestinationToTripDayUseCase>();
         services.AddScoped<IRemoveDestinationFromTripDayUseCase, RemoveDestinationFromTripDayUseCase>();
+        services.AddScoped<ISearchLocationsUseCase, SearchLocationsUseCase>();
+        services.AddScoped<IGetAttractionsForLocationUseCase, GetAttractionsForLocationUseCase>();
+        services.AddScoped<IGetDestinationDetailsUseCase, GetDestinationDetailsUseCase>();
 
         services.AddValidatorsFromAssembly(typeof(CreateTripValidator).Assembly);
 

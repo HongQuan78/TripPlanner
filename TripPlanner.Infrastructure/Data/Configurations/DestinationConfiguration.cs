@@ -14,6 +14,8 @@ internal sealed class DestinationConfiguration : IEntityTypeConfiguration<Destin
         builder.Property(d => d.Id).UseIdentityAlwaysColumn();
         builder.Property(d => d.Name).IsRequired().HasMaxLength(200);
         builder.Property(d => d.Rating).IsRequired();
+        builder.Property(d => d.ExternalId).HasMaxLength(100);
+        builder.HasIndex(d => d.ExternalId).IsUnique();
 
         // Use a shadow property as the TPH discriminator so the computed Category property is unaffected.
         builder.HasDiscriminator<string>("destination_type")

@@ -7,7 +7,7 @@ public class Landmark : Destination
 
     private Landmark() { }
 
-    public Landmark(string name, double rating, string openingHours) : base(name, rating)
+    public Landmark(string name, double rating, string openingHours, string? externalId = null) : base(name, rating, externalId)
     {
         OpeningHours = openingHours;
     }
