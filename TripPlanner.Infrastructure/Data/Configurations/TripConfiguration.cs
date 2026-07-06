@@ -15,6 +15,14 @@ internal sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
         builder.Property(t => t.Name).IsRequired().HasMaxLength(200);
         builder.Property(t => t.StartDate).IsRequired();
         builder.Property(t => t.EndDate).IsRequired();
+        builder.Property(t => t.UserId).IsRequired();
+
+        builder.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(t => t.UserId);
 
         builder.HasMany(t => t.Days)
             .WithOne()

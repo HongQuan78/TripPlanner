@@ -4,7 +4,7 @@ using TripPlanner.Application.DTOs.Responses;
 
 namespace TripPlanner.Application.UseCases.Trip;
 
-public interface ICreateTripUseCase
+public interface IUpdateTripUseCase
 {
-    Task<Result<TripResponse>> ExecuteAsync(CreateTripRequest request, int userId, CancellationToken cancellationToken = default);
+    Task<Result<TripResponse>> ExecuteAsync(int id, UpdateTripRequest request, int userId, CancellationToken cancellationToken = default);
 }

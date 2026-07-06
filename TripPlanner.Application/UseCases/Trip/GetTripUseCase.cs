@@ -7,9 +7,9 @@ namespace TripPlanner.Application.UseCases.Trip;
 
 public class GetTripUseCase(ITripRepository tripRepository, IApplicationMapper mapper) : IGetTripUseCase
 {
-    public async Task<Result<TripResponse>> ExecuteAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<Result<TripResponse>> ExecuteAsync(int id, int userId, CancellationToken cancellationToken = default)
     {
-        var trip = await tripRepository.GetWithDaysAndDestinationsAsync(id, cancellationToken);
+        var trip = await tripRepository.GetWithDaysAndDestinationsAsync(id, userId, cancellationToken);
 
         if (trip is null)
         {

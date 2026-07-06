@@ -19,9 +19,10 @@ public class AddDestinationToTripDayUseCase(
         int tripId,
         DateOnly date,
         AddDestinationToDayRequest request,
+        int userId,
         CancellationToken cancellationToken = default)
     {
-        var trip = await tripRepository.GetWithDaysAndDestinationsAsync(tripId, cancellationToken);
+        var trip = await tripRepository.GetWithDaysAndDestinationsAsync(tripId, userId, cancellationToken);
 
         if (trip is null)
         {

@@ -36,6 +36,7 @@ public static class ResultExtension
     {
         ErrorType.BadRequest         => StatusCodes.Status400BadRequest,
         ErrorType.NotFound           => StatusCodes.Status404NotFound,
+        ErrorType.Conflict           => StatusCodes.Status409Conflict,
         ErrorType.ServiceUnavailable => StatusCodes.Status503ServiceUnavailable,
         _                            => StatusCodes.Status500InternalServerError
     };
@@ -44,6 +45,7 @@ public static class ResultExtension
     {
         ErrorType.BadRequest         => "Bad Request",
         ErrorType.NotFound           => "Not Found",
+        ErrorType.Conflict           => "Conflict",
         ErrorType.ServiceUnavailable => "Service Unavailable",
         _                            => "Internal Server Error"
     };

@@ -26,6 +26,7 @@ public static class AppServicesExtension
         services.AddScoped<IGetTripUseCase, GetTripUseCase>();
         services.AddScoped<IGetAllTripsUseCase, GetAllTripsUseCase>();
         services.AddScoped<ICreateTripUseCase, CreateTripUseCase>();
+        services.AddScoped<IUpdateTripUseCase, UpdateTripUseCase>();
         services.AddScoped<IGetAllDestinationsUseCase, GetAllDestinationsUseCase>();
         services.AddScoped<IGetDestinationByIdUseCase, GetDestinationByIdUseCase>();
         services.AddScoped<IAddDestinationToTripDayUseCase, AddDestinationToTripDayUseCase>();

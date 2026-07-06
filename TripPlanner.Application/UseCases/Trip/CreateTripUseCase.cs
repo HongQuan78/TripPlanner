@@ -8,9 +8,9 @@ namespace TripPlanner.Application.UseCases.Trip;
 
 public class CreateTripUseCase(ITripRepository tripRepository, IUnitOfWork unitOfWork, IApplicationMapper mapper) : ICreateTripUseCase
 {
-    public async Task<Result<TripResponse>> ExecuteAsync(CreateTripRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<TripResponse>> ExecuteAsync(CreateTripRequest request, int userId, CancellationToken cancellationToken = default)
     {
-        var trip = new Domain.Models.Trip(request.Name!, request.StartDate!.Value, request.EndDate!.Value);
+        var trip = new Domain.Models.Trip(request.Name!, request.StartDate!.Value, request.EndDate!.Value, userId);
         tripRepository.Add(trip);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

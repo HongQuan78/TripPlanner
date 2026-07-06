@@ -14,46 +14,55 @@ public static class TripEndpoints
         group.MapGet("/", GetAllTrips);
         group.MapGet("/{id:int}", GetTrip);
         group.MapPost("/", CreateTrip);
+        group.MapPut("/{id:int}", UpdateTrip);
         group.MapPost("/{id:int}/days/{date}/destinations", AddDestinationToTripDay);
         group.MapDelete("/{id:int}/days/{date}/destinations/{destinationId:int}", RemoveDestinationFromTripDay);
         return group;
     }
 
-    private static async Task<IResult> GetTrip(int id, IGetTripUseCase useCase, CancellationToken cancellationToken)
+    private static async Task<IResult> GetTrip(int id, HttpContext httpContext, IGetTripUseCase useCase, CancellationToken cancellationToken)
     {
-        var result = await useCase.ExecuteAsync(id, cancellationToken);
+        var result = await useCase.ExecuteAsync(id, httpContext.User.GetUserId(), cancellationToken);
         return result.ToResponse(onSuccess => Results.Ok(result.Data));
     }
 
-    private static async Task<IResult> GetAllTrips(IGetAllTripsUseCase useCase, CancellationToken cancellationToken)
+    private static async Task<IResult> GetAllTrips(HttpContext httpContext, IGetAllTripsUseCase useCase, CancellationToken cancellationToken)
     {
-        var result = await useCase.ExecuteAsync(cancellationToken);
+        var result = await useCase.ExecuteAsync(httpContext.User.GetUserId(), cancellationToken);
         return result.ToResponse(onSuccess => Results.Ok(result.Data));
     }
 
-    private static async Task<IResult> CreateTrip(CreateTripRequest dto, ICreateTripUseCase useCase, CancellationToken cancellationToken)
+    private static async Task<IResult> CreateTrip(CreateTripRequest dto, HttpContext httpContext, ICreateTripUseCase useCase, CancellationToken cancellationToken)
     {
-        var result = await useCase.ExecuteAsync(dto, cancellationToken);
+        var result = await useCase.ExecuteAsync(dto, httpContext.User.GetUserId(), cancellationToken);
         return result.ToResponse(onSuccess => Results.Created($"/api/trips/{result.Data!.Id}", result.Data));
+    }
+
+    private static async Task<IResult> UpdateTrip(int id, UpdateTripRequest dto, HttpContext httpContext, IUpdateTripUseCase useCase, CancellationToken cancellationToken)
+    {
+        var result = await useCase.ExecuteAsync(id, dto, httpContext.User.GetUserId(), cancellationToken);
+        return result.ToResponse(onSuccess => Results.Ok(result.Data));
     }
 
     private static async Task<IResult> AddDestinationToTripDay(
         [AsParameters] AddDestinationToDayParameter parameter,
+        HttpContext httpContext,
         IAddDestinationToTripDayUseCase useCase,
         CancellationToken cancellationToken)
     {
         var date = DateOnly.ParseExact(parameter.Date!, DateHelper.DateFormat, null);
-        var result = await useCase.ExecuteAsync(parameter.Id, date, parameter.AddDestinationToDayRequest!, cancellationToken);
+        var result = await useCase.ExecuteAsync(parameter.Id, date, parameter.AddDestinationToDayRequest!, httpContext.User.GetUserId(), cancellationToken);
         return result.ToResponse(onSuccess => Results.Ok(result.Data));
     }
 
     private static async Task<IResult> RemoveDestinationFromTripDay(
         [AsParameters] RemoveDestinationFromDayParameter parameter,
+        HttpContext httpContext,
         IRemoveDestinationFromTripDayUseCase useCase,
         CancellationToken cancellationToken)
     {
         var date = DateOnly.ParseExact(parameter.Date!, DateHelper.DateFormat, null);
-        var result = await useCase.ExecuteAsync(parameter.Id, date, parameter.DestinationId, cancellationToken);
+        var result = await useCase.ExecuteAsync(parameter.Id, date, parameter.DestinationId, httpContext.User.GetUserId(), cancellationToken);
         return result.ToResponse(Results.NoContent);
     }
 }

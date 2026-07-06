@@ -6,5 +6,5 @@ namespace TripPlanner.Application.UseCases.TripDay;
 
 public interface IAddDestinationToTripDayUseCase
 {
-    Task<Result<TripDayResponse>> ExecuteAsync(int tripId, DateOnly date, AddDestinationToDayRequest request, CancellationToken cancellationToken = default);
+    Task<Result<TripDayResponse>> ExecuteAsync(int tripId, DateOnly date, AddDestinationToDayRequest request, int userId, CancellationToken cancellationToken = default);
 }

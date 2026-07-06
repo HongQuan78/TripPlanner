@@ -7,9 +7,9 @@ public class RemoveDestinationFromTripDayUseCase(
     ITripRepository tripRepository,
     IUnitOfWork unitOfWork) : IRemoveDestinationFromTripDayUseCase
 {
-    public async Task<Result> ExecuteAsync(int tripId, DateOnly date, int destinationId, CancellationToken cancellationToken = default)
+    public async Task<Result> ExecuteAsync(int tripId, DateOnly date, int destinationId, int userId, CancellationToken cancellationToken = default)
     {
-        var trip = await tripRepository.GetWithDaysAndDestinationsAsync(tripId, cancellationToken);
+        var trip = await tripRepository.GetWithDaysAndDestinationsAsync(tripId, userId, cancellationToken);
 
         if (trip is null)
         {

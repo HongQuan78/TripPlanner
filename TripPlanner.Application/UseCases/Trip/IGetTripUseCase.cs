@@ -5,5 +5,5 @@ namespace TripPlanner.Application.UseCases.Trip;
 
 public interface IGetTripUseCase
 {
-    Task<Result<TripResponse>> ExecuteAsync(int id, CancellationToken cancellationToken = default);
+    Task<Result<TripResponse>> ExecuteAsync(int id, int userId, CancellationToken cancellationToken = default);
 }
