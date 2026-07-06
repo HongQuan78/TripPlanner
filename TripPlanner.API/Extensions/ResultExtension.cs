@@ -35,6 +35,7 @@ public static class ResultExtension
     private static int ToStatusCode(ErrorType errorType) => errorType switch
     {
         ErrorType.BadRequest         => StatusCodes.Status400BadRequest,
+        ErrorType.Unauthorized       => StatusCodes.Status401Unauthorized,
         ErrorType.NotFound           => StatusCodes.Status404NotFound,
         ErrorType.Conflict           => StatusCodes.Status409Conflict,
         ErrorType.ServiceUnavailable => StatusCodes.Status503ServiceUnavailable,
@@ -44,6 +45,7 @@ public static class ResultExtension
     private static string ToTitle(ErrorType errorType) => errorType switch
     {
         ErrorType.BadRequest         => "Bad Request",
+        ErrorType.Unauthorized       => "Unauthorized",
         ErrorType.NotFound           => "Not Found",
         ErrorType.Conflict           => "Conflict",
         ErrorType.ServiceUnavailable => "Service Unavailable",

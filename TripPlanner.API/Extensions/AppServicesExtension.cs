@@ -22,6 +22,8 @@ public static class AppServicesExtension
         services.AddScoped<IRegisterUserUseCase, RegisterUserUseCase>();
         services.AddScoped<ILoginUserUseCase, LoginUserUseCase>();
         services.AddScoped<ILogoutUseCase, LogoutUseCase>();
+        services.AddScoped<IVerifyEmailUseCase, VerifyEmailUseCase>();
+        services.AddScoped<IResendVerificationEmailUseCase, ResendVerificationEmailUseCase>();
 
         services.AddScoped<IGetTripUseCase, GetTripUseCase>();
         services.AddScoped<IGetAllTripsUseCase, GetAllTripsUseCase>();

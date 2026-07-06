@@ -12,6 +12,8 @@ public static class AuthEndpoints
         group.MapPost("/register", Register);
         group.MapPost("/login", Login);
         group.MapPost("/logout", Logout).RequireAuthorization();
+        group.MapGet("/verify-email", VerifyEmail);
+        group.MapPost("/resend-verification", ResendVerification);
         return group;
     }
 
@@ -22,6 +24,18 @@ public static class AuthEndpoints
     }
 
     private static async Task<IResult> Login(LoginRequest request, ILoginUserUseCase useCase, CancellationToken cancellationToken)
+    {
+        var result = await useCase.ExecuteAsync(request, cancellationToken);
+        return result.ToResponse(onSuccess => Results.Ok(result.Data));
+    }
+
+    private static async Task<IResult> VerifyEmail(string? token, IVerifyEmailUseCase useCase, CancellationToken cancellationToken)
+    {
+        var result = await useCase.ExecuteAsync(token ?? string.Empty, cancellationToken);
+        return result.ToResponse(onSuccess => Results.Ok(result.Data));
+    }
+
+    private static async Task<IResult> ResendVerification(ResendVerificationRequest request, IResendVerificationEmailUseCase useCase, CancellationToken cancellationToken)
     {
         var result = await useCase.ExecuteAsync(request, cancellationToken);
         return result.ToResponse(onSuccess => Results.Ok(result.Data));

@@ -6,6 +6,7 @@ using TripPlanner.Application.Interfaces.Mapping;
 using TripPlanner.Application.Interfaces.Repositories;
 using TripPlanner.Application.Interfaces.Services;
 using TripPlanner.Infrastructure.Data;
+using TripPlanner.Infrastructure.Email;
 using TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
 using TripPlanner.Infrastructure.Mappings;
 using TripPlanner.Infrastructure.Persistence;
@@ -43,6 +44,12 @@ public static class InfrastructureServicesExtension
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddSingleton<ITokenBlacklist, InMemoryTokenBlacklist>();
+
+        services.Configure<EmailSettings>(options =>
+            configuration.GetSection(EmailSettings.SectionName).Bind(options));
+
+        services.AddSingleton<IVerificationTokenService, VerificationTokenService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
 
         services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
         services.AddScoped<IApplicationMapper, ApplicationMapper>();

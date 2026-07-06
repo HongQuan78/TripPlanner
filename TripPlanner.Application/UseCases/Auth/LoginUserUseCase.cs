@@ -17,7 +17,12 @@ public class LoginUserUseCase(
 
         if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
         {
-            return Result<AuthResponse>.Failure(ErrorType.BadRequest, "Invalid email or password.");
+            return Result<AuthResponse>.Failure(ErrorType.Unauthorized, "Invalid email or password.");
+        }
+
+        if (!user.IsEmailVerified)
+        {
+            return Result<AuthResponse>.Failure(ErrorType.Unauthorized, "Please verify your email address before logging in.");
         }
 
         var token = tokenService.GenerateToken(user);

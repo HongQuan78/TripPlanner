@@ -37,6 +37,8 @@ JwtSettings__SecretKey=<hs256-secret-key>
 OpenTripMapSettings__ApiKey=<opentripmap-api-key>
 ```
 
+Email verification uses SMTP settings from the `EmailSettings` section. `appsettings.json` defaults target a local dev sink (`localhost:1025`, no TLS, e.g. Mailpit or smtp4dev); override via `EmailSettings__*` variables for real delivery.
+
 ## Architecture
 
 This is a **Clean Architecture** ASP.NET Core 10.0 solution with five projects:

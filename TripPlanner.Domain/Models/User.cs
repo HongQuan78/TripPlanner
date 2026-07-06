@@ -6,6 +6,9 @@ public class User
     public string Email { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
     public string Role { get; private set; } = string.Empty;
+    public bool IsEmailVerified { get; private set; }
+    public string? VerificationTokenHash { get; private set; }
+    public DateTime? VerificationTokenExpiresAt { get; private set; }
 
     private User() { }
 
@@ -14,5 +17,18 @@ public class User
         Email = email;
         PasswordHash = passwordHash;
         Role = role;
+    }
+
+    public void SetVerificationToken(string tokenHash, DateTime expiresAtUtc)
+    {
+        VerificationTokenHash = tokenHash;
+        VerificationTokenExpiresAt = expiresAtUtc;
+    }
+
+    public void VerifyEmail()
+    {
+        IsEmailVerified = true;
+        VerificationTokenHash = null;
+        VerificationTokenExpiresAt = null;
     }
 }

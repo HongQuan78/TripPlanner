@@ -4,36 +4,29 @@ using TripPlanner.Application.DTOs.Requests;
 using TripPlanner.Application.DTOs.Responses;
 using TripPlanner.Application.Interfaces.Repositories;
 using TripPlanner.Application.Interfaces.Services;
-using TripPlanner.Domain.Models;
 
 namespace TripPlanner.Application.UseCases.Auth;
 
-public class RegisterUserUseCase(
+public class ResendVerificationEmailUseCase(
     IUserRepository userRepository,
-    IPasswordHasher passwordHasher,
     IVerificationTokenService verificationTokenService,
     IEmailSender emailSender,
     IUnitOfWork unitOfWork,
-    ILogger<RegisterUserUseCase> logger) : IRegisterUserUseCase
+    ILogger<ResendVerificationEmailUseCase> logger) : IResendVerificationEmailUseCase
 {
     private const string GenericMessage = "Check your inbox for a link to verify your email address.";
 
-    public async Task<Result<MessageResponse>> ExecuteAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<MessageResponse>> ExecuteAsync(ResendVerificationRequest request, CancellationToken cancellationToken = default)
     {
-        var existing = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
+        var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
 
-        if (existing is not null)
+        if (user is null || user.IsEmailVerified)
         {
             return Result<MessageResponse>.Success(new MessageResponse { Message = GenericMessage });
         }
 
-        var passwordHash = passwordHasher.Hash(request.Password);
-        var user = new User(request.Email, passwordHash);
-
         var token = verificationTokenService.Generate();
         user.SetVerificationToken(token.TokenHash, token.ExpiresAtUtc);
-
-        userRepository.Add(user);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         try
