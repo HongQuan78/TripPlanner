@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Layout
 
-The .NET solution lives entirely under `BE/` (`BE/TripPlanner.slnx`). The repo root also contains `epic/` and `requirement/` (feature docs and source requirements — both gitignored) and `docs/`.
+The .NET solution lives entirely under `BE/` (`BE/TripPlanner.slnx`). The frontend web app (React + TypeScript + Vite) lives under `FE/`. The repo root also contains `epic/` and `requirement/` (feature docs and source requirements — both gitignored) and `docs/`.
 
 ## Commands
 
@@ -35,6 +35,18 @@ dotnet ef database update --project BE/TripPlanner.Infrastructure --startup-proj
 
 The API exposes Swagger UI at `/swagger` when running in Development mode.
 
+Frontend commands run from the `FE/` directory:
+
+```bash
+npm install        # install dependencies
+npm run dev        # start the Vite dev server (http://localhost:5173)
+npm run build      # type-check and build for production
+npm test           # run unit tests (Vitest)
+npm run lint       # run Oxlint
+```
+
+The frontend reads the API base URL from `VITE_API_BASE_URL` (`FE/.env.development`, default `http://localhost:5000`). See `FE/README.md` for details.
+
 Environment variables are loaded via **DotNetEnv**: at startup `Program.cs` walks up from the working directory until it finds a `.env` file (see `BE/.env.example`). Required variables:
 
 ```
@@ -50,7 +62,7 @@ Email verification uses SMTP settings from the `EmailSettings` section. `appsett
 This is a **Clean Architecture** ASP.NET Core 10.0 solution with five projects:
 
 - **`TripPlanner.Domain`** — Entity models only; no dependencies. Contains `Trip`, `TripDay`, `Destination` (abstract base), `Landmark`, `Restaurant`, and `User`.
-- **`TripPlanner.Application`** — Use cases, interfaces, DTOs, and the Result pattern. No framework dependencies.
+- **`TripPlanner.Application`** — Use cases, interfaces, DTOs, and the Result pattern. Its only framework dependency is `Microsoft.Extensions.Logging.Abstractions`.
 - **`TripPlanner.Infrastructure`** — EF Core (PostgreSQL), repositories, AutoMapper, JWT token service, password hasher, verification token service, MailKit SMTP email sender, and external HTTP service clients (OpenTripMap). Implements interfaces defined in Application.
 - **`TripPlanner.API`** — HTTP layer: Minimal API endpoints, validators, middleware, and DI wiring. No business logic.
 - **`TripPlanner.Tests`** — xUnit unit tests using NSubstitute for mocking.
@@ -59,7 +71,7 @@ This is a **Clean Architecture** ASP.NET Core 10.0 solution with five projects:
 
 ```
 API → Infrastructure → Application → Domain
-Tests → Application, Domain
+Tests → API, Infrastructure, Application, Domain
 ```
 
 Nothing in Application or Domain may reference API or Infrastructure types.
@@ -96,7 +108,7 @@ Application/UseCases/
 
 **JWT authentication:** `POST /api/auth/login` returns an `AuthResponse` containing a Bearer token; `POST /api/auth/logout` revokes the current token by adding its `jti` claim to `ITokenBlacklist` (in-memory singleton), and `JwtExtension` rejects blacklisted tokens on validation. The `/api/trips` group requires authorization (`RequireAuthorization()`); `/api/locations` and `/api/destinations` are anonymous. JWT is configured in `JwtExtension.AddJwtAuthentication()` using `JwtSettings` bound from configuration.
 
-**Email verification:** `POST /api/auth/register` does not return a token — it returns a generic `MessageResponse` (identical for fresh and duplicate emails, to avoid account enumeration) and sends a verification email. Login is rejected with `Unauthorized` until the email is verified. `GET /api/auth/verify-email` consumes the token; `POST /api/auth/resend-verification` reissues it. `IVerificationTokenService` generates 32-byte base64url tokens stored SHA-256-hashed at rest; `IEmailSender` is implemented by MailKit `SmtpEmailSender` in `Infrastructure/Email/`. An SMTP failure after the user is committed is logged and still returns the generic success response.
+**Email verification:** `POST /api/auth/register` does not return a token — it returns a generic `MessageResponse` (identical for fresh and duplicate emails, to avoid account enumeration) and sends a verification email. Login is rejected with `Unauthorized` and the same generic `Invalid email or password.` message until the email is verified — there is no distinct verify-first message. `GET /api/auth/verify-email` consumes the token; `POST /api/auth/resend-verification` reissues it, subject to a per-user 60-second cooldown during which the generic success is returned without regenerating the token or sending an email. `IVerificationTokenService` generates 32-byte base64url tokens stored SHA-256-hashed at rest; `IEmailSender` is implemented by MailKit `SmtpEmailSender` in `Infrastructure/Email/`. An SMTP failure after the user is committed is logged and still returns the generic success response.
 
 **Middleware:** `ExceptionHandlingMiddleware` implements `IExceptionHandler` and returns structured ProblemDetails with a correlation ID. `LoggingMiddleware` logs all requests and responses and generates the correlation ID. Both are registered in `Program.cs`.
 

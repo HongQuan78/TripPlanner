@@ -1,0 +1,29 @@
+# Sprint status for tripplanner
+# Generated: 2026-07-12
+#
+# STATUS DEFINITIONS:
+#   backlog        - identified but not yet contextualized into a story file
+#   ready-for-dev  - story file exists with full context; can be picked up by dev-story
+#   in-progress    - actively being implemented
+#   review         - implementation complete, awaiting code review
+#   done           - reviewed and accepted
+#
+# Epics 1-4 (backend) were implemented before sprint tracking existed and are
+# recorded as done for completeness. Epic 5 is the frontend web app; see
+# epic/epic-5-frontend-web-app.md and the 5-*.md story files in this folder.
+
+project: tripplanner
+last_updated: 2026-07-12
+
+development_status:
+  epic-1: done
+  epic-2: done
+  epic-3: done
+  epic-4: done
+  epic-5: in-progress
+  5-1-frontend-scaffold-and-api-client: done
+  5-2-authentication-ui: review
+  5-6-ui-modernization-cute-light-blue: review
+  5-3-destination-discovery: done
+  5-4-destination-details: review
+  5-5-trip-planner-ui: review
