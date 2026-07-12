@@ -17,8 +17,9 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Role).IsRequired().HasMaxLength(50);
         builder.Property(u => u.IsEmailVerified).IsRequired();
         builder.Property(u => u.VerificationTokenHash).HasMaxLength(64);
+        builder.Property(u => u.LastVerificationEmailSentAt);
 
         builder.HasIndex(u => u.Email).IsUnique();
-        builder.HasIndex(u => u.VerificationTokenHash);
+        builder.HasIndex(u => u.VerificationTokenHash).IsUnique();
     }
 }

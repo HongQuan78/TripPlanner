@@ -9,6 +9,7 @@ public class User
     public bool IsEmailVerified { get; private set; }
     public string? VerificationTokenHash { get; private set; }
     public DateTime? VerificationTokenExpiresAt { get; private set; }
+    public DateTime? LastVerificationEmailSentAt { get; private set; }
 
     private User() { }
 
@@ -23,6 +24,11 @@ public class User
     {
         VerificationTokenHash = tokenHash;
         VerificationTokenExpiresAt = expiresAtUtc;
+    }
+
+    public void RecordVerificationEmailSent(DateTime sentAtUtc)
+    {
+        LastVerificationEmailSentAt = sentAtUtc;
     }
 
     public void VerifyEmail()

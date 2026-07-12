@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="NSubstitute" Version="5.3.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -18,8 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TripPlanner.API\TripPlanner.API.csproj" />
     <ProjectReference Include="..\TripPlanner.Application\TripPlanner.Application.csproj" />
     <ProjectReference Include="..\TripPlanner.Domain\TripPlanner.Domain.csproj" />
+    <ProjectReference Include="..\TripPlanner.Infrastructure\TripPlanner.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

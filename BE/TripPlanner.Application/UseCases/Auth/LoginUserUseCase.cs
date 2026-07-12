@@ -22,7 +22,7 @@ public class LoginUserUseCase(
 
         if (!user.IsEmailVerified)
         {
-            return Result<AuthResponse>.Failure(ErrorType.Unauthorized, "Please verify your email address before logging in.");
+            return Result<AuthResponse>.Failure(ErrorType.Unauthorized, "Invalid email or password.");
         }
 
         var token = tokenService.GenerateToken(user);

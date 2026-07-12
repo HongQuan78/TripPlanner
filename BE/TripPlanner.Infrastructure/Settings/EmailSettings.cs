@@ -12,4 +12,5 @@ public sealed class EmailSettings
     public string FromName { get; init; } = string.Empty;
     public string VerificationUrlBase { get; init; } = string.Empty;
     public int TokenExpiryHours { get; init; } = 24;
+    public int TimeoutSeconds { get; init; } = 10;
 }

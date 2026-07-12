@@ -3,6 +3,7 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Xunit;
 using TripPlanner.Application.Common;
+using TripPlanner.Application.Common.Exceptions;
 using TripPlanner.Application.DTOs.Requests;
 using TripPlanner.Application.Interfaces.Repositories;
 using TripPlanner.Application.Interfaces.Services;
@@ -119,7 +120,7 @@ public class AuthServiceTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal(ErrorType.Unauthorized, result.Error!.ErrorType);
-        Assert.Equal("Please verify your email address before logging in.", result.Error.Description);
+        Assert.Equal("Invalid email or password.", result.Error.Description);
     }
 
     [Fact]
@@ -256,5 +257,129 @@ public class AuthServiceTests
         Assert.True(result.IsSuccess);
         await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
         await _emailSender.DidNotReceive().SendVerificationEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ResendVerificationAsync_WithinCooldown_ReturnsGenericSuccessWithoutRegeneratingOrSending()
+    {
+        var user = new User("user@example.com", "hash");
+        user.SetVerificationToken("old-hash", DateTime.UtcNow.AddHours(1));
+        user.RecordVerificationEmailSent(DateTime.UtcNow.AddSeconds(-10));
+        var request = new ResendVerificationRequest { Email = "user@example.com" };
+        _userRepository.GetByEmailAsync(request.Email, Arg.Any<CancellationToken>()).Returns(user);
+
+        var result = await ResendUseCase().ExecuteAsync(request);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("old-hash", user.VerificationTokenHash);
+        _verificationTokenService.DidNotReceive().Generate();
+        await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _emailSender.DidNotReceive().SendVerificationEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ResendVerificationAsync_CooldownElapsed_RegeneratesTokenSendsEmailAndStampsSentAt()
+    {
+        var user = new User("user@example.com", "hash");
+        user.SetVerificationToken("old-hash", DateTime.UtcNow.AddHours(1));
+        user.RecordVerificationEmailSent(DateTime.UtcNow.AddSeconds(-61));
+        var previousSentAt = user.LastVerificationEmailSentAt;
+        var request = new ResendVerificationRequest { Email = "user@example.com" };
+        _userRepository.GetByEmailAsync(request.Email, Arg.Any<CancellationToken>()).Returns(user);
+        _verificationTokenService.Generate().Returns(new VerificationToken("new-raw", "new-hash", DateTime.UtcNow.AddHours(24)));
+
+        var result = await ResendUseCase().ExecuteAsync(request);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("new-hash", user.VerificationTokenHash);
+        Assert.NotNull(user.LastVerificationEmailSentAt);
+        Assert.True(user.LastVerificationEmailSentAt > previousSentAt);
+        await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _emailSender.Received(1).SendVerificationEmailAsync(request.Email, "new-raw", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RegisterAsync_ConcurrentDuplicateEmail_ReturnsGenericSuccessWithoutSending()
+    {
+        var request = new RegisterRequest { Email = "new@example.com", Password = "Password1" };
+        _userRepository.GetByEmailAsync(request.Email, Arg.Any<CancellationToken>()).Returns((User?)null);
+        _passwordHasher.Hash(request.Password).Returns("hashed");
+        _verificationTokenService.Generate().Returns(new VerificationToken("raw-token", "token-hash", DateTime.UtcNow.AddHours(24)));
+        _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
+            .ThrowsAsync(new UniqueConstraintViolationException("duplicate", new InvalidOperationException()));
+
+        var result = await RegisterUseCase().ExecuteAsync(request);
+
+        Assert.True(result.IsSuccess);
+        Assert.False(string.IsNullOrEmpty(result.Data!.Message));
+        await _emailSender.DidNotReceive().SendVerificationEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RegisterAsync_EmailSendCancelled_PropagatesOperationCanceledException()
+    {
+        var request = new RegisterRequest { Email = "new@example.com", Password = "Password1" };
+        _userRepository.GetByEmailAsync(request.Email, Arg.Any<CancellationToken>()).Returns((User?)null);
+        _passwordHasher.Hash(request.Password).Returns("hashed");
+        _verificationTokenService.Generate().Returns(new VerificationToken("raw-token", "token-hash", DateTime.UtcNow.AddHours(24)));
+        _emailSender.SendVerificationEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new OperationCanceledException());
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => RegisterUseCase().ExecuteAsync(request));
+    }
+
+    [Fact]
+    public async Task ResendVerificationAsync_EmailSendCancelled_PropagatesOperationCanceledException()
+    {
+        var user = new User("user@example.com", "hash");
+        var request = new ResendVerificationRequest { Email = "user@example.com" };
+        _userRepository.GetByEmailAsync(request.Email, Arg.Any<CancellationToken>()).Returns(user);
+        _verificationTokenService.Generate().Returns(new VerificationToken("new-raw", "new-hash", DateTime.UtcNow.AddHours(24)));
+        _emailSender.SendVerificationEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new OperationCanceledException());
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => ResendUseCase().ExecuteAsync(request));
+    }
+
+    [Fact]
+    public async Task VerifyEmailAsync_NullExpiry_ReturnsBadRequest()
+    {
+        var user = new User("user@example.com", "hash");
+        _verificationTokenService.Hash("raw-token").Returns("token-hash");
+        _userRepository.GetByVerificationTokenHashAsync("token-hash", Arg.Any<CancellationToken>()).Returns(user);
+
+        var result = await VerifyEmailUseCase().ExecuteAsync("raw-token");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.BadRequest, result.Error!.ErrorType);
+        Assert.Equal("Invalid or expired verification token.", result.Error.Description);
+        Assert.False(user.IsEmailVerified);
+    }
+
+    [Fact]
+    public async Task VerifyEmailAsync_WhitespaceToken_ReturnsBadRequestWithoutRepositoryLookup()
+    {
+        var result = await VerifyEmailUseCase().ExecuteAsync("   ");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.BadRequest, result.Error!.ErrorType);
+        await _userRepository.DidNotReceive().GetByVerificationTokenHashAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ResendVerificationAsync_EmailSendFails_StillReturnsGenericSuccess()
+    {
+        var user = new User("user@example.com", "hash");
+        var request = new ResendVerificationRequest { Email = "user@example.com" };
+        _userRepository.GetByEmailAsync(request.Email, Arg.Any<CancellationToken>()).Returns(user);
+        _verificationTokenService.Generate().Returns(new VerificationToken("new-raw", "new-hash", DateTime.UtcNow.AddHours(24)));
+        _emailSender.SendVerificationEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("smtp down"));
+
+        var result = await ResendUseCase().ExecuteAsync(request);
+
+        Assert.True(result.IsSuccess);
+        Assert.False(string.IsNullOrEmpty(result.Data!.Message));
+        await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }

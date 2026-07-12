@@ -45,8 +45,14 @@ public static class InfrastructureServicesExtension
         services.AddScoped<ITokenService, TokenService>();
         services.AddSingleton<ITokenBlacklist, InMemoryTokenBlacklist>();
 
-        services.Configure<EmailSettings>(options =>
-            configuration.GetSection(EmailSettings.SectionName).Bind(options));
+        services.AddOptions<EmailSettings>()
+            .Bind(configuration.GetSection(EmailSettings.SectionName))
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.SmtpHost), "EmailSettings:SmtpHost must be configured.")
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.FromAddress), "EmailSettings:FromAddress must be configured.")
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.VerificationUrlBase), "EmailSettings:VerificationUrlBase must be configured.")
+            .Validate(settings => settings.TokenExpiryHours > 0, "EmailSettings:TokenExpiryHours must be greater than zero.")
+            .Validate(settings => settings.TimeoutSeconds > 0, "EmailSettings:TimeoutSeconds must be greater than zero.")
+            .ValidateOnStart();
 
         services.AddSingleton<IVerificationTokenService, VerificationTokenService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();

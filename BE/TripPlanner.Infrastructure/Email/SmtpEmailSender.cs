@@ -29,6 +29,7 @@ public class SmtpEmailSender(IOptions<EmailSettings> options) : IEmailSender
         }.ToMessageBody();
 
         using var client = new SmtpClient();
+        client.Timeout = settings.TimeoutSeconds * 1000;
         var socketOptions = settings.UseStartTls ? SecureSocketOptions.StartTls : SecureSocketOptions.None;
         await client.ConnectAsync(settings.SmtpHost, settings.SmtpPort, socketOptions, cancellationToken);
 

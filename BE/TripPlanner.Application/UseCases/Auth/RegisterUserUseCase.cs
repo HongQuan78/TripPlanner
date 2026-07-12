@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TripPlanner.Application.Common;
+using TripPlanner.Application.Common.Exceptions;
 using TripPlanner.Application.DTOs.Requests;
 using TripPlanner.Application.DTOs.Responses;
 using TripPlanner.Application.Interfaces.Repositories;
@@ -32,15 +33,24 @@ public class RegisterUserUseCase(
 
         var token = verificationTokenService.Generate();
         user.SetVerificationToken(token.TokenHash, token.ExpiresAtUtc);
+        user.RecordVerificationEmailSent(DateTime.UtcNow);
 
         userRepository.Add(user);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (UniqueConstraintViolationException)
+        {
+            return Result<MessageResponse>.Success(new MessageResponse { Message = GenericMessage });
+        }
 
         try
         {
             await emailSender.SendVerificationEmailAsync(user.Email, token.RawToken, cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Failed to send verification email for user {UserId}.", user.Id);
         }
