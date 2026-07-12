@@ -1,0 +1,150 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.headerRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--color-ink);
+}
+
+.dates {
+  color: var(--color-ink-muted);
+}
+
+.edit {
+  padding: 0.55rem 1.4rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.edit:hover {
+  background: var(--color-border);
+}
+
+.days {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.day {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dayHeading {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--color-primary-dark);
+}
+
+.emptyDay {
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.rowName {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.rowCategory {
+  padding: 0.15rem 0.7rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.rowRating {
+  color: var(--color-primary-strong);
+  letter-spacing: 0.1em;
+}
+
+.noRating {
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+}
+
+.remove {
+  margin-left: auto;
+  padding: 0.35rem 0.9rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.remove:hover {
+  opacity: 0.8;
+}
+
+.loading {
+  color: var(--color-ink-muted);
+}
+
+.retry {
+  padding: 0.5rem 1.4rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.retry:hover {
+  background: var(--color-border);
+}

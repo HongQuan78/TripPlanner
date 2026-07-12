@@ -1,0 +1,50 @@
+:root {
+  --color-primary: #38bdf8;
+  --color-primary-strong: #0ea5e9;
+  --color-primary-dark: #0369a1;
+  --color-primary-soft: #e0f2fe;
+  --color-bg: #f0f9ff;
+  --color-surface: #ffffff;
+  --color-ink: #0f172a;
+  --color-ink-muted: #64748b;
+  --color-border: #bae6fd;
+  --color-danger: #e11d48;
+  --color-danger-soft: #ffe4e6;
+  --color-success: #059669;
+  --color-success-soft: #d1fae5;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.25rem;
+  --radius-full: 999px;
+  --shadow-soft: 0 4px 16px rgba(14, 165, 233, 0.12);
+  --shadow-lift: 0 8px 24px rgba(14, 165, 233, 0.18);
+  --font-sans: 'Nunito', system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  color: var(--color-ink);
+  background-color: var(--color-bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--color-bg);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.01em;
+  font-weight: 800;
+}
+
+a {
+  color: var(--color-primary-dark);
+}

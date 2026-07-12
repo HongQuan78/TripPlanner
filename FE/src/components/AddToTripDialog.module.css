@@ -1,0 +1,105 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font: inherit;
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.option:hover:enabled {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.option:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.optionName {
+  font-weight: 700;
+}
+
+.optionMeta {
+  font-size: 0.85rem;
+  color: var(--color-ink-muted);
+}
+
+.back {
+  align-self: flex-start;
+  padding: 0.35rem 1rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.back:hover {
+  background: var(--color-border);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.emptyEmoji {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.emptyText {
+  margin: 0;
+  color: var(--color-ink-muted);
+}
+
+.createLink {
+  padding: 0.55rem 1.4rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.createLink:hover {
+  background: var(--color-primary-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lift);
+}
+
+.loading {
+  margin: 0;
+  color: var(--color-ink-muted);
+}
