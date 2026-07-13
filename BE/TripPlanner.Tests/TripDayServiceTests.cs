@@ -146,10 +146,17 @@ public class TripDayServiceTests
     }
 
     [Fact]
-    public async Task AddDestinationToTripDayAsync_XidNotImported_CreatesDestinationFromProviderDetails()
+    public async Task AddDestinationToTripDayAsync_XidNotImported_CreatesLandmarkFromProviderDetails()
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var details = new DestinationDetailsResponse { Xid = "W123", Name = "Eiffel Tower", OpeningHours = "9am-11pm" };
+        var details = new DestinationDetailsResponse
+        {
+            Xid = "W123",
+            Name = "Eiffel Tower",
+            Category = "architecture",
+            Rating = 3,
+            OpeningHours = "9am-11pm"
+        };
         var expected = new TripDayResponse { Day = new DateOnly(2024, 6, 1) };
 
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
@@ -161,9 +168,46 @@ public class TripDayServiceTests
 
         Assert.True(result.IsSuccess);
         var added = Assert.Single(trip.Days.First().Destinations);
-        Assert.Equal("Eiffel Tower", added.Name);
-        Assert.Equal("W123", added.ExternalId);
+        var landmark = Assert.IsType<Landmark>(added);
+        Assert.Equal("Eiffel Tower", landmark.Name);
+        Assert.Equal("W123", landmark.ExternalId);
+        Assert.Equal("Landmark", landmark.Category);
+        Assert.Equal(3, landmark.Rating);
         _destinationRepository.Received(1).Add(Arg.Is<Destination>(x => x.ExternalId == "W123"));
+        await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AddDestinationToTripDayAsync_XidNotImported_CreatesRestaurantFromProviderDetails()
+    {
+        var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
+        var details = new DestinationDetailsResponse
+        {
+            Xid = "W456",
+            Name = "Pho Corner",
+            Category = "foods",
+            Rating = 2,
+            OpeningHours = "8am-9pm"
+        };
+        var expected = new TripDayResponse { Day = new DateOnly(2024, 6, 1) };
+
+        _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
+        _destinationRepository.GetByExternalIdAsync("W456", Arg.Any<CancellationToken>()).Returns((Destination?)null);
+        _destinationDetailsService.GetDetailsAsync("W456", Arg.Any<CancellationToken>()).Returns(details);
+        _mapper.MapToTripDayResponse(Arg.Any<TripDay>()).Returns(expected);
+
+        var result = await AddUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), new AddDestinationToDayRequest { Xid = "W456" }, 1);
+
+        Assert.True(result.IsSuccess);
+        var added = Assert.Single(trip.Days.First().Destinations);
+        var restaurant = Assert.IsType<Restaurant>(added);
+        Assert.Equal("Pho Corner", restaurant.Name);
+        Assert.Equal("W456", restaurant.ExternalId);
+        Assert.Equal("Restaurant", restaurant.Category);
+        Assert.Equal("foods", restaurant.CuisineType);
+        Assert.False(restaurant.IsHalalFriendly);
+        Assert.Equal(2, restaurant.Rating);
+        _destinationRepository.Received(1).Add(Arg.Is<Destination>(x => x.ExternalId == "W456"));
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 

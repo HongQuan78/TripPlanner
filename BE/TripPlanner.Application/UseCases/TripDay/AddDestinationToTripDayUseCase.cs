@@ -1,6 +1,7 @@
 using TripPlanner.Application.Common;
 using TripPlanner.Application.DTOs.Requests;
 using TripPlanner.Application.DTOs.Responses;
+using TripPlanner.Application.Helpers;
 using TripPlanner.Application.Interfaces.Mapping;
 using TripPlanner.Application.Interfaces.Repositories;
 using TripPlanner.Application.Interfaces.Services;
@@ -94,7 +95,11 @@ public class AddDestinationToTripDayUseCase(
                 return Result<Domain.Models.Destination>.Failure(ErrorType.NotFound, "Destination Not Found");
             }
 
-            var imported = new Landmark(details.Name, 0, details.OpeningHours ?? string.Empty, details.Xid);
+            var rating = details.Rating ?? 0;
+            Domain.Models.Destination imported = DestinationCategoryHelper.IsRestaurantCategory(details.Category)
+                ? new Restaurant(details.Name, rating, details.Category ?? "Unknown", false, details.Xid)
+                : new Landmark(details.Name, rating, details.OpeningHours ?? string.Empty, details.Xid);
+
             destinationRepository.Add(imported);
             return Result<Domain.Models.Destination>.Success(imported);
         }

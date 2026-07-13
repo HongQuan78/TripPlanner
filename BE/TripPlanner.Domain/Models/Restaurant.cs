@@ -8,7 +8,7 @@ public class Restaurant : Destination
 
     private Restaurant() { }
 
-    public Restaurant(string name, double rating, string cuisineType, bool isHalalFriendly) : base(name, rating)
+    public Restaurant(string name, double rating, string cuisineType, bool isHalalFriendly, string? externalId = null) : base(name, rating, externalId)
     {
         CuisineType = cuisineType;
         IsHalalFriendly = isHalalFriendly;

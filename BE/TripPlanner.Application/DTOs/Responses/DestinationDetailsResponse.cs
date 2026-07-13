@@ -5,6 +5,7 @@ public sealed record DestinationDetailsResponse
     public string Xid { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public string? Category { get; init; }
+    public double? Rating { get; init; }
     public string? Description { get; init; }
     public List<string> ImageUrls { get; init; } = [];
     public string? Address { get; init; }

@@ -30,6 +30,7 @@ public class OpenTripMapDestinationDetailsService(HttpClient httpClient, IOption
             Xid = place.Xid,
             Name = place.Name,
             Category = PrimaryKind(place.Kinds),
+            Rating = ParseRating(place.Rate),
             Description = NormalizeOptional(place.WikipediaExtracts?.Text),
             ImageUrls = ComposeImageUrls(place),
             Address = ComposeAddress(place.Address),
@@ -37,6 +38,17 @@ public class OpenTripMapDestinationDetailsService(HttpClient httpClient, IOption
             Latitude = place.Point?.Lat,
             Longitude = place.Point?.Lon
         };
+    }
+
+    private static double? ParseRating(string? rate)
+    {
+        if (string.IsNullOrWhiteSpace(rate))
+        {
+            return null;
+        }
+
+        var digits = new string([.. rate.TakeWhile(char.IsDigit)]);
+        return double.TryParse(digits, out var parsed) ? parsed : null;
     }
 
     private static string? PrimaryKind(string? kinds)
