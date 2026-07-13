@@ -7,12 +7,15 @@ using TripPlanner.Infrastructure.Settings;
 
 namespace TripPlanner.Infrastructure.ExternalServices.Resend;
 
-public class ResendEmailSender(IOptions<ResendSettings> options) : IEmailSender
+public class ResendEmailSender(
+    IVerificationEmailContentBuilder contentBuilder,
+    IOptions<ResendSettings> options) : IEmailSender
 {
     public async Task SendVerificationEmailAsync(string toEmail, string rawToken, CancellationToken cancellationToken = default)
     {
         var settings = options.Value;
-        var message = BuildMessage(settings, toEmail, rawToken);
+        var content = contentBuilder.Build(toEmail, rawToken);
+        var message = BuildMessage(content);
 
         using var client = new SmtpClient
         {
@@ -24,22 +27,15 @@ public class ResendEmailSender(IOptions<ResendSettings> options) : IEmailSender
         await client.DisconnectAsync(true, cancellationToken);
     }
 
-    public static MimeMessage BuildMessage(ResendSettings settings, string toEmail, string rawToken)
+    public static MimeMessage BuildMessage(VerificationEmailContent content)
     {
-        var verificationLink = $"{settings.VerificationUrlBase}?token={Uri.EscapeDataString(rawToken)}";
-
         var message = new MimeMessage();
-        message.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
-        message.To.Add(MailboxAddress.Parse(toEmail));
-        message.Subject = "Verify your email address";
+        message.From.Add(new MailboxAddress(content.FromName, content.FromAddress));
+        message.To.Add(MailboxAddress.Parse(content.ToEmail));
+        message.Subject = content.Subject;
         message.Body = new BodyBuilder
         {
-            TextBody =
-                "Welcome to TripPlanner!\n\n" +
-                "Verify your email address by opening this link:\n" +
-                $"{verificationLink}\n\n" +
-                $"This link expires in {settings.TokenExpiryHours} hours. " +
-                "If you did not sign up, you can safely ignore this email."
+            TextBody = content.TextBody
         }.ToMessageBody();
 
         return message;

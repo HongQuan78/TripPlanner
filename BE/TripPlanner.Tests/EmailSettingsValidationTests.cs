@@ -6,7 +6,7 @@ using TripPlanner.Infrastructure.Extensions;
 
 namespace TripPlanner.Tests;
 
-public class ResendSettingsValidationTests
+public class EmailSettingsValidationTests
 {
     private static ServiceProvider BuildProvider(Dictionary<string, string?> overrides)
     {
@@ -46,11 +46,10 @@ public class ResendSettingsValidationTests
     }
 
     [Theory]
-    [InlineData("ResendSettings:ApiKey", "")]
-    [InlineData("ResendSettings:SmtpHost", "")]
-    [InlineData("ResendSettings:SmtpPort", "0")]
-    [InlineData("ResendSettings:TimeoutMilliseconds", "0")]
-    public void StartupValidation_InvalidResendSettings_Throws(string key, string value)
+    [InlineData("EmailSettings:FromAddress", "")]
+    [InlineData("EmailSettings:VerificationUrlBase", "")]
+    [InlineData("EmailSettings:TokenExpiryHours", "0")]
+    public void StartupValidation_InvalidEmailSettings_Throws(string key, string value)
     {
         using var provider = BuildProvider(new Dictionary<string, string?> { [key] = value });
 

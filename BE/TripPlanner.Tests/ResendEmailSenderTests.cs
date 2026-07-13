@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Options;
+using NSubstitute;
 using Xunit;
+using TripPlanner.Application.Interfaces.Services;
 using TripPlanner.Infrastructure.ExternalServices.Resend;
 using TripPlanner.Infrastructure.Settings;
 
@@ -7,13 +9,19 @@ namespace TripPlanner.Tests;
 
 public class ResendEmailSenderTests
 {
+    private static VerificationEmailContent CreateContent() => new(
+        FromAddress: "no-reply@tripplanner.local",
+        FromName: "TripPlanner",
+        ToEmail: "user@example.com",
+        Subject: "Verify your email address",
+        TextBody: "Welcome to TripPlanner!\n\n" +
+            "Verify your email address by opening this link:\n" +
+            "http://localhost:5000/api/auth/verify-email?token=raw-token\n\n" +
+            "This link expires in 24 hours. If you did not sign up, you can safely ignore this email.");
+
     private static ResendSettings CreateSettings() => new()
     {
         ApiKey = "re_test_key",
-        FromAddress = "no-reply@tripplanner.local",
-        FromName = "TripPlanner",
-        VerificationUrlBase = "http://localhost:5000/api/auth/verify-email",
-        TokenExpiryHours = 24,
         SmtpHost = "smtp.resend.com",
         SmtpPort = 587,
         TimeoutMilliseconds = 10000
@@ -22,9 +30,9 @@ public class ResendEmailSenderTests
     [Fact]
     public void BuildMessage_ReturnsExpectedShape()
     {
-        var settings = CreateSettings();
+        var content = CreateContent();
 
-        var message = ResendEmailSender.BuildMessage(settings, "user@example.com", "raw-token");
+        var message = ResendEmailSender.BuildMessage(content);
 
         Assert.Equal("TripPlanner", message.From.Mailboxes.Single().Name);
         Assert.Equal("no-reply@tripplanner.local", message.From.Mailboxes.Single().Address);
@@ -37,18 +45,17 @@ public class ResendEmailSenderTests
     [Fact]
     public async Task SendVerificationEmailAsync_UnreachableSmtpHost_Throws()
     {
-        var settings = CreateSettings();
-        var sender = new ResendEmailSender(Options.Create(new ResendSettings
+        var contentBuilder = Substitute.For<IVerificationEmailContentBuilder>();
+        contentBuilder.Build(Arg.Any<string>(), Arg.Any<string>()).Returns(CreateContent());
+
+        var settings = new ResendSettings
         {
-            ApiKey = settings.ApiKey,
-            FromAddress = settings.FromAddress,
-            FromName = settings.FromName,
-            VerificationUrlBase = settings.VerificationUrlBase,
-            TokenExpiryHours = settings.TokenExpiryHours,
+            ApiKey = "re_test_key",
             SmtpHost = "127.0.0.1",
             SmtpPort = 1,
             TimeoutMilliseconds = 2000
-        }));
+        };
+        var sender = new ResendEmailSender(contentBuilder, Options.Create(settings));
 
         await Assert.ThrowsAnyAsync<Exception>(() =>
             sender.SendVerificationEmailAsync("user@example.com", "raw-token"));

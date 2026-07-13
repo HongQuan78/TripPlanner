@@ -7,7 +7,10 @@ using TripPlanner.Infrastructure.Settings;
 
 namespace TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
 
-public class OpenTripMapDestinationDetailsService(HttpClient httpClient, IOptions<OpenTripMapSettings> options) : IDestinationDetailsService
+public class OpenTripMapDestinationDetailsService(
+    HttpClient httpClient,
+    IOptions<OpenTripMapSettings> options,
+    IWikipediaImageService wikipediaImageService) : IDestinationDetailsService
 {
     public async Task<DestinationDetailsResponse?> GetDetailsAsync(string xid, CancellationToken cancellationToken = default)
     {
@@ -25,6 +28,16 @@ public class OpenTripMapDestinationDetailsService(HttpClient httpClient, IOption
             return null;
         }
 
+        var imageUrls = ComposeImageUrls(place);
+        if (imageUrls.Count == 0 && !string.IsNullOrWhiteSpace(place.Wikipedia))
+        {
+            var thumbnailUrl = await wikipediaImageService.GetThumbnailUrlAsync(place.Wikipedia, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(thumbnailUrl))
+            {
+                imageUrls = [thumbnailUrl];
+            }
+        }
+
         return new DestinationDetailsResponse
         {
             Xid = place.Xid,
@@ -32,7 +45,7 @@ public class OpenTripMapDestinationDetailsService(HttpClient httpClient, IOption
             Category = PrimaryKind(place.Kinds),
             Rating = ParseRating(place.Rate),
             Description = NormalizeOptional(place.WikipediaExtracts?.Text),
-            ImageUrls = ComposeImageUrls(place),
+            ImageUrls = imageUrls,
             Address = ComposeAddress(place.Address),
             Website = NormalizeOptional(place.Url),
             Latitude = place.Point?.Lat,

@@ -2,24 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
 
-internal sealed record OpenTripMapGeonameModel
-{
-    [JsonPropertyName("name")]
-    public string? Name { get; init; }
-
-    [JsonPropertyName("country")]
-    public string? Country { get; init; }
-
-    [JsonPropertyName("lat")]
-    public double Lat { get; init; }
-
-    [JsonPropertyName("lon")]
-    public double Lon { get; init; }
-
-    [JsonPropertyName("partial_match")]
-    public bool? PartialMatch { get; init; }
-}
-
 internal sealed record OpenTripMapFeatureModel
 {
     [JsonPropertyName("xid")]
@@ -60,6 +42,9 @@ internal sealed record OpenTripMapPlaceModel
 
     [JsonPropertyName("wikipedia_extracts")]
     public OpenTripMapWikipediaExtractsModel? WikipediaExtracts { get; init; }
+
+    [JsonPropertyName("wikipedia")]
+    public string? Wikipedia { get; init; }
 
     [JsonPropertyName("address")]
     public OpenTripMapAddressModel? Address { get; init; }

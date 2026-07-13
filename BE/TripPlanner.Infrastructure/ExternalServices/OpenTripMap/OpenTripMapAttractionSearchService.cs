@@ -8,7 +8,10 @@ using TripPlanner.Infrastructure.Settings;
 
 namespace TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
 
-public class OpenTripMapAttractionSearchService(HttpClient httpClient, IOptions<OpenTripMapSettings> options) : IAttractionSearchService
+public class OpenTripMapAttractionSearchService(
+    HttpClient httpClient,
+    IOptions<OpenTripMapSettings> options,
+    IWikipediaImageService wikipediaImageService) : IAttractionSearchService
 {
     private const string DefaultKinds = "interesting_places";
     private const string MinimumRate = "2";
@@ -48,10 +51,16 @@ public class OpenTripMapAttractionSearchService(HttpClient httpClient, IOptions<
                 return attraction;
             }
 
+            var imageUrl = detail.Preview?.Source;
+            if (string.IsNullOrWhiteSpace(imageUrl) && !string.IsNullOrWhiteSpace(detail.Wikipedia))
+            {
+                imageUrl = await wikipediaImageService.GetThumbnailUrlAsync(detail.Wikipedia, cancellationToken);
+            }
+
             return attraction with
             {
                 Rating = detail.Rate,
-                ImageUrl = detail.Preview?.Source,
+                ImageUrl = imageUrl,
                 Kinds = string.IsNullOrWhiteSpace(detail.Kinds) ? attraction.Kinds : SplitKinds(detail.Kinds)
             };
         }

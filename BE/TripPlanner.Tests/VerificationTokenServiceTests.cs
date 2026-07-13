@@ -8,7 +8,7 @@ namespace TripPlanner.Tests;
 public class VerificationTokenServiceTests
 {
     private static VerificationTokenService CreateService(int tokenExpiryHours = 24) =>
-        new(Options.Create(new ResendSettings { TokenExpiryHours = tokenExpiryHours }));
+        new(Options.Create(new EmailSettings { TokenExpiryHours = tokenExpiryHours }));
 
     [Fact]
     public void Generate_HashOfRawTokenMatchesTokenHash()

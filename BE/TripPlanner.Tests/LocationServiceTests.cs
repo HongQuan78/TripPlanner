@@ -136,6 +136,50 @@ public class LocationServiceTests
     }
 
     [Fact]
+    public async Task SearchLocations_MultiResultProviderPayload_ReturnsAllDistinctClassifiedResults()
+    {
+        var parameter = new LocationSearchParameter { Query = "Ho" };
+        var locations = new List<LocationSearchResultResponse>
+        {
+            new() { Name = "Ho Chi Minh City", CountryCode = "VN", Latitude = 10.77, Longitude = 106.72 },
+            new() { Name = "Hong Kong", CountryCode = "CN", Latitude = 22.28, Longitude = 114.16 },
+            new() { Name = "Honolulu", CountryCode = "US", Latitude = 21.3, Longitude = -157.86 }
+        };
+        _geocodingService.SearchAsync("Ho", null, Arg.Any<CancellationToken>()).Returns(locations);
+
+        var result = await SearchUseCase().ExecuteAsync(parameter);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.Data!.Count);
+        Assert.Contains(result.Data, location => location.Name == "Ho Chi Minh City" && location.LocationType == "City");
+        Assert.Contains(result.Data, location => location.Name == "Hong Kong" && location.LocationType == "City");
+        Assert.Contains(result.Data, location => location.Name == "Honolulu" && location.LocationType == "City");
+    }
+
+    [Fact]
+    public async Task SearchLocations_MultiResultProviderPayloadWithDuplicatesAndExcess_DeduplicatesAndCapsAtFive()
+    {
+        var parameter = new LocationSearchParameter { Query = "Ho" };
+        var locations = new List<LocationSearchResultResponse>
+        {
+            new() { Name = "Ho Chi Minh City", CountryCode = "VN", Latitude = 10.77, Longitude = 106.72 },
+            new() { Name = "ho chi minh city", CountryCode = "VN", Latitude = 10.77, Longitude = 106.72 },
+            new() { Name = "Hong Kong", CountryCode = "CN", Latitude = 22.28, Longitude = 114.16 },
+            new() { Name = "Honolulu", CountryCode = "US", Latitude = 21.3, Longitude = -157.86 },
+            new() { Name = "Houston", CountryCode = "US", Latitude = 29.76, Longitude = -95.37 },
+            new() { Name = "Hobart", CountryCode = "AU", Latitude = -42.88, Longitude = 147.33 },
+            new() { Name = "Homel", CountryCode = "BY", Latitude = 52.44, Longitude = 30.98 }
+        };
+        _geocodingService.SearchAsync("Ho", null, Arg.Any<CancellationToken>()).Returns(locations);
+
+        var result = await SearchUseCase().ExecuteAsync(parameter);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(5, result.Data!.Count);
+        Assert.Single(result.Data, location => location.Name == "Ho Chi Minh City");
+    }
+
+    [Fact]
     public async Task SearchLocations_TrimsQueryBeforeSearching()
     {
         var parameter = new LocationSearchParameter { Query = "  Paris  " };
