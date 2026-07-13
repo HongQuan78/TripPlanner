@@ -17,12 +17,24 @@
 project: tripplanner
 last_updated: 2026-07-13
 
+# 2026-07-13: 7-1 picked up for dev-story implementation.
+
 # 2026-07-13: 6-3 picked up for dev-story implementation.
+
+# 2026-07-13: added epic-7 (infra/tech-debt, no formal epic file — scope lives in
+# the story files, same convention as epic-6) and its first story,
+# 7-1-resend-email-integration — swaps SMTP (MailKit) for the Resend HTTP API
+# as the verification-email transport; no change to IEmailSender or the
+# use cases that call it.
 
 # 2026-07-13: added 6-2-backend-code-review-epics-1-4 — code-level review of BE
 # against epic/epic-1..4 (distinct from 6-1's requirement/Sheet1.html traceability audit).
 # 2026-07-13: added 6-3-fix-xid-import-destination-mapping — fixes the High-severity
 # xid-import bug (category/rating loss) found by 6-2's code review.
+
+# 2026-07-13: 7-1-resend-email-integration reopened — scope amended from Resend
+# HTTP API to Resend SMTP relay (smtp.resend.com) at user request; reset from
+# review to ready-for-dev.
 
 development_status:
   epic-1: done
@@ -41,3 +53,5 @@ development_status:
   6-1-backend-requirements-verification: review
   6-2-backend-code-review-epics-1-4: review
   6-3-fix-xid-import-destination-mapping: review
+  epic-7: in-progress
+  7-1-resend-email-integration: review

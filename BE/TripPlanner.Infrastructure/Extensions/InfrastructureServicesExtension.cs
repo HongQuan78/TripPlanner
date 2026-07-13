@@ -6,8 +6,8 @@ using TripPlanner.Application.Interfaces.Mapping;
 using TripPlanner.Application.Interfaces.Repositories;
 using TripPlanner.Application.Interfaces.Services;
 using TripPlanner.Infrastructure.Data;
-using TripPlanner.Infrastructure.Email;
 using TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
+using TripPlanner.Infrastructure.ExternalServices.Resend;
 using TripPlanner.Infrastructure.Mappings;
 using TripPlanner.Infrastructure.Persistence;
 using TripPlanner.Infrastructure.Repositories;
@@ -45,17 +45,19 @@ public static class InfrastructureServicesExtension
         services.AddScoped<ITokenService, TokenService>();
         services.AddSingleton<ITokenBlacklist, InMemoryTokenBlacklist>();
 
-        services.AddOptions<EmailSettings>()
-            .Bind(configuration.GetSection(EmailSettings.SectionName))
-            .Validate(settings => !string.IsNullOrWhiteSpace(settings.SmtpHost), "EmailSettings:SmtpHost must be configured.")
-            .Validate(settings => !string.IsNullOrWhiteSpace(settings.FromAddress), "EmailSettings:FromAddress must be configured.")
-            .Validate(settings => !string.IsNullOrWhiteSpace(settings.VerificationUrlBase), "EmailSettings:VerificationUrlBase must be configured.")
-            .Validate(settings => settings.TokenExpiryHours > 0, "EmailSettings:TokenExpiryHours must be greater than zero.")
-            .Validate(settings => settings.TimeoutSeconds > 0, "EmailSettings:TimeoutSeconds must be greater than zero.")
+        services.AddOptions<ResendSettings>()
+            .Bind(configuration.GetSection(ResendSettings.SectionName))
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.ApiKey), "ResendSettings:ApiKey must be configured.")
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.FromAddress), "ResendSettings:FromAddress must be configured.")
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.VerificationUrlBase), "ResendSettings:VerificationUrlBase must be configured.")
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.SmtpHost), "ResendSettings:SmtpHost must be configured.")
+            .Validate(settings => settings.SmtpPort > 0, "ResendSettings:SmtpPort must be greater than zero.")
+            .Validate(settings => settings.TokenExpiryHours > 0, "ResendSettings:TokenExpiryHours must be greater than zero.")
+            .Validate(settings => settings.TimeoutMilliseconds > 0, "ResendSettings:TimeoutMilliseconds must be greater than zero.")
             .ValidateOnStart();
 
         services.AddSingleton<IVerificationTokenService, VerificationTokenService>();
-        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<IEmailSender, ResendEmailSender>();
 
         services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
         services.AddScoped<IApplicationMapper, ApplicationMapper>();

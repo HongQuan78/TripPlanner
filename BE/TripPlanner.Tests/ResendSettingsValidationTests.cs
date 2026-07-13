@@ -7,21 +7,22 @@ using TripPlanner.Infrastructure.Settings;
 
 namespace TripPlanner.Tests;
 
-public class EmailSettingsValidationTests
+public class ResendSettingsValidationTests
 {
-    private static ServiceProvider BuildProvider(Dictionary<string, string?> emailOverrides)
+    private static ServiceProvider BuildProvider(Dictionary<string, string?> resendOverrides)
     {
         var settings = new Dictionary<string, string?>
         {
             ["ConnectionStrings:DefaultConnection"] = "Host=localhost;Database=test;Username=test;Password=test",
-            ["EmailSettings:SmtpHost"] = "localhost",
-            ["EmailSettings:SmtpPort"] = "1025",
-            ["EmailSettings:FromAddress"] = "no-reply@tripplanner.local",
-            ["EmailSettings:VerificationUrlBase"] = "http://localhost:5000/api/auth/verify-email",
-            ["EmailSettings:TokenExpiryHours"] = "24",
-            ["EmailSettings:TimeoutSeconds"] = "10"
+            ["ResendSettings:ApiKey"] = "re_test_key",
+            ["ResendSettings:FromAddress"] = "no-reply@tripplanner.local",
+            ["ResendSettings:VerificationUrlBase"] = "http://localhost:5000/api/auth/verify-email",
+            ["ResendSettings:TokenExpiryHours"] = "24",
+            ["ResendSettings:SmtpHost"] = "smtp.resend.com",
+            ["ResendSettings:SmtpPort"] = "587",
+            ["ResendSettings:TimeoutMilliseconds"] = "10000"
         };
-        foreach (var (key, value) in emailOverrides)
+        foreach (var (key, value) in resendOverrides)
         {
             settings[key] = value;
         }
@@ -46,11 +47,13 @@ public class EmailSettingsValidationTests
     }
 
     [Theory]
-    [InlineData("EmailSettings:SmtpHost", "")]
-    [InlineData("EmailSettings:FromAddress", "")]
-    [InlineData("EmailSettings:VerificationUrlBase", "")]
-    [InlineData("EmailSettings:TokenExpiryHours", "0")]
-    [InlineData("EmailSettings:TimeoutSeconds", "0")]
+    [InlineData("ResendSettings:ApiKey", "")]
+    [InlineData("ResendSettings:FromAddress", "")]
+    [InlineData("ResendSettings:VerificationUrlBase", "")]
+    [InlineData("ResendSettings:TokenExpiryHours", "0")]
+    [InlineData("ResendSettings:SmtpHost", "")]
+    [InlineData("ResendSettings:SmtpPort", "0")]
+    [InlineData("ResendSettings:TimeoutMilliseconds", "0")]
     public void StartupValidation_InvalidSettings_Throws(string key, string value)
     {
         using var provider = BuildProvider(new Dictionary<string, string?> { [key] = value });

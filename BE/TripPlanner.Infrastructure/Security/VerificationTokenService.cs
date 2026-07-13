@@ -7,7 +7,7 @@ using TripPlanner.Infrastructure.Settings;
 
 namespace TripPlanner.Infrastructure.Security;
 
-public class VerificationTokenService(IOptions<EmailSettings> options) : IVerificationTokenService
+public class VerificationTokenService(IOptions<ResendSettings> options) : IVerificationTokenService
 {
     public VerificationToken Generate()
     {
