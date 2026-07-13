@@ -3,20 +3,8 @@ import type { FormEvent } from 'react';
 import { ApiError } from '../api/client';
 import type { Trip } from '../api/types';
 import { useCreateTrip } from '../hooks/trips';
+import { validateTripForm } from './tripFormValidation';
 import styles from './TripForm.module.css';
-
-export function validateTripForm(name: string, startDate: string, endDate: string): string | null {
-  if (name.trim().length === 0) {
-    return 'Trip name is required.';
-  }
-  if (!startDate || !endDate) {
-    return 'Start and end dates are required.';
-  }
-  if (startDate > endDate) {
-    return 'Start date must be on or before the end date.';
-  }
-  return null;
-}
 
 export default function CreateTripForm({
   onCreated,

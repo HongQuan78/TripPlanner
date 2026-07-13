@@ -22,6 +22,12 @@
   margin: 0 auto;
 }
 
+.inputWrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+
 .input {
   flex: 1;
   padding: 0.6rem 1.1rem;

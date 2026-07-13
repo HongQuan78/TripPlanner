@@ -12,14 +12,26 @@ vi.mock('../api/locations', () => ({
   getDestinationDetails: vi.fn(),
 }));
 
+vi.mock('../api/trips', () => ({
+  getTrips: vi.fn(),
+  getTrip: vi.fn(),
+  createTrip: vi.fn(),
+  updateTrip: vi.fn(),
+  addDestinationToDay: vi.fn(),
+  removeDestinationFromDay: vi.fn(),
+}));
+
 vi.mock('../auth/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
 import { getDestinationDetails } from '../api/locations';
+import { getTrips } from '../api/trips';
 import { useAuth } from '../auth/AuthContext';
+import { AddToTripProvider } from '../trips/AddToTripContext';
 
 const getDestinationDetailsMock = vi.mocked(getDestinationDetails);
+const getTripsMock = vi.mocked(getTrips);
 const useAuthMock = vi.mocked(useAuth);
 
 const fullDetails: DestinationDetails = {
@@ -65,13 +77,15 @@ function renderPage(onAddToTrip?: (details: DestinationDetails) => void) {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/search', '/attractions/W123']} initialIndex={1}>
-        <Routes>
-          <Route path="/search" element={<p>search screen</p>} />
-          <Route
-            path="/attractions/:xid"
-            element={<DestinationDetailsPage onAddToTrip={onAddToTrip} />}
-          />
-        </Routes>
+        <AddToTripProvider>
+          <Routes>
+            <Route path="/search" element={<p>search screen</p>} />
+            <Route
+              path="/attractions/:xid"
+              element={<DestinationDetailsPage onAddToTrip={onAddToTrip} />}
+            />
+          </Routes>
+        </AddToTripProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -79,8 +93,10 @@ function renderPage(onAddToTrip?: (details: DestinationDetails) => void) {
 
 beforeEach(() => {
   getDestinationDetailsMock.mockReset();
+  getTripsMock.mockReset();
   useAuthMock.mockReset();
   setAuthenticated(false);
+  sessionStorage.clear();
 });
 
 describe('DestinationDetailsPage', () => {
@@ -197,6 +213,24 @@ describe('DestinationDetailsPage', () => {
     expect(screen.queryByText(/asked to log in/i)).not.toBeInTheDocument();
     fireEvent.click(button);
     expect(onAddToTrip).toHaveBeenCalledWith(fullDetails);
+  });
+
+  it('opens the trip picker through the provider when no integration prop is supplied', async () => {
+    setAuthenticated(true);
+    getDestinationDetailsMock.mockResolvedValue(fullDetails);
+    getTripsMock.mockResolvedValue([]);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Louvre Museum' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /add to trip/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('heading', { name: /pick a trip/i })).toBeInTheDocument();
   });
 
   it('shows a loading indicator while the details are in flight', () => {

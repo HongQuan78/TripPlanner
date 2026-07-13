@@ -15,6 +15,18 @@ export function useLocationSearch(query: string) {
   });
 }
 
+export function useLocationSuggestions(query: string) {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: ['locationSearch', trimmed],
+    queryFn: () => searchLocations(trimmed),
+    enabled: trimmed.length >= 2,
+    retry: false,
+    staleTime: locationStaleTime,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useAttractions(location: LocationSearchResult | null) {
   return useQuery({
     queryKey: ['attractions', location?.latitude, location?.longitude],

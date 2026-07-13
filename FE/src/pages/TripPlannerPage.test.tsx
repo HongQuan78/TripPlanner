@@ -45,13 +45,13 @@ const trip: Trip = {
   ],
 };
 
-function renderPage() {
+function renderPage(path = '/trips/7') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/trips/7']}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/trips/:id" element={<TripPlannerPage />} />
         </Routes>
@@ -89,6 +89,32 @@ describe('TripPlannerPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/trip not found/i)).toBeInTheDocument();
     });
+  });
+
+  it('shows the not-found state for a malformed trip id without fetching', () => {
+    renderPage('/trips/abc');
+
+    expect(screen.getByText(/trip not found/i)).toBeInTheDocument();
+    expect(getTripMock).not.toHaveBeenCalled();
+  });
+
+  it('shows an error and keeps the destination when removal fails', async () => {
+    getTripMock.mockResolvedValue(trip);
+    removeDestinationFromDayMock.mockRejectedValue(new ApiError(503, 'Service unavailable.'));
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /remove louvre museum/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^remove$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Service unavailable.')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
   });
 
   it('removes a destination after confirming the dialog', async () => {
@@ -147,6 +173,24 @@ describe('TripPlannerPage', () => {
       7,
       { name: 'Paris getaway', startDate: '2026-08-01', endDate: '2026-08-03', confirmed: false },
     ]);
+  });
+
+  it('shows a generic error when saving fails without an API error', async () => {
+    getTripMock.mockResolvedValue(trip);
+    updateTripMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Paris getaway' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /edit trip/i }));
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('opens a confirmation with the server message on 409 and resubmits confirmed', async () => {

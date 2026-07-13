@@ -62,6 +62,12 @@ describe('routes', () => {
     expect(screen.getByRole('heading', { name: /log in/i })).toBeInTheDocument();
   });
 
+  it('redirects an unauthenticated visitor from /trips/:id to login', () => {
+    renderAt('/trips/7');
+
+    expect(screen.getByRole('heading', { name: /log in/i })).toBeInTheDocument();
+  });
+
   it('renders the not-found page for unknown paths', () => {
     renderAt('/definitely/not-a-page');
 

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { Trip } from '../api/types';
 import CreateTripForm from '../components/CreateTripForm';
 import { useTrips } from '../hooks/trips';
-import { formatDateRange } from './dates';
+import { formatDateRange } from '../lib/dates';
 import stateStyles from './PageState.module.css';
 import styles from './TripsPage.module.css';
 

@@ -12,6 +12,10 @@ vi.mock('../api/locations', () => ({
   getAttractions: vi.fn(),
 }));
 
+vi.mock('../trips/AddToTripContext', () => ({
+  useAddToTrip: () => ({ requestAdd: vi.fn() }),
+}));
+
 import { getAttractions, searchLocations } from '../api/locations';
 
 const searchLocationsMock = vi.mocked(searchLocations);
@@ -383,5 +387,152 @@ describe('SearchPage', () => {
     });
     expect(screen.queryByText(/attractions near paris/i)).not.toBeInTheDocument();
     expect(screen.queryByText('Louvre Museum')).not.toBeInTheDocument();
+  });
+
+  function typeInput(value: string) {
+    fireEvent.change(screen.getByRole('searchbox', { name: /search/i }), {
+      target: { value },
+    });
+  }
+
+  function sleep(ms: number) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  describe('auto-suggest', () => {
+    it('shows debounced suggestions with name, country code, and type labels after typing 2+ characters', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity, franceCountry]);
+      renderPage();
+
+      typeInput('p');
+      typeInput('pa');
+      typeInput('par');
+      expect(searchLocationsMock).not.toHaveBeenCalled();
+
+      const listbox = await screen.findByRole('listbox', { name: /location suggestions/i });
+      expect(searchLocationsMock).toHaveBeenCalledTimes(1);
+      expect(searchLocationsMock).toHaveBeenCalledWith('par');
+      const options = within(listbox).getAllByRole('option');
+      expect(options).toHaveLength(2);
+      expect(within(options[0]).getByText('Paris')).toBeInTheDocument();
+      expect(within(options[0]).getByText('FR')).toBeInTheDocument();
+      expect(within(options[0]).getByText('City')).toBeInTheDocument();
+      expect(within(options[1]).getByText('France')).toBeInTheDocument();
+      expect(within(options[1]).getByText('Country')).toBeInTheDocument();
+    });
+
+    it('does not fetch suggestions for fewer than 2 characters', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity]);
+      renderPage();
+
+      typeInput('p');
+      await sleep(400);
+
+      expect(searchLocationsMock).not.toHaveBeenCalled();
+      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+    });
+
+    it('choosing a city suggestion fills the input, closes the dropdown, and loads attractions without refetching the search', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity]);
+      getAttractionsMock.mockResolvedValue([louvre]);
+      renderPage();
+
+      typeInput('pa');
+      const listbox = await screen.findByRole('listbox', { name: /location suggestions/i });
+      fireEvent.mouseDown(within(listbox).getByRole('option'));
+
+      expect(screen.getByRole('searchbox', { name: /search/i })).toHaveValue('Paris');
+      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+      });
+      expect(getAttractionsMock).toHaveBeenCalledWith(parisCity.latitude, parisCity.longitude);
+      expect(searchLocationsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('choosing a country suggestion shows the narrow-to-city prompt and fetches no attractions', async () => {
+      searchLocationsMock.mockResolvedValue([franceCountry]);
+      renderPage();
+
+      typeInput('fr');
+      const listbox = await screen.findByRole('listbox', { name: /location suggestions/i });
+      fireEvent.mouseDown(within(listbox).getByRole('option'));
+
+      expect(
+        screen.getByText(/france is a country — search for a specific city/i),
+      ).toBeInTheDocument();
+      expect(getAttractionsMock).not.toHaveBeenCalled();
+    });
+
+    it('supports keyboard navigation with ArrowDown/ArrowUp and Enter selection', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity, franceCountry]);
+      getAttractionsMock.mockResolvedValue([louvre]);
+      renderPage();
+
+      typeInput('fr');
+      const listbox = await screen.findByRole('listbox', { name: /location suggestions/i });
+      const options = within(listbox).getAllByRole('option');
+      const searchbox = screen.getByRole('searchbox', { name: /search/i });
+
+      fireEvent.keyDown(searchbox, { key: 'ArrowDown' });
+      expect(options[0]).toHaveAttribute('aria-selected', 'true');
+      fireEvent.keyDown(searchbox, { key: 'ArrowDown' });
+      expect(options[1]).toHaveAttribute('aria-selected', 'true');
+      fireEvent.keyDown(searchbox, { key: 'ArrowDown' });
+      expect(options[0]).toHaveAttribute('aria-selected', 'true');
+      fireEvent.keyDown(searchbox, { key: 'ArrowUp' });
+      expect(options[1]).toHaveAttribute('aria-selected', 'true');
+
+      fireEvent.keyDown(searchbox, { key: 'Enter' });
+      expect(searchbox).toHaveValue('France');
+      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+      expect(
+        screen.getByText(/france is a country — search for a specific city/i),
+      ).toBeInTheDocument();
+    });
+
+    it('closes the dropdown on Escape without changing the input', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity]);
+      renderPage();
+
+      typeInput('pa');
+      await screen.findByRole('listbox', { name: /location suggestions/i });
+
+      fireEvent.keyDown(screen.getByRole('searchbox', { name: /search/i }), { key: 'Escape' });
+
+      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('searchbox', { name: /search/i })).toHaveValue('pa');
+    });
+
+    it('fails silently when the suggestion request errors', async () => {
+      searchLocationsMock.mockRejectedValue(new ApiError(503, 'Service unavailable'));
+      renderPage();
+
+      typeInput('pa');
+      await waitFor(() => {
+        expect(searchLocationsMock).toHaveBeenCalledWith('pa');
+      });
+      await sleep(50);
+
+      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+      expect(screen.queryByText(/service unavailable/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument();
+    });
+
+    it('does not reopen the dropdown for the chosen suggestion text', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity]);
+      getAttractionsMock.mockResolvedValue([louvre]);
+      renderPage();
+
+      typeInput('pa');
+      const listbox = await screen.findByRole('listbox', { name: /location suggestions/i });
+      fireEvent.mouseDown(within(listbox).getByRole('option'));
+
+      await sleep(400);
+
+      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+    });
   });
 });

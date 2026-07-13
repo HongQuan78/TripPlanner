@@ -18,6 +18,13 @@
   box-shadow: var(--shadow-lift);
 }
 
+.cardLink {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+}
+
 .image {
   width: 100%;
   height: 9rem;
@@ -38,7 +45,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.9rem 1rem 1.1rem;
+  padding: 0.9rem 1rem 0.25rem;
 }
 
 .name {
@@ -51,17 +58,6 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.rating {
-  color: var(--color-primary-strong);
-  letter-spacing: 0.1em;
-}
-
-.noRating {
-  font-size: 0.8rem;
-  color: var(--color-ink-muted);
-  font-style: italic;
 }
 
 .heritage {
@@ -90,7 +86,7 @@
 
 .addToTrip {
   align-self: flex-start;
-  margin-top: 0.35rem;
+  margin: 0.35rem 1rem 1.1rem;
   padding: 0.35rem 1rem;
   border: none;
   border-radius: var(--radius-full);

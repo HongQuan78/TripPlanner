@@ -4,8 +4,9 @@ import { ApiError } from '../api/client';
 import type { Destination, TripDay } from '../api/types';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EditTripForm from '../components/EditTripForm';
+import StarRating from '../components/StarRating';
 import { useRemoveDestinationFromDay, useTrip } from '../hooks/trips';
-import { formatDate, formatDateRange } from './dates';
+import { formatDate, formatDateRange } from '../lib/dates';
 import stateStyles from './PageState.module.css';
 import styles from './TripPlannerPage.module.css';
 
@@ -16,19 +17,11 @@ function DestinationRow({
   destination: Destination;
   onRemove: (destination: Destination) => void;
 }) {
-  const hasRating = destination.rating >= 1 && destination.rating <= 3;
   return (
     <li className={styles.row}>
       <span className={styles.rowName}>{destination.name}</span>
       <span className={styles.rowCategory}>{destination.category}</span>
-      {hasRating ? (
-        <span className={styles.rowRating} aria-label={`Rated ${destination.rating} of 3`}>
-          {'★'.repeat(destination.rating)}
-          {'☆'.repeat(3 - destination.rating)}
-        </span>
-      ) : (
-        <span className={styles.noRating}>Not rated</span>
-      )}
+      <StarRating rating={destination.rating} />
       <button
         type="button"
         className={styles.remove}
@@ -71,6 +64,7 @@ function DaySection({
 export default function TripPlannerPage() {
   const { id } = useParams();
   const tripId = Number(id);
+  const isValidId = Number.isInteger(tripId) && tripId > 0;
   const trip = useTrip(tripId);
   const removeDestination = useRemoveDestinationFromDay();
   const [editing, setEditing] = useState(false);
@@ -78,6 +72,22 @@ export default function TripPlannerPage() {
     day: TripDay;
     destination: Destination;
   } | null>(null);
+
+  if (!isValidId || (trip.error instanceof ApiError && trip.error.status === 404)) {
+    return (
+      <section className={styles.page}>
+        <div className={stateStyles.state}>
+          <span className={stateStyles.emoji} aria-hidden="true">
+            🙈
+          </span>
+          <h1 className={stateStyles.heading}>Trip not found</h1>
+          <p className={stateStyles.text}>
+            We could not find this trip — it may not exist or it may belong to someone else.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   if (trip.isPending) {
     return (
@@ -88,32 +98,32 @@ export default function TripPlannerPage() {
   }
 
   if (trip.isError) {
-    const isNotFound = trip.error instanceof ApiError && trip.error.status === 404;
     return (
       <section className={styles.page}>
         <div className={stateStyles.state}>
           <span className={stateStyles.emoji} aria-hidden="true">
-            {isNotFound ? '🙈' : '⛅'}
+            ⛅
           </span>
-          <h1 className={stateStyles.heading}>
-            {isNotFound ? 'Trip not found' : 'Service unavailable'}
-          </h1>
+          <h1 className={stateStyles.heading}>Service unavailable</h1>
           <p className={stateStyles.text}>
-            {isNotFound
-              ? 'We could not find this trip — it may not exist or it may belong to someone else.'
-              : 'Something went wrong while loading this trip. Please try again.'}
+            Something went wrong while loading this trip. Please try again.
           </p>
-          {!isNotFound && (
-            <button type="button" className={styles.retry} onClick={() => void trip.refetch()}>
-              Try again
-            </button>
-          )}
+          <button type="button" className={styles.retry} onClick={() => void trip.refetch()}>
+            Try again
+          </button>
         </div>
       </section>
     );
   }
 
   const data = trip.data;
+
+  const removeError =
+    removeDestination.error instanceof ApiError
+      ? removeDestination.error.message
+      : removeDestination.isError
+        ? 'Something went wrong. Please try again.'
+        : null;
 
   function handleConfirmRemoval() {
     if (!pendingRemoval) {
@@ -152,6 +162,8 @@ export default function TripPlannerPage() {
           onCancel={() => setEditing(false)}
         />
       )}
+
+      {removeError && <p className={styles.error}>{removeError}</p>}
 
       <div className={styles.days}>
         {data.tripDays.map((day) => (

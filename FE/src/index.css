@@ -12,6 +12,8 @@
   --color-danger-soft: #ffe4e6;
   --color-success: #059669;
   --color-success-soft: #d1fae5;
+  --color-disabled: #cbd5e1;
+  --color-overlay: rgba(224, 242, 254, 0.65);
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1.25rem;

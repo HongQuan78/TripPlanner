@@ -91,7 +91,7 @@
 }
 
 .submit:disabled {
-  background: #cbd5e1;
+  background: var(--color-disabled);
   cursor: not-allowed;
 }
 

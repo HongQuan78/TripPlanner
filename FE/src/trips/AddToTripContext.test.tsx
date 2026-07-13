@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Trip } from '../api/types';
 import { AddToTripProvider, PENDING_ADD_KEY, useAddToTrip } from './AddToTripContext';
@@ -48,6 +48,11 @@ function setAuthenticated(isAuthenticated: boolean) {
   });
 }
 
+function LoginProbe() {
+  const location = useLocation();
+  return <p data-testid="login-screen">{location.search}</p>;
+}
+
 function Entry() {
   const { requestAdd } = useAddToTrip();
   return (
@@ -67,7 +72,7 @@ function renderWithProvider() {
         <AddToTripProvider>
           <Routes>
             <Route path="/attractions/:xid" element={<Entry />} />
-            <Route path="/login" element={<p>login screen</p>} />
+            <Route path="/login" element={<LoginProbe />} />
           </Routes>
         </AddToTripProvider>
       </MemoryRouter>
@@ -103,7 +108,9 @@ describe('AddToTripProvider', () => {
     fireEvent.click(screen.getByRole('button', { name: /add w123/i }));
 
     expect(sessionStorage.getItem(PENDING_ADD_KEY)).toBe('W123');
-    expect(screen.getByText('login screen')).toBeInTheDocument();
+    expect(screen.getByTestId('login-screen')).toHaveTextContent(
+      'returnTo=%2Fattractions%2FW123',
+    );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 

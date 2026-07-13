@@ -10,9 +10,7 @@ interface AddToTripContextValue {
   requestAdd: (xid: string) => void;
 }
 
-const AddToTripContext = createContext<AddToTripContextValue>({
-  requestAdd: () => {},
-});
+const AddToTripContext = createContext<AddToTripContextValue | null>(null);
 
 export function AddToTripProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -57,5 +55,9 @@ export function AddToTripProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAddToTrip(): AddToTripContextValue {
-  return useContext(AddToTripContext);
+  const value = useContext(AddToTripContext);
+  if (value === null) {
+    throw new Error('useAddToTrip must be used within an AddToTripProvider');
+  }
+  return value;
 }

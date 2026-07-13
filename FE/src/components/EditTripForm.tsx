@@ -4,7 +4,7 @@ import { ApiError } from '../api/client';
 import type { Trip } from '../api/types';
 import { useUpdateTrip } from '../hooks/trips';
 import ConfirmDialog from './ConfirmDialog';
-import { validateTripForm } from './CreateTripForm';
+import { validateTripForm } from './tripFormValidation';
 import styles from './TripForm.module.css';
 
 export default function EditTripForm({
@@ -27,10 +27,15 @@ export default function EditTripForm({
     updateTrip.mutate(
       { name: name.trim(), startDate, endDate, confirmed },
       {
-        onSuccess: onSaved,
+        onSuccess: () => {
+          setConflictMessage(null);
+          onSaved();
+        },
         onError: (error) => {
           if (error instanceof ApiError && error.status === 409) {
             setConflictMessage(error.message);
+          } else {
+            setConflictMessage(null);
           }
         },
       },
@@ -48,9 +53,13 @@ export default function EditTripForm({
   }
 
   const serverError =
-    updateTrip.error instanceof ApiError && updateTrip.error.status !== 409
-      ? updateTrip.error.message
-      : null;
+    updateTrip.error instanceof ApiError
+      ? updateTrip.error.status === 409
+        ? null
+        : updateTrip.error.message
+      : updateTrip.isError
+        ? 'Something went wrong. Please try again.'
+        : null;
   const errorMessage = validationError ?? serverError;
 
   return (
@@ -111,10 +120,7 @@ export default function EditTripForm({
           message={conflictMessage}
           confirmLabel="Confirm"
           pending={updateTrip.isPending}
-          onConfirm={() => {
-            setConflictMessage(null);
-            submit(true);
-          }}
+          onConfirm={() => submit(true)}
           onCancel={() => setConflictMessage(null)}
         />
       )}

@@ -1,3 +1,4 @@
+import Modal from './Modal';
 import styles from './Dialog.module.css';
 
 export default function ConfirmDialog({
@@ -17,25 +18,30 @@ export default function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  function handleClose() {
+    if (pending) {
+      return;
+    }
+    onCancel();
+  }
+
   return (
-    <div className={styles.overlay}>
-      <div className={styles.dialog} role="dialog" aria-modal="true" aria-label={title}>
-        <h2 className={styles.title}>{title}</h2>
-        <p className={styles.message}>{message}</p>
-        <div className={styles.actions}>
-          <button type="button" className={styles.cancel} onClick={onCancel}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className={danger ? `${styles.confirm} ${styles.danger}` : styles.confirm}
-            disabled={pending}
-            onClick={onConfirm}
-          >
-            {confirmLabel}
-          </button>
-        </div>
+    <Modal label={title} onClose={handleClose}>
+      <h2 className={styles.title}>{title}</h2>
+      <p className={styles.message}>{message}</p>
+      <div className={styles.actions}>
+        <button type="button" className={styles.cancel} disabled={pending} onClick={onCancel}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className={danger ? `${styles.confirm} ${styles.danger}` : styles.confirm}
+          disabled={pending}
+          onClick={onConfirm}
+        >
+          {confirmLabel}
+        </button>
       </div>
-    </div>
+    </Modal>
   );
 }
