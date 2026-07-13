@@ -50,19 +50,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const locationRef = useRef(location);
   locationRef.current = location;
 
+  setTokenProvider(() => sessionRef.current?.token ?? null);
+  setOnUnauthorized(() => {
+    if (!sessionRef.current) {
+      return;
+    }
+    sessionRef.current = null;
+    setSession(null);
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    const current = locationRef.current;
+    const returnTo = encodeURIComponent(current.pathname + current.search);
+    navigateRef.current(`/login?returnTo=${returnTo}`, { replace: true });
+  });
+
   useEffect(() => {
-    setTokenProvider(() => sessionRef.current?.token ?? null);
-    setOnUnauthorized(() => {
-      if (!sessionRef.current) {
-        return;
-      }
-      sessionRef.current = null;
-      setSession(null);
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      const current = locationRef.current;
-      const returnTo = encodeURIComponent(current.pathname + current.search);
-      navigateRef.current(`/login?returnTo=${returnTo}`, { replace: true });
-    });
     return () => {
       setTokenProvider(() => null);
       setOnUnauthorized(null);

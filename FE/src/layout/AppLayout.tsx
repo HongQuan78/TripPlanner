@@ -15,6 +15,9 @@ export default function AppLayout() {
         <nav className={styles.nav}>
           {isAuthenticated ? (
             <>
+              <Link to="/trips" className={styles.navLink}>
+                My Trips
+              </Link>
               <span className={styles.userEmail}>{user?.email}</span>
               <button className={styles.logoutButton} onClick={() => void logout()}>
                 Logout

@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { useEffect } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { request } from '../api/client';
@@ -24,6 +25,13 @@ function Probe() {
 function LocationProbe() {
   const location = useLocation();
   return <span data-testid="location">{location.pathname + location.search}</span>;
+}
+
+function RequestOnMount() {
+  useEffect(() => {
+    void request('/api/trips');
+  }, []);
+  return null;
 }
 
 function renderProvider(initialEntries: string[] = ['/']) {
@@ -93,6 +101,26 @@ describe('AuthProvider', () => {
 
     const headers = fetchMock.mock.calls[0][1].headers as Headers;
     expect(headers.get('Authorization')).toBe('Bearer jwt-token');
+  });
+
+  it('wires the token provider before a child mount effect can fire its first request', async () => {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+    fetchMock.mockResolvedValue(new Response('{}', { status: 200 }));
+
+    await act(async () => {
+      render(
+        <MemoryRouter initialEntries={['/trips']}>
+          <AuthProvider>
+            <RequestOnMount />
+          </AuthProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const headers = fetchMock.mock.calls[0][1].headers as Headers;
+    expect(headers.get('Authorization')).toBe('Bearer jwt-token');
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).not.toBeNull();
   });
 
   it('calls the logout endpoint then clears the session and navigates home', async () => {

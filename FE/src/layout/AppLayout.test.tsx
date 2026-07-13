@@ -46,6 +46,7 @@ describe('AppLayout header', () => {
     expect(screen.getByRole('link', { name: 'Login' })).toHaveAttribute('href', '/login');
     expect(screen.getByRole('link', { name: 'Register' })).toHaveAttribute('href', '/register');
     expect(screen.queryByRole('button', { name: /logout/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'My Trips' })).not.toBeInTheDocument();
   });
 
   it('shows the logged-in email and a Logout button when authenticated', () => {
@@ -57,6 +58,7 @@ describe('AppLayout header', () => {
     expect(screen.getByRole('button', { name: /logout/i })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Login' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Register' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'My Trips' })).toHaveAttribute('href', '/trips');
   });
 
   it('calls the logout endpoint, clears the session, and navigates home on Logout', async () => {
