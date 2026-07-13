@@ -17,6 +17,43 @@
 project: tripplanner
 last_updated: 2026-07-13
 
+# 2026-07-13: 5-9-destination-autosuggest-prefix-match code-reviewed — 2 patch
+# findings fixed (AC4 dedup/cap test coverage extended; User-Agent header added
+# to the Photon HttpClient), 1 deferred (no caching/retry on the geocoding call,
+# pre-existing pattern), 18 dismissed as noise or already-documented tradeoffs
+# (e.g. the countryCode-hint-not-forwarded-to-Photon and Hong Kong/CN classification
+# findings were both confirmed correct/intentional against the story's own Debug Log).
+
+# 2026-07-13: added 5-9-destination-autosuggest-prefix-match — user reported "Ho"
+# doesn't list all matching destinations; root-caused to OpenTripMap's /geoname
+# geocoder being a single-best-match API, not multi-result autosuggest. Story
+# replaces IGeocodingService's OpenTripMap-backed implementation with a free,
+# keyless multi-result provider (e.g. Photon/OSM) behind the same seam — no
+# frontend changes needed, FE already renders arrays of up to 5 suggestions.
+
+# 2026-07-13: 8-1-destination-image-wikipedia-fallback picked up for dev-story implementation.
+
+# 2026-07-13: added epic-8 (infra/tech-debt, no formal epic file — scope lives in
+# the story file, same convention as epic-6/epic-7) and its first story,
+# 8-1-destination-image-wikipedia-fallback — adds a free Wikipedia-thumbnail
+# fallback (via IWikipediaImageService) for destination images when OpenTripMap's
+# dev-tier API has no preview/image, so real photos show up more often before the
+# existing FE placeholder path kicks in.
+
+# 2026-07-13: added 5-8-trips-nav-and-auth-race-fix — adds a "My Trips" header nav
+# link and fixes a cold-load race where AuthProvider's token-provider wiring
+# (registered in a useEffect) loses to a child route's mount-time TanStack Query
+# fetch, causing a headerless first request, a spurious 401, and a valid session
+# being wiped and bounced to /login when typing /trips directly into the URL bar.
+
+# 2026-07-13: 7-2-email-provider-strategy-pattern picked up for dev-story implementation.
+
+# 2026-07-13: added 7-2-email-provider-strategy-pattern — decouples verification-email
+# content (subject/link/body) from Resend's SMTP transport via a new
+# IVerificationEmailContentBuilder seam, so swapping to a different provider (e.g.
+# Azure Communication Services) later only needs a new IEmailSender implementation +
+# DI swap, with no change to the use cases or IEmailSender's contract.
+
 # 2026-07-13: 7-1 picked up for dev-story implementation.
 
 # 2026-07-13: 6-3 picked up for dev-story implementation.
@@ -55,3 +92,8 @@ development_status:
   6-3-fix-xid-import-destination-mapping: review
   epic-7: in-progress
   7-1-resend-email-integration: review
+  7-2-email-provider-strategy-pattern: review
+  5-8-trips-nav-and-auth-race-fix: review
+  epic-8: in-progress
+  8-1-destination-image-wikipedia-fallback: review
+  5-9-destination-autosuggest-prefix-match: done

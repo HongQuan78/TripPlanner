@@ -14,3 +14,7 @@
 - `locationType` typed as `string` instead of the `"City" | "Country"` union in `FE/src/api/types.ts` — typos in the `=== 'City'` / `=== 'Country'` comparisons compile silently. Pre-existing from story 5-1.
 - No `aria-live` regions for async loading/error/result state changes on the search page — screen-reader users get no announcement after submitting. A11y enhancement beyond the story's ACs; pattern absent app-wide.
 - API tests (`FE/src/api/locations.test.ts`, and pre-existing `client.test.ts`) assert request paths assuming `VITE_API_BASE_URL` is unset in the test environment — a CI env var would break them for unrelated reasons.
+
+## Deferred from: code review of story-5-9-destination-autosuggest-prefix-match (2026-07-13)
+
+- No caching/retry/backoff for the third-party geocoding call in `PhotonGeocodingService` — matches the existing OpenTripMap/Wikipedia client pattern (none of them have this either); a future dedicated resiliency story should address all three together rather than one-off per provider.
