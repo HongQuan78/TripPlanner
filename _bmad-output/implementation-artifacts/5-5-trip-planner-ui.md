@@ -4,7 +4,7 @@ baseline_commit: 22d4621a162ba47d6f2761079ea63254de5a68eb
 
 # Story 5-5: Trip planner UI
 
-Status: review
+Status: done
 
 ## Story
 
@@ -36,6 +36,23 @@ As a logged-in user, I want to create trips, edit their dates, and build a day-b
   - [x] Pending-action replay: stash `{xid}` (e.g. sessionStorage) before the login redirect; after login, reopen the dialog for that xid
 - [x] Task 6: Tests (AC: 8)
 - [x] Task 7: Verify — `npm run build` and full `npm test` green
+
+### Review Findings
+
+- [x] [Review][Patch] Malformed trip id (`/trips/abc`, `/trips/0`) leaves the planner on "Loading trip…" forever instead of the AC3 not-found state [FE/src/pages/TripPlannerPage.tsx:73-88, FE/src/hooks/trips.ts:25]
+- [x] [Review][Patch] Failed destination removal is silently swallowed — dialog closes on error, no message rendered, no test for the failure path [FE/src/pages/TripPlannerPage.tsx:118-132]
+- [x] [Review][Patch] EditTripForm shows no error for non-`ApiError` failures (e.g. network `TypeError`) — missing the generic fallback CreateTripForm has [FE/src/components/EditTripForm.tsx:50-54]
+- [x] [Review][Patch] "＋ Add to trip" `<button>` nested inside the card `<Link>` — invalid HTML, unreliable keyboard/screen-reader behavior [FE/src/components/AttractionCard.tsx:25-67]
+- [x] [Review][Patch] Dialogs declare `aria-modal` but implement no modal contract: no focus trap, initial focus, focus restore, or Escape-to-close [FE/src/components/ConfirmDialog.tsx, FE/src/components/AddToTripDialog.tsx]
+- [x] [Review][Patch] Production add-to-trip path on the details page is never tested — both button tests inject the test-only `onAddToTrip` prop, bypassing the shipped `requestAdd` branch [FE/src/pages/DestinationDetailsPage.tsx:117-122]
+- [x] [Review][Patch] Silent no-op context default (`requestAdd: () => {}`) masks a missing provider — use a null default and throw in `useAddToTrip` [FE/src/trips/AddToTripContext.tsx:13-15]
+- [x] [Review][Patch] AddToTripDialog keeps a stale mutation error after "← Back to trips", offers no retry when the trips query fails, and renders day counts from a stale `selectedTrip` snapshot [FE/src/components/AddToTripDialog.tsx]
+- [x] [Review][Patch] Cancel/back controls stay enabled during in-flight mutations, letting users dismiss dialogs while the request completes invisibly [FE/src/components/ConfirmDialog.tsx:26, FE/src/components/AddToTripDialog.tsx:82-108]
+- [x] [Review][Patch] `/trips/:id` RequireAuth gating has no routes-level test — only `/trips` redirect is covered [FE/src/routes.test.tsx]
+- [x] [Review][Patch] The `returnTo` query produced by the logged-out `requestAdd` redirect is never asserted — `navigate('/login')` without it would pass all tests [FE/src/trips/AddToTripContext.test.tsx]
+- [x] [Review][Patch] Dead `pending` prop on the 409 ConfirmDialog — `onConfirm` unmounts the dialog before `isPending` can ever render [FE/src/components/EditTripForm.tsx:113-117]
+- [x] [Review][Patch] Layering drift: shared `dates.ts` lives in `pages/` but is imported by `components/`, `validateTripForm` is exported from a component file, and the star-rating block is duplicated in AttractionCard and TripPlannerPage [FE/src/pages/dates.ts, FE/src/components/CreateTripForm.tsx, FE/src/components/AttractionCard.tsx]
+- [x] [Review][Patch] Hardcoded colors bypass the design-token system (`rgba(224,242,254,.65)` overlay, `#cbd5e1` disabled buttons) [FE/src/components/Dialog.module.css, FE/src/components/TripForm.module.css]
 
 ## Dev Notes
 

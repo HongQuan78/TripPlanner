@@ -11,9 +11,18 @@
 # Epics 1-4 (backend) were implemented before sprint tracking existed and are
 # recorded as done for completeness. Epic 5 is the frontend web app; see
 # epic/epic-5-frontend-web-app.md and the 5-*.md story files in this folder.
+# Epic 6 is quality/verification work: auditing the delivered backend against
+# requirement/Sheet1.html (no epic file; scope lives in the story files).
 
 project: tripplanner
-last_updated: 2026-07-12
+last_updated: 2026-07-13
+
+# 2026-07-13: 6-3 picked up for dev-story implementation.
+
+# 2026-07-13: added 6-2-backend-code-review-epics-1-4 — code-level review of BE
+# against epic/epic-1..4 (distinct from 6-1's requirement/Sheet1.html traceability audit).
+# 2026-07-13: added 6-3-fix-xid-import-destination-mapping — fixes the High-severity
+# xid-import bug (category/rating loss) found by 6-2's code review.
 
 development_status:
   epic-1: done
@@ -26,4 +35,9 @@ development_status:
   5-6-ui-modernization-cute-light-blue: review
   5-3-destination-discovery: done
   5-4-destination-details: review
-  5-5-trip-planner-ui: review
+  5-5-trip-planner-ui: done
+  5-7-search-auto-suggest: review
+  epic-6: in-progress
+  6-1-backend-requirements-verification: review
+  6-2-backend-code-review-epics-1-4: review
+  6-3-fix-xid-import-destination-mapping: review
