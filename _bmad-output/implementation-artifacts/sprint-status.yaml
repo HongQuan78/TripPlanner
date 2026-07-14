@@ -17,6 +17,31 @@
 project: tripplanner
 last_updated: 2026-07-14
 
+# 2026-07-14: added 8-2-wikipedia-primary-image-provider — user confirmed
+# OpenTripMap's dev-tier image URLs are unusable (broken images), so 8-1's
+# Wikipedia *fallback* becomes the *sole* image source: both OpenTripMap
+# services stop reading preview/image entirely and route through a new
+# provider-agnostic IDestinationImageProvider seam (replacing
+# IWikipediaImageService), so a different image approach later is one new
+# implementation + one DI swap, mirroring the 7-2 IEmailSender convention.
+
+# 2026-07-14: 5-12-frontend-redesign-horizon-design-system implemented — all 8
+# tasks done. Horizon Desktop token set + Plus Jakarta Sans replace the cute-sky
+# system; every screen restyled (pill buttons → 8px radius, blobs removed, new
+# card/chip/hover conventions); zero behavior changes. 143/143 FE tests pass
+# unmodified, build/lint green, all 7 routes visually verified via Playwright
+# (no console errors, blobs gone). Moved to review.
+
+# 2026-07-14: 5-12-frontend-redesign-horizon-design-system picked up for dev-story implementation.
+
+# 2026-07-14: added 5-12-frontend-redesign-horizon-design-system — full visual
+# redesign swapping the "cute sky" light-blue design system (5-6/5-10) for the
+# "Horizon Desktop" corporate-modern system sourced from example_design/ (5
+# HTML mockups + DESIGN.md). Token-swap + restyle every existing screen,
+# style-only (no behavior changes); explicit out-of-scope list excludes
+# filters/pagination/footer/booking-picker/social-login/icon-font features the
+# mockups show but this app's feature set doesn't have.
+
 # 2026-07-14: 5-11-trip-destination-detail-link implemented — all 5 tasks done.
 # DestinationResponse now exposes Xid (mapped from Destination.ExternalId);
 # trip destination rows link to /attractions/{xid} when present, with a
@@ -137,6 +162,8 @@ development_status:
   5-8-trips-nav-and-auth-race-fix: review
   epic-8: in-progress
   8-1-destination-image-wikipedia-fallback: review
+  8-2-wikipedia-primary-image-provider: ready-for-dev
   5-9-destination-autosuggest-prefix-match: done
   5-10-ui-motion-and-depth-polish: done
   5-11-trip-destination-detail-link: done
+  5-12-frontend-redesign-horizon-design-system: review
