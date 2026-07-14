@@ -45,6 +45,7 @@ export interface Destination {
   name: string;
   rating: number;
   category: string;
+  xid: string | null;
   openingHours: string | null;
   cuisineType: string | null;
   isHalalFriendly: boolean | null;

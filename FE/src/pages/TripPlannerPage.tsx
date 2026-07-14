@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import type { Destination, TripDay } from '../api/types';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -17,11 +17,23 @@ function DestinationRow({
   destination: Destination;
   onRemove: (destination: Destination) => void;
 }) {
-  return (
-    <li className={styles.row}>
+  const content = (
+    <>
       <span className={styles.rowName}>{destination.name}</span>
       <span className={styles.rowCategory}>{destination.category}</span>
       <StarRating rating={destination.rating} />
+    </>
+  );
+
+  return (
+    <li className={styles.row}>
+      {destination.xid === null ? (
+        <span className={styles.rowContent}>{content}</span>
+      ) : (
+        <Link to={`/attractions/${destination.xid}`} className={styles.rowLink}>
+          {content}
+        </Link>
+      )}
       <button
         type="button"
         className={styles.remove}

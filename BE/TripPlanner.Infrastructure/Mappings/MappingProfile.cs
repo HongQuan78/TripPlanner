@@ -9,6 +9,7 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         CreateMap<Destination, DestinationResponse>()
+            .ForMember(dest => dest.Xid, opt => opt.MapFrom(src => src.ExternalId))
             .ForMember(dest => dest.OpeningHours,
                 opt => opt.MapFrom((src, _) => src is Landmark l ? l.OpeningHours : null))
             .ForMember(dest => dest.CuisineType,

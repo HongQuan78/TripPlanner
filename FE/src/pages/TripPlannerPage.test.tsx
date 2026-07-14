@@ -35,6 +35,7 @@ const trip: Trip = {
           name: 'Louvre Museum',
           rating: 3,
           category: 'Landmark',
+          xid: 'xid-louvre',
           openingHours: null,
           cuisineType: null,
           isHalalFriendly: null,
@@ -80,6 +81,54 @@ describe('TripPlannerPage', () => {
     expect(screen.getByText('Landmark')).toBeInTheDocument();
     expect(screen.getByLabelText('Rated 3 of 3')).toBeInTheDocument();
     expect(screen.getByText(/no destinations planned/i)).toBeInTheDocument();
+  });
+
+  it('links a trip destination with an xid to its details page', async () => {
+    getTripMock.mockResolvedValue(trip);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('link', { name: /louvre museum/i })).toHaveAttribute(
+      'href',
+      '/attractions/xid-louvre',
+    );
+  });
+
+  it('renders a destination without an xid as non-clickable text', async () => {
+    getTripMock.mockResolvedValue({
+      ...trip,
+      tripDays: [
+        {
+          day: '2026-08-01',
+          destinations: [{ ...trip.tripDays[0].destinations[0], xid: null }],
+        },
+        trip.tripDays[1],
+      ],
+    });
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('link', { name: /louvre museum/i })).not.toBeInTheDocument();
+  });
+
+  it('does not navigate when clicking Remove on a linked destination', async () => {
+    getTripMock.mockResolvedValue(trip);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /remove louvre museum/i }));
+
+    expect(screen.getByRole('heading', { name: 'Paris getaway' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('shows a not-found state for an unknown or foreign trip id', async () => {
