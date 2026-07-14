@@ -1,12 +1,17 @@
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import styles from './AppLayout.module.css';
 
 export default function AppLayout() {
   const { user, isAuthenticated, logout } = useAuth();
+  const location = useLocation();
 
   return (
     <div className={styles.app}>
+      <div className={styles.blobs} aria-hidden="true">
+        <div className={styles.blobOne} />
+        <div className={styles.blobTwo} />
+      </div>
       <header className={styles.header}>
         <Link to="/" className={styles.brand}>
           <span aria-hidden="true">✈️</span>
@@ -36,7 +41,9 @@ export default function AppLayout() {
         </nav>
       </header>
       <main className={styles.content}>
-        <Outlet />
+        <div key={location.pathname} className={styles.routeTransition}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );

@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Trip } from '../api/types';
 import CreateTripForm from '../components/CreateTripForm';
+import skeletonStyles from '../components/Skeleton.module.css';
 import { useTrips } from '../hooks/trips';
 import { formatDateRange } from '../lib/dates';
 import stateStyles from './PageState.module.css';
 import styles from './TripsPage.module.css';
+
+const TRIP_SKELETON_COUNT = 4;
 
 function TripCard({ trip }: { trip: Trip }) {
   const dayCount = trip.tripDays.length;
@@ -34,7 +37,12 @@ export default function TripsPage() {
     return (
       <section className={styles.page}>
         <h1 className={styles.title}>My trips</h1>
-        <p className={styles.loading}>Loading your trips…</p>
+        <p className={skeletonStyles.visuallyHidden}>Loading your trips…</p>
+        <div className={styles.grid} aria-hidden="true">
+          {Array.from({ length: TRIP_SKELETON_COUNT }, (_, index) => (
+            <div key={index} className={skeletonStyles.card} />
+          ))}
+        </div>
       </section>
     );
   }

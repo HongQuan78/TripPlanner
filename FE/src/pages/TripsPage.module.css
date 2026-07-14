@@ -57,13 +57,66 @@
   text-decoration: none;
   color: var(--color-ink);
   transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+    transform var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-fast) ease;
+  animation: trip-card-enter var(--duration-slow) var(--ease-spring) both;
 }
 
 .card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.01);
   box-shadow: var(--shadow-lift);
+}
+
+@keyframes trip-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card:nth-child(1) {
+  animation-delay: calc(1 * 40ms);
+}
+
+.card:nth-child(2) {
+  animation-delay: calc(2 * 40ms);
+}
+
+.card:nth-child(3) {
+  animation-delay: calc(3 * 40ms);
+}
+
+.card:nth-child(4) {
+  animation-delay: calc(4 * 40ms);
+}
+
+.card:nth-child(5) {
+  animation-delay: calc(5 * 40ms);
+}
+
+.card:nth-child(6) {
+  animation-delay: calc(6 * 40ms);
+}
+
+.card:nth-child(7) {
+  animation-delay: calc(7 * 40ms);
+}
+
+.card:nth-child(8) {
+  animation-delay: calc(8 * 40ms);
+}
+
+.card:nth-child(9) {
+  animation-delay: calc(9 * 40ms);
+}
+
+.card:nth-child(n + 10) {
+  animation-delay: calc(10 * 40ms);
 }
 
 .cardName {
@@ -85,10 +138,6 @@
   color: var(--color-primary-dark);
   font-size: 0.8rem;
   font-weight: 700;
-}
-
-.loading {
-  color: var(--color-ink-muted);
 }
 
 .retry {

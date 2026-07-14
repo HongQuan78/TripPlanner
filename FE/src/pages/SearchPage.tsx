@@ -4,6 +4,7 @@ import { ApiError } from '../api/client';
 import type { LocationSearchResult } from '../api/types';
 import AttractionCard from '../components/AttractionCard';
 import LocationResultList from '../components/LocationResultList';
+import skeletonStyles from '../components/Skeleton.module.css';
 import SuggestionDropdown from '../components/SuggestionDropdown';
 import { suggestionOptionId } from '../components/suggestionOption';
 import { useAttractions, useLocationSearch, useLocationSuggestions } from '../hooks/locations';
@@ -13,6 +14,7 @@ import styles from './SearchPage.module.css';
 import { getSearchState, saveSearchState } from './searchState';
 
 const suggestionListId = 'location-suggestions';
+const ATTRACTION_SKELETON_COUNT = 4;
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError && error.status !== 503 && error.status !== 0) {
@@ -194,7 +196,16 @@ export default function SearchPage() {
       {selected !== null && selected.locationType === 'City' && (
         <section className={styles.attractions}>
           <h2 className={styles.subtitle}>Attractions near {selected.name}</h2>
-          {attractions.isFetching && <p className={styles.loading}>Loading attractions…</p>}
+          {attractions.isFetching && !attractions.isSuccess && (
+            <>
+              <p className={skeletonStyles.visuallyHidden}>Loading attractions…</p>
+              <div className={styles.grid} aria-hidden="true">
+                {Array.from({ length: ATTRACTION_SKELETON_COUNT }, (_, index) => (
+                  <div key={index} className={skeletonStyles.card} />
+                ))}
+              </div>
+            </>
+          )}
           {attractions.isError && !attractions.isFetching && (
             <div className={stateStyles.state}>
               <span className={stateStyles.emoji} aria-hidden="true">
