@@ -31,12 +31,6 @@ internal sealed record OpenTripMapPlaceModel
     [JsonPropertyName("rate")]
     public string? Rate { get; init; }
 
-    [JsonPropertyName("preview")]
-    public OpenTripMapPreviewModel? Preview { get; init; }
-
-    [JsonPropertyName("image")]
-    public string? Image { get; init; }
-
     [JsonPropertyName("url")]
     public string? Url { get; init; }
 
@@ -96,10 +90,4 @@ internal sealed record OpenTripMapPointModel
 
     [JsonPropertyName("lon")]
     public double Lon { get; init; }
-}
-
-internal sealed record OpenTripMapPreviewModel
-{
-    [JsonPropertyName("source")]
-    public string? Source { get; init; }
 }

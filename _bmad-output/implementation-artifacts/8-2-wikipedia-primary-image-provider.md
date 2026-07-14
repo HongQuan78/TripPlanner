@@ -4,7 +4,7 @@ baseline_commit: b492f9c021f757587cb0d94596758cc42cad4524
 
 # Story 8.2: Make Wikipedia the sole destination image source behind a replaceable provider seam
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -27,26 +27,34 @@ so that I see images that actually load (OpenTripMap's dev-tier `preview`/`image
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Introduce the provider seam in Application (AC: #1, #2)
-  - [ ] Add `IDestinationImageProvider` + `DestinationImageContext` to `BE/TripPlanner.Application/Interfaces/Services/`
-  - [ ] Delete `BE/TripPlanner.Application/Interfaces/Services/IWikipediaImageService.cs`
-- [ ] Task 2: Rename and adapt the Wikipedia implementation (AC: #2)
-  - [ ] Rename `WikipediaImageService.cs` → `WikipediaImageProvider.cs`, class `WikipediaImageProvider : IDestinationImageProvider`
-  - [ ] Adapt the entry point to take `DestinationImageContext` and short-circuit to `null` when `WikipediaUrl` is null/whitespace; keep `ExtractTitle`, the summary call, and the exception filter identical
-- [ ] Task 3: Route both OpenTripMap consumers exclusively through the provider (AC: #3, #4, #5)
-  - [ ] `OpenTripMapAttractionSearchService`: swap the constructor dependency, delete the `Preview?.Source` read, always call the provider
-  - [ ] `OpenTripMapDestinationDetailsService`: swap the constructor dependency, delete `ComposeImageUrls`, build `ImageUrls` from the provider result only
-  - [ ] Remove `Preview`, `Image`, and `OpenTripMapPreviewModel` from `OpenTripMapModels.cs`
-- [ ] Task 4: DI registration (AC: #6)
-  - [ ] Replace the `IWikipediaImageService` typed-client registration with `AddHttpClient<IDestinationImageProvider, WikipediaImageProvider>(ConfigureWikipediaClient)` in `InfrastructureServicesExtension`
-- [ ] Task 5: Documentation (AC: #7)
-  - [ ] Rewrite the Wikipedia sentence of the "External services" bullet in `CLAUDE.md`
-- [ ] Task 6: Tests (AC: #8)
-  - [ ] Rename/update `WikipediaImageServiceTests.cs` → `WikipediaImageProviderTests.cs`; add the no-`WikipediaUrl` case
-  - [ ] Add `OpenTripMapAttractionSearchServiceTests.cs` and `OpenTripMapDestinationDetailsServiceTests.cs` covering the provider-only image path (including that `preview`/`image` JSON in the `/xid` response is ignored)
-  - [ ] Run `dotnet test BE` and confirm the full suite passes
+- [x] Task 1: Introduce the provider seam in Application (AC: #1, #2)
+  - [x] Add `IDestinationImageProvider` + `DestinationImageContext` to `BE/TripPlanner.Application/Interfaces/Services/`
+  - [x] Delete `BE/TripPlanner.Application/Interfaces/Services/IWikipediaImageService.cs`
+- [x] Task 2: Rename and adapt the Wikipedia implementation (AC: #2)
+  - [x] Rename `WikipediaImageService.cs` → `WikipediaImageProvider.cs`, class `WikipediaImageProvider : IDestinationImageProvider`
+  - [x] Adapt the entry point to take `DestinationImageContext` and short-circuit to `null` when `WikipediaUrl` is null/whitespace; keep `ExtractTitle`, the summary call, and the exception filter identical
+- [x] Task 3: Route both OpenTripMap consumers exclusively through the provider (AC: #3, #4, #5)
+  - [x] `OpenTripMapAttractionSearchService`: swap the constructor dependency, delete the `Preview?.Source` read, always call the provider
+  - [x] `OpenTripMapDestinationDetailsService`: swap the constructor dependency, delete `ComposeImageUrls`, build `ImageUrls` from the provider result only
+  - [x] Remove `Preview`, `Image`, and `OpenTripMapPreviewModel` from `OpenTripMapModels.cs`
+- [x] Task 4: DI registration (AC: #6)
+  - [x] Replace the `IWikipediaImageService` typed-client registration with `AddHttpClient<IDestinationImageProvider, WikipediaImageProvider>(ConfigureWikipediaClient)` in `InfrastructureServicesExtension`
+- [x] Task 5: Documentation (AC: #7)
+  - [x] Rewrite the Wikipedia sentence of the "External services" bullet in `CLAUDE.md`
+- [x] Task 6: Tests (AC: #8)
+  - [x] Rename/update `WikipediaImageServiceTests.cs` → `WikipediaImageProviderTests.cs`; add the no-`WikipediaUrl` case
+  - [x] Add `OpenTripMapAttractionSearchServiceTests.cs` and `OpenTripMapDestinationDetailsServiceTests.cs` covering the provider-only image path (including that `preview`/`image` JSON in the `/xid` response is ignored)
+  - [x] Run `dotnet test BE` and confirm the full suite passes
 
-## Dev Notes
+### Review Findings
+
+- [ ] [Review][Patch] No test verifies the DI-wired Wikipedia client — the sole-source image seam can silently lose all images on a wiring/config regression while the suite stays green; add a test that resolves `IDestinationImageProvider` from an `AddInfrastructureServices` container and asserts the composed request URI for a known Wikipedia URL [BE/TripPlanner.Infrastructure/Extensions/InfrastructureServicesExtension.cs:89]
+- [ ] [Review][Patch] Dead `xidJson` parameter on `CreateService` in both new test fixtures — never called with a non-default value [BE/TripPlanner.Tests/OpenTripMapAttractionSearchServiceTests.cs:30, BE/TripPlanner.Tests/OpenTripMapDestinationDetailsServiceTests.cs:33]
+- [ ] [Review][Patch] Coverage gaps on the new seam: no test for either OpenTripMap service when the `/xid` payload has no `wikipedia` field (provider must be called with `WikipediaUrl = null` and the request still succeed), and no test for the details service's whitespace-provider-result branch (`ImageUrls == []`) [BE/TripPlanner.Tests/OpenTripMapAttractionSearchServiceTests.cs, BE/TripPlanner.Tests/OpenTripMapDestinationDetailsServiceTests.cs]
+- [x] [Review][Defer] Non-English Wikipedia URLs (e.g. `de.wikipedia.org/wiki/...`) are queried against the hardcoded `en.wikipedia.org` base address → 404 → placeholder; blast radius grew now that Wikipedia is the sole image source [BE/TripPlanner.Infrastructure/ExternalServices/Wikipedia/WikipediaImageProvider.cs:26] — deferred, pre-existing
+- [x] [Review][Defer] Extracted title is unescaped but never re-escaped before path interpolation — titles containing `/`, `?`, `#` (e.g. "AC/DC") produce a corrupted request path → null [BE/TripPlanner.Infrastructure/ExternalServices/Wikipedia/WikipediaImageProvider.cs:25,54] — deferred, pre-existing
+- [x] [Review][Defer] `TaskCanceledException` catch conflates caller cancellation with HTTP timeout — genuine cancellation is masked as "no image" and the pipeline keeps building a response [BE/TripPlanner.Infrastructure/ExternalServices/Wikipedia/WikipediaImageProvider.cs:35] — deferred, pre-existing (spec mandates verbatim preservation of the filter)
+- [x] [Review][Defer] Every attraction search now fans out one unconditional Wikipedia call per result via `Task.WhenAll` with no caching or throttling — rate-limit exposure on Wikipedia's REST API [BE/TripPlanner.Infrastructure/ExternalServices/OpenTripMap/OpenTripMapAttractionSearchService.cs:31,54] — deferred, spec-accepted behavior; caching is a future improvement
 
 - **Why this story exists:** story 8-1 made Wikipedia a *fallback* — OpenTripMap's `preview.source`/`image` still won when present. The user has since confirmed those dev-tier (`dev.opentripmap.org`) image URLs are unusable in practice (broken/unloadable), so serving them at all is a bug: the FE renders a broken `<img>` instead of either a real photo or the placeholder. This story inverts the design: Wikipedia is the *only* image source, and the seam is generalized so "Wikipedia" itself is replaceable.
 - **The seam is the deliverable, not just the behavior change.** Follow the repo's established provider-swap convention from story 7-2 (`IVerificationEmailContentBuilder`/`IEmailSender`): a provider-agnostic Application interface, one Infrastructure implementation, one `AddHttpClient` DI line. The `DestinationImageContext` record is deliberately richer than what `WikipediaImageProvider` needs today (`Name` is unused by it) — that's intentional: a future provider keyed by place name (stock-photo API, Wikimedia Commons search, self-hosted image proxy) must be pluggable without touching the interface, the two OpenTripMap services, or Application. Do not collapse the context record into a bare `string wikipediaUrl` parameter — that would re-couple the interface to Wikipedia and defeat the story's replaceability requirement.
@@ -88,8 +96,38 @@ so that I see images that actually load (OpenTripMap's dev-tier `preview`/`image
 
 ### Agent Model Used
 
+claude-fable-5 (Claude Code)
+
 ### Debug Log References
+
+- Initial `dotnet test BE` run failed with MSB3027 file locks: a stale `TripPlanner.API` dev-server process (PID 36988, started 2026-07-14 09:47) held the `bin\Debug` DLLs. Stopped the process and reran; build and tests then succeeded.
 
 ### Completion Notes List
 
+- Added `IDestinationImageProvider` with sealed record `DestinationImageContext` (`required string Name`, `string? WikipediaUrl`) in `TripPlanner.Application/Interfaces/Services/IDestinationImageProvider.cs`; deleted `IWikipediaImageService.cs`.
+- Renamed `WikipediaImageService` → `WikipediaImageProvider` (git mv, same folder). Entry point is now `GetImageUrlAsync(DestinationImageContext, CancellationToken)` with a null/whitespace `WikipediaUrl` short-circuit that returns `null` before any HTTP call. `ExtractTitle`, the `page/summary/{title}` call, the exception filter (`HttpRequestException`/`TaskCanceledException`/`JsonException` → `null`), `WikipediaSummaryModel`/`WikipediaThumbnailModel`, and `WikipediaSettings` are unchanged.
+- `OpenTripMapAttractionSearchService.EnrichAsync` no longer reads `Preview?.Source`; `ImageUrl` comes exclusively from the provider (called unconditionally with `Name` + `Wikipedia` from the `/xid` detail). Constructor dependency swapped to `IDestinationImageProvider`.
+- `OpenTripMapDestinationDetailsService.GetDetailsAsync` deleted `ComposeImageUrls`; `ImageUrls` is `[providerResult]` when non-null/non-whitespace, else `[]`. Constructor dependency swapped to `IDestinationImageProvider`.
+- Removed `Preview`, `Image`, and `OpenTripMapPreviewModel` from `OpenTripMapModels.cs`; `Wikipedia`/`WikipediaExtracts` retained.
+- DI: `AddHttpClient<IDestinationImageProvider, WikipediaImageProvider>(ConfigureWikipediaClient)` replaces the old registration; `WikipediaSettings` binding/validation and `ConfigureWikipediaClient` untouched.
+- CLAUDE.md "External services" bullet rewritten: `IDestinationImageProvider` is the sole destination-image source, OpenTripMap `preview`/`image` ignored (dev-tier URLs unusable), provider swap = new implementation + one DI line, mirroring the `IEmailSender` convention.
+- Tests: `WikipediaImageServiceTests.cs` renamed to `WikipediaImageProviderTests.cs` (git mv), all four existing cases adapted to the new interface plus a new null/empty/whitespace `WikipediaUrl` theory asserting no HTTP call. New `OpenTripMapAttractionSearchServiceTests.cs` and `OpenTripMapDestinationDetailsServiceTests.cs` fake OpenTripMap HTTP responses containing `preview.source`/`image` values and assert those never surface — `ImageUrl`/`ImageUrls` come only from the NSubstitute-mocked provider (verified called with expected `Name`/`WikipediaUrl`), and a `null` provider result yields `ImageUrl == null` / `ImageUrls == []`.
+- Full suite: `dotnet test BE` → 155 passed, 0 failed (12 in the renamed/new classes; `WikipediaSettingsValidationTests` unchanged and passing). No FE files touched.
+
 ### File List
+
+- BE/TripPlanner.Application/Interfaces/Services/IDestinationImageProvider.cs (added)
+- BE/TripPlanner.Application/Interfaces/Services/IWikipediaImageService.cs (deleted)
+- BE/TripPlanner.Infrastructure/ExternalServices/Wikipedia/WikipediaImageProvider.cs (renamed from WikipediaImageService.cs, modified)
+- BE/TripPlanner.Infrastructure/ExternalServices/OpenTripMap/OpenTripMapAttractionSearchService.cs (modified)
+- BE/TripPlanner.Infrastructure/ExternalServices/OpenTripMap/OpenTripMapDestinationDetailsService.cs (modified)
+- BE/TripPlanner.Infrastructure/ExternalServices/OpenTripMap/OpenTripMapModels.cs (modified)
+- BE/TripPlanner.Infrastructure/Extensions/InfrastructureServicesExtension.cs (modified)
+- BE/TripPlanner.Tests/WikipediaImageProviderTests.cs (renamed from WikipediaImageServiceTests.cs, modified)
+- BE/TripPlanner.Tests/OpenTripMapAttractionSearchServiceTests.cs (added)
+- BE/TripPlanner.Tests/OpenTripMapDestinationDetailsServiceTests.cs (added)
+- CLAUDE.md (modified)
+
+## Change Log
+
+- 2026-07-14: Implemented story 8-2 — Wikipedia is now the sole destination image source behind the new `IDestinationImageProvider` seam; OpenTripMap `preview`/`image` fields removed from models and ignored; DI, docs, and tests updated (155 tests passing). Status → review.

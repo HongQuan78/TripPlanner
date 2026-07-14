@@ -11,7 +11,7 @@ namespace TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
 public class OpenTripMapAttractionSearchService(
     HttpClient httpClient,
     IOptions<OpenTripMapSettings> options,
-    IWikipediaImageService wikipediaImageService) : IAttractionSearchService
+    IDestinationImageProvider imageProvider) : IAttractionSearchService
 {
     private const string DefaultKinds = "interesting_places";
     private const string MinimumRate = "2";
@@ -51,11 +51,9 @@ public class OpenTripMapAttractionSearchService(
                 return attraction;
             }
 
-            var imageUrl = detail.Preview?.Source;
-            if (string.IsNullOrWhiteSpace(imageUrl) && !string.IsNullOrWhiteSpace(detail.Wikipedia))
-            {
-                imageUrl = await wikipediaImageService.GetThumbnailUrlAsync(detail.Wikipedia, cancellationToken);
-            }
+            var imageUrl = await imageProvider.GetImageUrlAsync(
+                new DestinationImageContext { Name = feature.Name!, WikipediaUrl = detail.Wikipedia },
+                cancellationToken);
 
             return attraction with
             {

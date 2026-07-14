@@ -5,11 +5,16 @@ using TripPlanner.Application.Interfaces.Services;
 
 namespace TripPlanner.Infrastructure.ExternalServices.Wikipedia;
 
-public class WikipediaImageService(HttpClient httpClient) : IWikipediaImageService
+public class WikipediaImageProvider(HttpClient httpClient) : IDestinationImageProvider
 {
-    public async Task<string?> GetThumbnailUrlAsync(string wikipediaUrl, CancellationToken cancellationToken = default)
+    public async Task<string?> GetImageUrlAsync(DestinationImageContext context, CancellationToken cancellationToken = default)
     {
-        var title = ExtractTitle(wikipediaUrl);
+        if (string.IsNullOrWhiteSpace(context.WikipediaUrl))
+        {
+            return null;
+        }
+
+        var title = ExtractTitle(context.WikipediaUrl);
         if (title is null)
         {
             return null;

@@ -25,3 +25,10 @@
 - Keyboard focus can land on a card while it's still at opacity:0 during its entrance animation-delay window (`FE/src/components/AttractionCard.module.css`, `FE/src/pages/TripsPage.module.css`) — narrow (<400ms) window right after mount, requires unusually fast tabbing; not blocking this story.
 - Skeleton loading text has no `aria-live`/`role="status"` (`FE/src/components/Skeleton.module.css`), so screen reader users aren't reliably notified when loading starts — pre-existing gap (the old visible loading text had the same issue), not introduced by this diff.
 - `AddToTripDialog.tsx` still uses the old plain-text loading indicator for the same trip-list-loading case `TripsPage.tsx` just migrated to skeletons — pre-existing file untouched by this diff, out of scope for story 5-10.
+
+## Deferred from: code review of 8-2-wikipedia-primary-image-provider (2026-07-14)
+
+- Non-English Wikipedia URLs (e.g. `de.wikipedia.org/wiki/...`) are queried against the hardcoded `en.wikipedia.org` base address in `WikipediaImageProvider` → 404 → placeholder. Pre-existing from 8-1, but blast radius grew now that Wikipedia is the sole image source; fix would derive the REST endpoint from the URL's host.
+- Extracted Wikipedia title is unescaped (`Uri.UnescapeDataString`) but never re-escaped before interpolation into `page/summary/{title}` — titles containing `/`, `?`, `#` (e.g. "AC/DC") produce a corrupted request path and degrade to null. Pre-existing from 8-1.
+- `TaskCanceledException` catch in `WikipediaImageProvider` conflates caller cancellation with HTTP timeout — genuine cancellation is masked as "no image". Pre-existing; the 8-2 spec mandated verbatim preservation of the exception filter. A `when (!cancellationToken.IsCancellationRequested)` guard would fix it.
+- Attraction search fans out one unconditional Wikipedia call per result (`Task.WhenAll`, no caching/throttling/backoff) — rate-limit exposure on Wikipedia's REST API. Matches the existing no-resiliency pattern across Photon/OpenTripMap/Wikipedia clients; fold into a future dedicated resiliency/caching story.

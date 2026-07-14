@@ -86,7 +86,7 @@ public static class InfrastructureServicesExtension
             .ValidateOnStart();
 
         services.AddHttpClient<IGeocodingService, PhotonGeocodingService>(ConfigurePhotonClient);
-        services.AddHttpClient<IWikipediaImageService, WikipediaImageService>(ConfigureWikipediaClient);
+        services.AddHttpClient<IDestinationImageProvider, WikipediaImageProvider>(ConfigureWikipediaClient);
         services.AddHttpClient<IAttractionSearchService, OpenTripMapAttractionSearchService>(ConfigureOpenTripMapClient);
         services.AddHttpClient<IDestinationDetailsService, OpenTripMapDestinationDetailsService>(ConfigureOpenTripMapClient);
 

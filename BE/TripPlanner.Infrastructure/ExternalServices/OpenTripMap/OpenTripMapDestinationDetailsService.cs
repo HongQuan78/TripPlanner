@@ -10,7 +10,7 @@ namespace TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
 public class OpenTripMapDestinationDetailsService(
     HttpClient httpClient,
     IOptions<OpenTripMapSettings> options,
-    IWikipediaImageService wikipediaImageService) : IDestinationDetailsService
+    IDestinationImageProvider imageProvider) : IDestinationDetailsService
 {
     public async Task<DestinationDetailsResponse?> GetDetailsAsync(string xid, CancellationToken cancellationToken = default)
     {
@@ -28,15 +28,10 @@ public class OpenTripMapDestinationDetailsService(
             return null;
         }
 
-        var imageUrls = ComposeImageUrls(place);
-        if (imageUrls.Count == 0 && !string.IsNullOrWhiteSpace(place.Wikipedia))
-        {
-            var thumbnailUrl = await wikipediaImageService.GetThumbnailUrlAsync(place.Wikipedia, cancellationToken);
-            if (!string.IsNullOrWhiteSpace(thumbnailUrl))
-            {
-                imageUrls = [thumbnailUrl];
-            }
-        }
+        var imageUrl = await imageProvider.GetImageUrlAsync(
+            new DestinationImageContext { Name = place.Name, WikipediaUrl = place.Wikipedia },
+            cancellationToken);
+        List<string> imageUrls = string.IsNullOrWhiteSpace(imageUrl) ? [] : [imageUrl];
 
         return new DestinationDetailsResponse
         {
@@ -72,20 +67,6 @@ public class OpenTripMapDestinationDetailsService(
         }
 
         return kinds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
-    }
-
-    private static List<string> ComposeImageUrls(OpenTripMapPlaceModel place)
-    {
-        var urls = new List<string>();
-        foreach (var candidate in new[] { place.Preview?.Source, place.Image })
-        {
-            if (!string.IsNullOrWhiteSpace(candidate) && !urls.Contains(candidate))
-            {
-                urls.Add(candidate);
-            }
-        }
-
-        return urls;
     }
 
     private static string? ComposeAddress(OpenTripMapAddressModel? address)

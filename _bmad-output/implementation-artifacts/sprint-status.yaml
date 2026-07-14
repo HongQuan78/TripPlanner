@@ -162,7 +162,7 @@ development_status:
   5-8-trips-nav-and-auth-race-fix: review
   epic-8: in-progress
   8-1-destination-image-wikipedia-fallback: review
-  8-2-wikipedia-primary-image-provider: ready-for-dev
+  8-2-wikipedia-primary-image-provider: review
   5-9-destination-autosuggest-prefix-match: done
   5-10-ui-motion-and-depth-polish: done
   5-11-trip-destination-detail-link: done
