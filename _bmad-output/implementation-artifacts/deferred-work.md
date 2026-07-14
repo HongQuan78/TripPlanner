@@ -18,3 +18,10 @@
 ## Deferred from: code review of story-5-9-destination-autosuggest-prefix-match (2026-07-13)
 
 - No caching/retry/backoff for the third-party geocoding call in `PhotonGeocodingService` — matches the existing OpenTripMap/Wikipedia client pattern (none of them have this either); a future dedicated resiliency story should address all three together rather than one-off per provider.
+
+## Deferred from: code review of 5-10-ui-motion-and-depth-polish (2026-07-14)
+
+- Route remount + stagger replay causes entrance animations to repeat on every navigation (`FE/src/layout/AppLayout.tsx` `key={location.pathname}` combined with AC2's staggered card entrance) — not worth blocking polish on; can revisit if it feels janky later.
+- Keyboard focus can land on a card while it's still at opacity:0 during its entrance animation-delay window (`FE/src/components/AttractionCard.module.css`, `FE/src/pages/TripsPage.module.css`) — narrow (<400ms) window right after mount, requires unusually fast tabbing; not blocking this story.
+- Skeleton loading text has no `aria-live`/`role="status"` (`FE/src/components/Skeleton.module.css`), so screen reader users aren't reliably notified when loading starts — pre-existing gap (the old visible loading text had the same issue), not introduced by this diff.
+- `AddToTripDialog.tsx` still uses the old plain-text loading indicator for the same trip-list-loading case `TripsPage.tsx` just migrated to skeletons — pre-existing file untouched by this diff, out of scope for story 5-10.

@@ -15,7 +15,48 @@
 # requirement/Sheet1.html (no epic file; scope lives in the story files).
 
 project: tripplanner
-last_updated: 2026-07-13
+last_updated: 2026-07-14
+
+# 2026-07-14: 5-11-trip-destination-detail-link implemented — all 5 tasks done.
+# DestinationResponse now exposes Xid (mapped from Destination.ExternalId);
+# trip destination rows link to /attractions/{xid} when present, with a
+# plain-text fallback and Remove kept as a sibling (not nested) control.
+# 149/149 BE tests, 143/143 FE tests, build and lint all green (+2 BE/+3 FE
+# new tests). Moved to review.
+
+# 2026-07-14: 5-11-trip-destination-detail-link picked up for dev-story implementation.
+
+# 2026-07-14: added 5-11-trip-destination-detail-link — user reported that on
+# /trips/:id they cannot click a trip destination to see its detail view.
+# Root-caused to GET /api/trips/{id} never exposing each destination's OpenTripMap
+# external id (Destination.ExternalId exists on the domain entity but was never
+# mapped onto DestinationResponse), so the frontend had no xid to link to the
+# existing /attractions/:xid details page (story 5-4). Full-stack story: expose
+# Xid on DestinationResponse + map it, then link trip-day destination rows to
+# their details page (with a plain-text fallback when xid is absent).
+
+# 2026-07-14: 5-10-ui-motion-and-depth-polish code-reviewed — 3 patch findings
+# fixed (reduced-motion override now zeroes animation-delay too; SearchPage's
+# attraction skeleton no longer overlaps the real grid during a background
+# refetch; AC5 background blobs now use radial-gradient per spec instead of a
+# flat blurred color), 1 deferred (route remount + AC2 stagger replaying on
+# every navigation — accepted tradeoff, not blocking), 2 pre-existing gaps
+# deferred (no aria-live on skeleton loading text; AddToTripDialog still uses
+# the old plain-text loader). 140 tests/build/lint reconfirmed green after fixes.
+
+# 2026-07-14: 5-10-ui-motion-and-depth-polish implemented — all 6 tasks done,
+# 140 existing FE unit tests pass unmodified, build/lint green, visually
+# verified via Playwright against a running dev server (route transition,
+# background blobs, card entrance/hover, skeleton loading all confirmed
+# rendering with no console errors). Moved to review.
+
+# 2026-07-14: 5-10-ui-motion-and-depth-polish picked up for dev-story implementation.
+
+# 2026-07-14: added 5-10-ui-motion-and-depth-polish — user felt the app still
+# looked "simple and boring" even after 5-6's cute-sky design system. Adds
+# motion/depth polish (route transitions, card entrance/hover animation,
+# skeleton loading states, decorative background blobs) purely via CSS on top
+# of the existing tokens — no new dependencies, no behavior changes.
 
 # 2026-07-13: 5-9-destination-autosuggest-prefix-match code-reviewed — 2 patch
 # findings fixed (AC4 dedup/cap test coverage extended; User-Agent header added
@@ -97,3 +138,5 @@ development_status:
   epic-8: in-progress
   8-1-destination-image-wikipedia-fallback: review
   5-9-destination-autosuggest-prefix-match: done
+  5-10-ui-motion-and-depth-polish: done
+  5-11-trip-destination-detail-link: done
