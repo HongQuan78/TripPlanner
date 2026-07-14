@@ -3,9 +3,9 @@
   height: 14rem;
   background: linear-gradient(
     90deg,
-    var(--color-primary-soft) 25%,
-    var(--color-surface) 50%,
-    var(--color-primary-soft) 75%
+    var(--color-surface-container-low) 25%,
+    var(--color-surface-container-lowest) 50%,
+    var(--color-surface-container-low) 75%
   );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
@@ -24,7 +24,7 @@
 @media (prefers-reduced-motion: reduce) {
   .card {
     animation: none;
-    background: var(--color-primary-soft);
+    background: var(--color-surface-container-low);
   }
 }
 

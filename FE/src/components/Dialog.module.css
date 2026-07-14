@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: var(--color-overlay);
+  background: rgba(11, 28, 48, 0.4);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -11,10 +11,10 @@
 }
 
 .dialog {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--shadow-lg);
   padding: 1.5rem;
   width: 100%;
   max-width: 26rem;
@@ -25,21 +25,23 @@
 
 .title {
   margin: 0;
-  font-size: 1.2rem;
-  color: var(--color-ink);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-on-surface);
 }
 
 .message {
   margin: 0;
-  color: var(--color-ink-muted);
+  color: var(--color-on-surface-variant);
 }
 
 .error {
   margin: 0;
   padding: 0.6rem 0.85rem;
   border-radius: var(--radius-md);
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
+  background: var(--color-error-container);
+  color: var(--color-error);
   font-size: 0.9rem;
 }
 
@@ -52,22 +54,25 @@
 .confirm {
   padding: 0.55rem 1.4rem;
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   background: var(--color-primary);
-  color: var(--color-surface);
+  color: var(--color-on-primary);
   font: inherit;
-  font-weight: 700;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+    background var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
 }
 
 .confirm:hover:enabled {
-  background: var(--color-primary-strong);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lift);
+  background: var(--color-primary-container);
+}
+
+.confirm:active:enabled {
+  transform: scale(0.98);
 }
 
 .confirm:disabled {
@@ -76,28 +81,36 @@
 }
 
 .danger {
-  background: var(--color-danger);
+  background: var(--color-error);
 }
 
 .danger:hover:enabled {
-  background: var(--color-danger);
+  background: var(--color-error);
   opacity: 0.9;
 }
 
 .cancel {
   padding: 0.55rem 1.4rem;
-  border: none;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-primary);
   font: inherit;
-  font-weight: 700;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
 }
 
 .cancel:hover:enabled {
-  background: var(--color-border);
+  background: var(--color-surface-container-low);
+}
+
+.cancel:active:enabled {
+  transform: scale(0.98);
 }
 
 .cancel:disabled {

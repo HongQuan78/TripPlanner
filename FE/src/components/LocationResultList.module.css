@@ -14,47 +14,45 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
+  background: var(--color-surface-container-lowest);
   font-family: inherit;
   font-size: 1rem;
-  color: var(--color-ink);
+  color: var(--color-on-surface);
   cursor: pointer;
-  box-shadow: var(--shadow-soft);
   transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    border-color 0.15s ease;
+    box-shadow var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
 }
 
 .item:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--shadow-sm);
   border-color: var(--color-primary);
 }
 
 .selected {
-  border-color: var(--color-primary-strong);
-  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  background: var(--color-surface-container-low);
 }
 
 .name {
-  font-weight: 700;
+  font-weight: 600;
   margin-right: auto;
 }
 
 .pill {
-  padding: 0.15rem 0.6rem;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-  font-size: 0.8rem;
-  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-low);
+  color: var(--color-on-surface-variant);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .partial {
   font-size: 0.8rem;
-  color: var(--color-ink-muted);
+  color: var(--color-on-surface-variant);
   font-style: italic;
 }

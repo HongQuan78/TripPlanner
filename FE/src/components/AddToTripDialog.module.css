@@ -12,20 +12,20 @@
   align-items: flex-start;
   gap: 0.15rem;
   padding: 0.7rem 1rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-md);
-  background: var(--color-bg);
+  background: var(--color-surface);
   font: inherit;
-  color: var(--color-ink);
+  color: var(--color-on-surface);
   text-align: left;
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
+    background var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
 }
 
 .option:hover:enabled {
-  background: var(--color-primary-soft);
+  background: var(--color-surface-container-low);
   border-color: var(--color-primary);
 }
 
@@ -35,30 +35,36 @@
 }
 
 .optionName {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .optionMeta {
   font-size: 0.85rem;
-  color: var(--color-ink-muted);
+  color: var(--color-on-surface-variant);
 }
 
 .back {
   align-self: flex-start;
-  padding: 0.35rem 1rem;
-  border: none;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-primary);
   font: inherit;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
 }
 
 .back:hover {
-  background: var(--color-border);
+  background: var(--color-surface-container-low);
+}
+
+.back:active {
+  transform: scale(0.98);
 }
 
 .empty {
@@ -77,29 +83,32 @@
 
 .emptyText {
   margin: 0;
-  color: var(--color-ink-muted);
+  color: var(--color-on-surface-variant);
 }
 
 .createLink {
   padding: 0.55rem 1.4rem;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   background: var(--color-primary);
-  color: var(--color-surface);
-  font-weight: 700;
+  color: var(--color-on-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   text-decoration: none;
   transition:
-    background 0.15s ease,
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+    background var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
 }
 
 .createLink:hover {
-  background: var(--color-primary-strong);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lift);
+  background: var(--color-primary-container);
+}
+
+.createLink:active {
+  transform: scale(0.98);
 }
 
 .loading {
   margin: 0;
-  color: var(--color-ink-muted);
+  color: var(--color-on-surface-variant);
 }

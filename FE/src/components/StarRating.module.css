@@ -1,10 +1,10 @@
 .rating {
-  color: var(--color-primary-strong);
+  color: var(--color-primary);
   letter-spacing: 0.1em;
 }
 
 .noRating {
   font-size: 0.85rem;
-  color: var(--color-ink-muted);
+  color: var(--color-on-surface-variant);
   font-style: italic;
 }

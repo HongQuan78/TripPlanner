@@ -7,10 +7,10 @@
   margin: 0;
   padding: 0.35rem;
   list-style: none;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--shadow-lg);
   text-align: left;
 }
 
@@ -25,19 +25,20 @@
 
 .item:hover,
 .active {
-  background: var(--color-primary-soft);
+  background: var(--color-surface-container-low);
 }
 
 .name {
-  font-weight: 700;
-  color: var(--color-ink);
+  font-weight: 600;
+  color: var(--color-on-surface);
 }
 
 .pill {
-  padding: 0.1rem 0.6rem;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-  font-size: 0.8rem;
-  font-weight: 700;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-variant);
+  color: var(--color-on-surface-variant);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
 }

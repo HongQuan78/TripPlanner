@@ -15,28 +15,36 @@
 
 .title {
   margin: 0;
-  font-size: 1.8rem;
-  color: var(--color-ink);
+  font-size: 2rem;
+  color: var(--color-on-surface);
 }
 
 .dates {
-  color: var(--color-ink-muted);
+  color: var(--color-on-surface-variant);
 }
 
 .edit {
   padding: 0.55rem 1.4rem;
-  border: none;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-primary);
   font: inherit;
-  font-weight: 700;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
 }
 
 .edit:hover {
-  background: var(--color-border);
+  background: var(--color-surface-container-low);
+}
+
+.edit:active {
+  transform: scale(0.98);
 }
 
 .days {
@@ -46,10 +54,9 @@
 }
 
 .day {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface-container-lowest);
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 30%, transparent);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
@@ -59,12 +66,13 @@
 .dayHeading {
   margin: 0;
   font-size: 1.1rem;
-  color: var(--color-primary-dark);
+  font-weight: 600;
+  color: var(--color-primary);
 }
 
 .emptyDay {
   margin: 0;
-  color: var(--color-ink-muted);
+  color: var(--color-on-surface-variant);
   font-size: 0.9rem;
 }
 
@@ -82,9 +90,9 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 0.85rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-md);
-  background: var(--color-bg);
+  background: var(--color-surface);
 }
 
 .rowLink,
@@ -99,36 +107,37 @@
 }
 
 .rowLink:hover .rowName {
-  color: var(--color-primary-dark);
+  color: var(--color-primary);
   text-decoration: underline;
 }
 
 .rowName {
-  font-weight: 700;
-  color: var(--color-ink);
+  font-weight: 600;
+  color: var(--color-on-surface);
 }
 
 .rowCategory {
   padding: 0.15rem 0.7rem;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-  font-size: 0.78rem;
-  font-weight: 700;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-variant);
+  color: var(--color-on-surface-variant);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .remove {
   margin-left: auto;
   padding: 0.35rem 0.9rem;
   border: none;
-  border-radius: var(--radius-full);
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-error-container);
+  color: var(--color-error);
   font: inherit;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--duration-fast) ease;
 }
 
 .remove:hover {
@@ -136,30 +145,38 @@
 }
 
 .loading {
-  color: var(--color-ink-muted);
+  color: var(--color-on-surface-variant);
 }
 
 .error {
   margin: 0;
   padding: 0.6rem 0.85rem;
   border-radius: var(--radius-md);
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
+  background: var(--color-error-container);
+  color: var(--color-error);
   font-size: 0.9rem;
 }
 
 .retry {
   padding: 0.5rem 1.4rem;
-  border: none;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-primary);
   font: inherit;
-  font-weight: 700;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
 }
 
 .retry:hover {
-  background: var(--color-border);
+  background: var(--color-surface-container-low);
+}
+
+.retry:active {
+  transform: scale(0.98);
 }

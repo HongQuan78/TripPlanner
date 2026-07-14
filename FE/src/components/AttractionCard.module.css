@@ -2,21 +2,20 @@
   display: flex;
   flex-direction: column;
   border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-soft);
+  background: var(--color-surface-container-lowest);
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 30%, transparent);
   overflow: hidden;
   text-decoration: none;
-  color: var(--color-ink);
+  color: var(--color-on-surface);
   transition:
-    transform var(--duration-fast) var(--ease-spring),
+    transform var(--duration-fast) ease,
     box-shadow var(--duration-fast) ease;
   animation: card-enter var(--duration-slow) var(--ease-spring) both;
 }
 
 .card:hover {
-  transform: translateY(-2px) scale(1.01);
-  box-shadow: var(--shadow-lift);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
 }
 
 @keyframes card-enter {
@@ -91,7 +90,7 @@
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
-  background: var(--color-primary-soft);
+  background: var(--color-surface-container-low);
 }
 
 .body {
@@ -103,8 +102,9 @@
 
 .name {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 800;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .meta {
@@ -114,12 +114,13 @@
 }
 
 .heritage {
-  padding: 0.15rem 0.6rem;
-  border-radius: var(--radius-full);
-  background: var(--color-success-soft);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--color-success-container);
   color: var(--color-success);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .tags {
@@ -129,29 +130,36 @@
 }
 
 .tag {
-  padding: 0.15rem 0.6rem;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-low);
+  color: var(--color-on-surface-variant);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .addToTrip {
   align-self: flex-start;
   margin: 0.35rem 1rem 1.1rem;
-  padding: 0.35rem 1rem;
-  border: none;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-primary);
   font: inherit;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
 }
 
 .addToTrip:hover {
-  background: var(--color-border);
+  background: var(--color-surface-container-low);
+}
+
+.addToTrip:active {
+  transform: scale(0.98);
 }

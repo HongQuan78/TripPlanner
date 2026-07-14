@@ -8,10 +8,6 @@ export default function AppLayout() {
 
   return (
     <div className={styles.app}>
-      <div className={styles.blobs} aria-hidden="true">
-        <div className={styles.blobOne} />
-        <div className={styles.blobTwo} />
-      </div>
       <header className={styles.header}>
         <Link to="/" className={styles.brand}>
           <span aria-hidden="true">✈️</span>
