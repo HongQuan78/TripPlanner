@@ -15,7 +15,81 @@
 # requirement/Sheet1.html (no epic file; scope lives in the story files).
 
 project: tripplanner
-last_updated: 2026-07-14
+last_updated: 2026-07-16
+
+# 2026-07-16: 5-14-horizon-home-redesign implemented — all 5 tasks done. Hero
+# band (ink-gradient stand-in, 48px→32px responsive headline, band kept on all
+# viewports), hero search recomposed with the full typeahead/ARIA contract
+# preserved byte-for-byte, six-chip "Popular searches" pre-fill-and-submit row,
+# richer attraction cards (12rem cover, floating rating badge over image and
+# placeholder alike, "heritage" chip, distance line, pill tags, full-width
+# add-to-trip row, "Not rated" dropped), 60rem results column with 16rem grid
+# minimum and matched skeleton geometry. 175/175 FE tests (+13 net new), lint
+# and build green, Playwright visual verification desktop + mobile. Moved to
+# review.
+
+# 2026-07-16: added 5-14-horizon-home-redesign — rebuild of the home/search
+# surface against the Horizon UX spine pair's home update in
+# _bmad-output/planning-artifacts/ux-designs/ux-tripplanner-2026-07-15
+# (DESIGN.md + EXPERIENCE.md, validated by review-rubric-home-update.md):
+# hero band with ink-gradient photograph stand-in, hero search (no
+# placeholder, solid-white Clear, 50%-opacity disabled Search), six-chip
+# "Popular searches" pre-search row, richer attraction cards (12rem cover,
+# floating rating badge + heritage chip, distance line, pill tags,
+# full-width add-to-trip row), 60rem results column with 16rem grid minimum
+# — every shipped search/typeahead/state/accessibility contract preserved.
+# Picked up immediately for dev-story implementation.
+
+# 2026-07-15: 5-13-horizon-auth-redesign implemented — all 5 tasks done. Shared
+# AuthShell split-canvas layout (hero hidden below 768px), Login/Register/
+# Verify Email rebuilt with spine microcopy and the full accessibility floor
+# (aria-disabled pending buttons, role=alert/status semantics, describedby
+# field errors, focus-to-first-invalid, name-swapping password toggle), auth
+# routes moved outside AppLayout. 162/162 FE tests (+10 net new), lint and
+# build green, Playwright visual verification desktop + mobile. Moved to
+# review.
+
+# 2026-07-15: added 5-13-horizon-auth-redesign — rebuild of the three auth
+# surfaces (Login, Register, Verify Email) against the Horizon UX spine pair
+# in _bmad-output/planning-artifacts/ux-designs/ux-tripplanner-2026-07-15
+# (DESIGN.md + EXPERIENCE.md): split hero/card layout outside AppLayout,
+# spine microcopy, pending-button aria-disabled contract, password visibility
+# toggle, and the full accessibility floor — anti-enumeration guarantees
+# unchanged. Picked up immediately for dev-story implementation.
+
+# 2026-07-14: 8-4-image-loading-state implemented — all 3 tasks done. Image
+# frames on AttractionCard and PhotoCarousel now show a design-system shimmer
+# while the photo downloads (img stays mounted/hidden so load/error events
+# drive the state and layout never shifts); the default placeholder appears
+# only for null URLs or failed loads, and the carousel drops failed photos
+# from rotation. 152/152 FE tests (+9 new), lint and build green. Moved to
+# review.
+
+# 2026-07-14: added 8-4-image-loading-state — user follow-up to 8-3: while a
+# destination image is downloading, the image frame must show a loading shimmer
+# (matching the Skeleton convention); the default placeholder appears only when
+# there is genuinely no image (null URL or load error). Applies to
+# AttractionCard and PhotoCarousel; carousel also drops failed photos from
+# rotation. Picked up immediately for dev-story implementation.
+
+# 2026-07-14: 8-3-fix-missing-destination-images implemented — all 6 tasks done.
+# User-Agent set on the Wikipedia client (the 403 root cause), provider now
+# queries the language wiki named in the URL and escapes titles, Wikidata P18 →
+# Commons Special:FilePath fallback added, OpenTripMap /xid fan-out bounded to
+# 5 concurrent with 429 retry. 166/166 BE tests green (+17 new); e2e verified:
+# Hanoi went 0/20 → 14/20 attractions with images, details verified for
+# en-wiki, vi-wiki-only, and Wikidata-fallback places. Moved to review.
+
+# 2026-07-14: added 8-3-fix-missing-destination-images — user reported zero
+# destination images in search and details despite 8-2. Root-caused to three
+# stacked failures: (1) FATAL — Wikimedia now 403s any request without a
+# User-Agent header and ConfigureWikipediaClient never sets one (Photon's
+# does), so 100% of image lookups silently fail; (2) non-English wikipedia
+# URLs (e.g. vi.wikipedia.org, ~half of Hanoi results) 404 against the
+# hard-coded en base (deferred 8-2 review finding); (3) places without a
+# usable Wikipedia thumbnail get nothing — fixed via a Wikidata P18 → Commons
+# Special:FilePath fallback (OpenTripMap supplies wikidata ids). Picked up
+# immediately for dev-story implementation.
 
 # 2026-07-14: added 8-2-wikipedia-primary-image-provider — user confirmed
 # OpenTripMap's dev-tier image URLs are unusable (broken images), so 8-1's
@@ -167,3 +241,7 @@ development_status:
   5-10-ui-motion-and-depth-polish: done
   5-11-trip-destination-detail-link: done
   5-12-frontend-redesign-horizon-design-system: review
+  8-3-fix-missing-destination-images: review
+  8-4-image-loading-state: review
+  5-13-horizon-auth-redesign: review
+  5-14-horizon-home-redesign: review

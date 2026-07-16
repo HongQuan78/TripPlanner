@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UX Design Validation: Trip Planner — Horizon (home update)</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+
+  .dimension-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section.dimension details, section.reviewer-section details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before {
+    content: "▸";
+    display: inline-block;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 {
+    display: inline;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .verdict-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .verdict-broken { background: var(--verdict-broken); }
+
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment { color: var(--text); font-size: 14.5px; }
+  .dim-judgment p { margin: 0 0 10px; }
+
+  .findings-list { padding: 0 20px 4px; }
+  article.finding {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  article.finding:first-child { border-top: none; }
+  article.finding header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234, 88, 12, 0.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220, 38, 38, 0.14); color: var(--sev-critical); }
+  .badge-resolved { background: rgba(22, 163, 74, 0.12); color: var(--verdict-strong); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+
+  .reviewer-source {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  .mechanical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  .mechanical li { margin-bottom: 4px; color: var(--text); }
+
+  footer.report-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <header class="report-header">
+      <div class="title">
+        <h1>Trip Planner — Horizon (home update) — UX Design Validation Report</h1>
+        <div class="subtitle">_bmad-output/planning-artifacts/ux-designs/ux-tripplanner-2026-07-15/DESIGN.md · EXPERIENCE.md</div>
+      </div>
+    </header>
+
+    <div class="synthesis">
+      <p>The home/search extension grafts cleanly onto the auth spine: the token layer resolves end to end, every hex is real production CSS (verified against <code>FE/src/index.css</code>), the contrast table covers the new load-bearing combinations, and every behavioral contract marked "kept" matches the shipped code line for line. The pair is consumable as a contract with one genuine coverage hole — the location result list had behavior but no visual spec anywhere — plus a small cluster of medium ambiguities around controls that now sit on photography. Nothing found was structural; all findings were patchable in place — and all 11 findings (0 critical / 1 high / 4 medium / 6 low) plus the mechanical pair-title note have since been resolved in the spines before finalize. Every finding below carries its resolution.</p>
+      <p>This update's reviewer gate ran a single lens: the rubric walker (<code>review-rubric-home-update.md</code>; the accessibility lens was declined by user decision for this update). The prior auth-run gate — the original rubric review (<code>review-rubric.md</code>: assumption-tag cleanup, Login validation contract, motion/shadow token promotion, inline import link and precedence rule) and the WCAG 2.2 AA accessibility review (<code>review-accessibility.md</code>: placeholder and pending-button contrast, the ≥65% hero-gradient floor, live-region and toggle-signal corrections) — was fully applied to the spines at the auth finalize step. Those reviews are summarized below as the prior gate, not re-adjudicated.</p>
+    </div>
+
+    <div class="dimension-summary">
+      <div class="dim-card">
+        <div class="dim-name">Flow coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">strong</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Token completeness</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">strong</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Component coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">State coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">strong</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Visual reference coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">strong</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Bloat &amp; overspecification</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Inheritance discipline</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">strong</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Shape fit</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">strong</div>
+      </div>
+    </div>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>1. Flow coverage</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Four journeys extracted: register (Flow 1), returning login with <code>returnTo</code> (Flow 2), verify/expired/resend (Flow 3), and the update's home journey (Flow 4) — first visit, typeahead search, skeleton→grid, add-to-trip handoff, session restore. All four have a named protagonist, numbered steps, a climax beat, and failure paths. Flow 4's failure path covers both attractions-error (retry preserves state) and empty results. Every update requirement from the memlog (hero band, first-visit state, richer cards, add-to-trip row) is exercised.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <span class="badge badge-resolved">resolved</span>
+              <h3 class="finding-title">Flow 4 step 6 compressed the register→verify→login return without committing the route, and claimed an unrestorable hover state</h3>
+              <span class="finding-location">EXPERIENCE.md — Flow 4 step 6</span>
+            </header>
+            <div class="finding-note">The add-to-trip redirect carries <code>returnTo</code>, but login-after-verify starts from <code>/verify-email</code> with no <code>returnTo</code> and lands on <code>/trips</code>; the step also claimed "the heritage card still lifted under her pointer," a hover state no implementation restores.</div>
+            <div class="finding-fix"><strong>Resolution:</strong> Step 6 now commits both roads explicitly — <code>returnTo</code> drops an existing account straight back on the page; the register/verify detour ends on <code>/trips</code> with one tap on the header wordmark returning to home, where the session store restores the page exactly as left. The hover-persistence image was dropped.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <span class="badge badge-resolved">resolved</span>
+              <h3 class="finding-title">Suggestion chips — the only net-new interactive element on home — were seen but never activated in any flow</h3>
+              <span class="finding-location">EXPERIENCE.md — Key Flows</span>
+            </header>
+            <div class="finding-note">Chips appeared in Flow 4 step 1 but no flow exercised a chip tap.</div>
+            <div class="finding-fix"><strong>Resolution:</strong> A variant line was added to Flow 4 step 2: "Had a chip named her daydream — say Đà Nẵng — one tap would have collapsed this step and the next into a single gesture: chips pre-fill and submit at once."</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>2. Token completeness</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>All frontmatter tokens (33 colors, 8 typography roles, 4 radii, 12 spacing entries, 2 shadows, 3 motion values, 16 component objects) and every <code>{path.to.token}</code> reference in both files resolve; all values match <code>FE/src/index.css</code> as the Brand &amp; Style section claims. Contrast is stated for every new load-bearing combination: kind tag 8.44:1, heritage chip 5.49:1, rating-badge scrim ≥9.13:1, add-to-trip 6.73:1 rest / 6.11:1 hover, plus the ≥65% gradient rule extended verbatim to the hero band. The two hairline exceptions are documented with rationale.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <span class="badge badge-resolved">resolved</span>
+              <h3 class="finding-title">Clear button in the hero band had no committed appearance or contrast strategy</h3>
+              <span class="finding-location">DESIGN.md — Components → Hero search; FE/src/pages/SearchPage.module.css:79–101</span>
+            </header>
+            <div class="finding-note">The shipped transparent primary-blue ghost would float bare on arbitrary photography — the one band element outside the ink-scrim/solid-white rule that DESIGN's own Do's and Don'ts enforce; the spine committed only its typography, not its fill.</div>
+            <div class="finding-fix"><strong>Resolution:</strong> Committed as a decision: the Clear button drops its transparent ghost inside the band and takes a solid <code>{colors.surface-container-lowest}</code> fill behind its <code>{colors.primary}</code> 1px border and text (6.73:1 on white), hover → <code>{colors.surface-container-low}</code> — a documented divergence from the shipped ghost, forced by the text-over-photography rule.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <span class="badge badge-resolved">resolved</span>
+              <h3 class="finding-title">Disabled Search button had three contradictory treatments (token, prose, shipped code)</h3>
+              <span class="finding-location">DESIGN.md — frontmatter button-primary / Components; FE/src/pages/SearchPage.module.css:74</span>
+            </header>
+            <div class="finding-note">EXPERIENCE keeps "Search stays disabled while the input is empty"; the <code>background-disabled</code> token said <code>{colors.disabled}</code> with <code>{colors.on-primary}</code> text (the 1.70:1 combination the Components prose itself calls unreadable); shipped code uses 50% opacity on the primary fill. This disabled button is the resting state of the pre-search hero — the page's most prominent moment.</div>
+            <div class="finding-fix"><strong>Resolution:</strong> The shipped 50%-opacity primary fill is now the committed treatment in the Hero search bullet ("the shipped treatment, now the committed one — never the <code>{colors.disabled}</code> gray wash"); the <code>button-primary.background-disabled</code> token was updated to match, and <code>{colors.disabled}</code> is explicitly reserved for inert chrome elsewhere.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <span class="badge badge-resolved">resolved</span>
+              <h3 class="finding-title">Literal "shadow-sm" instead of {shadows.sm} in the auth-card bullet</h3>
+              <span class="finding-location">DESIGN.md — Components → Auth card</span>
+            </header>
+            <div class="finding-note">Resolved by inference but broke the reference syntax every other bullet uses.</div>
+            <div class="finding-fix"><strong>Resolution:</strong> Replaced with <code>{shadows.sm}</code>; no literal shadow names remain in either spine.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>3. Component coverage</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Every component named anywhere in either file was cross-checked for a DESIGN visual spec and an EXPERIENCE behavioral row. Covered on both sides: auth card, hero panel, hero band, hero search, suggestion chip, attraction card, rating badge, kind tag, add-to-trip row, text input, password input, password helper, field label, primary button, error/success banner, cross-link footer. Three home-side components were lopsided at review time; all three holes are now closed.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <span class="badge badge-resolved">resolved</span>
+              <h3 class="finding-title">Location result list had a behavioral row but no visual spec anywhere in DESIGN</h3>
+              <span class="finding-location">DESIGN.md — Components; EXPERIENCE.md — Component Patterns</span>
+            </header>
+            <div class="finding-note">The result buttons (rest/selected fill for the <code>aria-pressed</code> state, country/type pills, partial-match note) sit directly beneath the new hero band; a consumer restyling this page had nothing to build them from and no license to leave them alone.</div>
+            <div class="finding-fix"><strong>Resolution:</strong> A full DESIGN Components bullet was added — "Existing production styles preserved; restated here so the buttons directly beneath the band have a spec" — covering the centered 32rem column of full-width <code>{rounded.md}</code> toggle buttons on <code>{colors.surface-container-lowest}</code> with a 1px <code>{colors.outline-variant}</code> border, name/pill/partial-match typography, hover (<code>{shadows.sm}</code> plus a <code>{colors.primary}</code> border), and the selected <code>aria-pressed</code> treatment (primary border on a <code>{colors.surface-container-low}</code> fill).</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <span class="badge badge-resolved">resolved</span>
+              <h3 class="finding-title">Suggestion dropdown had a full behavioral row but only "unchanged, on white" in DESIGN</h3>
+              <span class="finding-location">DESIGN.md — Components; EXPERIENCE.md — Component Patterns → Suggestion dropdown</span>
+            </header>
+            <div class="finding-note">No option-row anatomy, no active-option highlight color; "unchanged" was an implicit spec decision while every neighboring element in the band was respecified.</div>
+            <div class="finding-fix"><strong>Resolution:</strong> A dedicated DESIGN Components bullet now states "Preserved as shipped; restated here so the contract is explicit" with the full anatomy: <code>{colors.surface-container-lowest}</code> panel, 1px <code>{colors.outline-variant}</code> border, <code>{rounded.lg}</code>, <code>{shadows.lg}</code>, option-row typography (semibold name, country-code/type pills), and the hovered/keyboard-active fill (<code>{colors.surface-container-low}</code>).</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <span class="badge badge-resolved">resolved</span>
+              <h3 class="finding-title">Heritage chip had a DESIGN row but no behavioral row and no committed label copy</h3>
+              <span class="finding-location">EXPERIENCE.md — Component Patterns; FE/src/components/AttractionCard.tsx:42</span>
+            </header>
+            <div class="finding-note">Neither spine stated what the chip says ("heritage"? "UNESCO"?) or how it is announced inside the card link — the rating badge received exactly this treatment.</div>
+            <div class="finding-fix"><strong>Resolution:</strong> Label committed as the shipped lowercase word "heritage" in a new EXPERIENCE Component Patterns row, with the same single-announcement rule as the rating badge: exposed once as part of the card link's text, no duplicate <code>aria-label</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <span class="badge badge-resolved">resolved</span>
+              <h3 class="finding-title">Rating badge's placeholder-case behavior lived only in the visual file</h3>
+              <span class="finding-location">DESIGN.md — Components → Rating badge; EXPERIENCE.md — Component Patterns</span>
+            </header>
+            <div class="finding-note">EXPERIENCE said the badge "floats on the image" while DESIGN said "rendered over image and placeholder alike" — a superset a behavior-extracting consumer might miss.</div>
+            <div class="finding-fix"><strong>Resolution:</strong> "Rendered over image and placeholder alike" is now mirrored into the EXPERIENCE rating-badge row.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>4. State coverage</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Both surface families walked. Home: pre-search / first visit, restored session, searching, search error (incl. 503/network wording, verified against <code>FE/src/pages/SearchPage.tsx:19–24</code>), no matches, country selected, attractions loading (skeletons + SR text), attractions error, attractions empty, populated grid, per-card image loading/failed, focus (Accessibility Floor), reduced motion. Auth states unchanged from the prior review and still complete. All verbatim "kept" copy strings match the shipped code exactly.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <span class="badge badge-resolved">resolved</span>
+              <h3 class="finding-title">Typed-but-unsubmitted pre-search state: dropdown/chip-row stacking uncommitted</h3>
+              <span class="finding-location">EXPERIENCE.md — Component Patterns → Suggestion chip / Suggestion dropdown</span>
+            </header>
+            <div class="finding-note">Chips remain visible until a query is submitted while the dropdown opens directly above them inside the band; overlap behavior was unstated.</div>
+            <div class="finding-fix"><strong>Resolution:</strong> Committed in the dropdown row: on the pre-search band the open dropdown overlays the suggestion chip row (absolutely positioned above the page flow); chips neither hide nor reflow while the user types.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>5. Visual reference coverage</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Inventory: <code>imports/sign-in-horizon-travel.html</code>; <code>mockups/key-login.html</code>, <code>mockups/key-register.html</code>, <code>mockups/key-verify-email.html</code>. (<code>.working/</code> duplicates are scratch, not references.) The import is linked inline in both spines with what it is, and spines-win-on-conflict is stated once per file. All three auth mockups are linked in both files with the states each illustrates. Both files correctly stated that home/search mockups land at this update's finalize step — no stale references, no orphans. (Post-review, finalize delivered <code>mockups/key-home-presearch.html</code> and <code>mockups/key-home-results.html</code> as recorded in the memlog.) No findings.</p>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>6. Bloat &amp; overspecification</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>DESIGN's editorial voice is within its license; the restated production values are declared as such and serve as the token source of truth. The contrast paragraph is dense but every ratio is load-bearing. Tables are used where tables work.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <span class="badge badge-resolved">resolved</span>
+              <h3 class="finding-title">Flow 4's closing prose carried editorial voice and an unimplementable hover beat</h3>
+              <span class="finding-location">EXPERIENCE.md — Flow 4 step 6</span>
+            </header>
+            <div class="finding-note">"Turned a daydream into an itinerary's first entry" plus the hover-persistence image, in a file that should stay clinical.</div>
+            <div class="finding-fix"><strong>Resolution:</strong> The climax was trimmed to the observable contract — either road ends in the same restored state ("hoi" resolved, Hoi An selected, the same grid waiting), with the add-to-trip row one tap away. The hover beat and the daydream line are gone.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>7. Inheritance discipline</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Component names are identical across DESIGN frontmatter (kebab-case), DESIGN Components prose, and EXPERIENCE Component Patterns rows (hero band / <code>hero-band</code>, add-to-trip row / <code>add-to-trip-row</code>, etc.). Every token reference in EXPERIENCE resolves to a DESIGN frontmatter token by exact name. No drifted or aliased names found in the update. No findings (the pair-title drift sits under Mechanical notes and is resolved).</p>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>8. Shape fit</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>DESIGN body sections are in canonical order: Brand &amp; Style → Colors → Typography → Layout &amp; Spacing → Elevation &amp; Depth → Shapes → Components → Do's and Don'ts. EXPERIENCE carries all required defaults (Foundation, IA, Voice and Tone, Component Patterns, State Patterns, Interaction Primitives, Accessibility Floor, Key Flows); Inspiration &amp; Anti-patterns is legitimately omitted. Frontmatter is complete in both files. No findings.</p>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="reviewer-section">
+      <details>
+        <summary>
+          <h2>Prior gate — auth rubric review</h2>
+          <span class="reviewer-source">review-rubric.md</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The original auth-run rubric review judged the pair "a disciplined, near-contract-ready pair" with two blockers to clean source-extraction: eleven residual [ASSUMPTION] tags (ratified only in the memlog, invisible to a spine-only consumer) and a missing Login client-side validation contract — plus motion/shadow tokens living only in prose, no numeric contrast targets, a missing password-helper DESIGN entry, and no inline import link or spines-win-on-conflict rule. All findings were applied to the spines at the auth finalize step: assumption tags stripped with rationale kept as plain decisions, the Login validation contract committed, <code>shadows</code>/<code>motion</code> promoted into the DESIGN frontmatter (a ratified spec extension), contrast ratios stated, and the import linked inline with precedence declared. This report does not re-adjudicate those findings; the home-update rubric re-verified the resulting state (token resolution, contrast table, reference coverage) as strong.</p>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="reviewer-section">
+      <details>
+        <summary>
+          <h2>Prior gate — accessibility review (WCAG 2.2 AA)</h2>
+          <span class="reviewer-source">review-accessibility.md</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The auth-run accessibility review computed a full contrast table from the committed hexes and found three highs — outline-variant placeholders at 1.70:1, the pending button label rendered in the exempt-but-unreadable disabled style with no live-region announcement, and a hero gradient whose 80%→0 ramp could not protect the 18px body line above the bottom band — plus mediums on the double-signaling password toggle, the "decorative to assistive tech" hero copy claim, the non-persistent verify live region, the input-border boundary contrast, and the all-net-new ARIA commitments. All were applied at the auth finalize step: placeholders dropped, the pending state keeps the full primary fill with the label swap announced, the ≥65%-through-copy gradient floor was committed (and is now reused verbatim by the home hero band), the toggle carries a single signal (changing name, no <code>aria-pressed</code>), the hero copy is <code>aria-hidden</code>, and verification status renders inside one persistent <code>role="status"</code> container. The accessibility lens was declined for this home update by user decision; the home-update rubric verified the new load-bearing contrast combinations numerically in its stead.</p>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <div class="mechanical">
+      <h3>Mechanical notes</h3>
+      <ul>
+        <li>Pair-title drift (DESIGN "Trip Planner — Horizon" vs EXPERIENCE "Trip Planner Auth + Home — Horizon") — <strong>resolved:</strong> both frontmatter names now read "Trip Planner — Horizon".</li>
+        <li>DESIGN frontmatter extends the base spec keys with <code>status</code>, <code>updated</code>, <code>shadows</code>, and <code>motion</code> — a ratified memlog decision; all <code>{shadows.*}</code>/<code>{motion.*}</code> references resolve.</li>
+        <li>Kept-contract verification against shipped code, all confirmed true: 300ms debounce / min 2 chars / max 5 suggestions / mousedown choose / Escape per-query dismissal / suppression rules, <code>aria-pressed</code> result buttons and partial-match note, "Rated N of 3" label, 40ms stagger + <code>ease-spring</code>, 4 skeletons + "Loading attractions…", disabled-empty Search, add-to-trip <code>returnTo</code> redirect, layout widths, and every frontmatter hex/radius/shadow/motion value against <code>FE/src/index.css</code>.</li>
+        <li>The attraction payload contract in EXPERIENCE (xid, name, kinds, rating, imageUrl, distanceMeters) matches <code>FE/src/api/types.ts:21–28</code> exactly.</li>
+        <li>Post-review memlog notes carried forward for implementation: mock chip cities are illustrative only (the curated list is an implementation-story constant); shipped AppLayout header renders "TripPlanner" one word vs the spine's "Trip Planner" — needs fixing at implementation; attraction loading/error/empty and country-notice states stay spine-only as preservation contracts, not new builds.</li>
+      </ul>
+    </div>
+
+    <footer class="report-footer">
+      <div class="meta">
+        <span>Rubric: review-rubric-home-update.md (this gate) · Prior gate: review-rubric.md, review-accessibility.md</span>
+        <span>Generated: 2026-07-15</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

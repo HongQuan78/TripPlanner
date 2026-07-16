@@ -1,0 +1,205 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="spine-sections" content="DESIGN.md: Brand &amp; Style (home posture), Colors, Typography (display-sm, body-lg, label-lg, label-sm), Layout &amp; Spacing (hero band in AppLayout column), Elevation &amp; Depth (hero band gradient contract, shadows.lg on hero search), Shapes, Components (hero-band, hero-search, suggestion-chip, button-primary); EXPERIENCE.md: Foundation (home tenancy), Voice and Tone (Where to next?, tagline, Popular searches), Component Patterns (Hero band, Hero search, Suggestion chip), State Patterns (Pre-search), Interaction Primitives (disabled-empty Search divergence), Flow 4 step 1">
+<title>Trip Planner — Home pre-search key screen</title>
+<style>
+  /*
+    Governing spine sections:
+    - DESIGN.md › Brand & Style: home hero band posture (one photographic moment, search bar as the one white object)
+    - DESIGN.md › Colors: token hexes only; disabled Search keeps primary fill at 50% opacity
+    - DESIGN.md › Typography: display-sm headline, body-lg tagline, label-lg buttons, label-sm chips/label
+    - DESIGN.md › Layout & Spacing: AppLayout content column (72rem), framed rounded band, min-height 22rem,
+      centered stack with {spacing.3}–{spacing.5} gaps, search row capped at 32rem
+    - DESIGN.md › Elevation & Depth: ink gradient ≥65% opacity through the full headline/tagline/search block;
+      shadows.lg on the hero search bar; ink-tinted shadows
+    - DESIGN.md › Shapes: band clips to rounded.lg; search input/buttons rounded.md; chips rounded.full
+    - DESIGN.md › Components: hero-band, hero-search (disabled Search 50% primary, Clear solid white fill),
+      suggestion-chip (solid white, never translucent over the photograph)
+    - EXPERIENCE.md › Foundation: home renders inside AppLayout (sticky header + nav, as shipped)
+    - EXPERIENCE.md › Voice and Tone: "Where to next?", "Search any city and start building the trip.",
+      "Popular searches"
+    - EXPERIENCE.md › Component Patterns: Hero band (h1 is real content), Hero search, Suggestion chip
+      (six curated cities, real buttons, pre-fill-and-submit)
+    - EXPERIENCE.md › State Patterns: Pre-search (first visit) — nothing below the band, page never blank
+    - EXPERIENCE.md › Interaction Primitives: Search stays disabled while the input is empty (documented divergence)
+    - EXPERIENCE.md › Key Flows: Flow 4 step 1
+    The hero photograph is a gradient stand-in built from DESIGN.md token hexes until the real asset lands.
+  */
+  :root {
+    --primary: #0058bc;
+    --primary-container: #0070eb;
+    --on-primary: #ffffff;
+    --secondary-container: #a6c5fe;
+    --on-secondary-container: #315182;
+    --tertiary: #006577;
+    --tertiary-container: #008096;
+    --background: #f8f9ff;
+    --surface-container-lowest: #ffffff;
+    --surface-container-low: #eff4ff;
+    --surface-container: #e5eeff;
+    --surface-container-highest: #d3e4fe;
+    --on-surface: #0b1c30;
+    --on-surface-variant: #414755;
+    --outline: #717786;
+    --outline-variant: #c1c6d7;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-full: 999px;
+    --shadow-sm: 0 1px 3px rgba(11, 28, 48, 0.08);
+    --shadow-lg: 0 10px 24px rgba(11, 28, 48, 0.12);
+    --font: 'Plus Jakarta Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--background); color: var(--on-surface); font-size: 16px; line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* AppLayout chrome — sticky white header with wordmark and nav, as shipped */
+  .header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--surface-container-lowest);
+    box-shadow: var(--shadow-sm);
+  }
+  .brand {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-size: 1.5rem; font-weight: 600; line-height: 1.4;
+    color: var(--primary); text-decoration: none;
+  }
+  .nav { display: flex; align-items: center; gap: 0.5rem; }
+  .nav a {
+    color: var(--on-surface-variant); text-decoration: none;
+    font-size: 0.875rem; font-weight: 600; letter-spacing: 0.05em; line-height: 1.2;
+    padding: 0.5rem 0.9rem; border-radius: var(--radius-md);
+    transition: background 150ms ease, color 150ms ease;
+  }
+  .nav a:hover { color: var(--primary); background: var(--surface-container-low); }
+
+  .content { flex: 1; width: 100%; max-width: 72rem; margin: 0 auto; padding: 1.5rem 1rem 2.5rem; }
+
+  /* Hero band — framed rounded photographic band; gradient stand-in from token hexes
+     over the surface-container fallback fill; ink overlay ≥65% through the copy/search block */
+  .hero-band {
+    position: relative;
+    min-height: 22rem;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    padding: 2rem 1.5rem;
+    background:
+      linear-gradient(to top, rgba(11, 28, 48, 0.80) 0%, rgba(11, 28, 48, 0.72) 45%, rgba(11, 28, 48, 0.65) 78%, rgba(11, 28, 48, 0.30) 90%, rgba(11, 28, 48, 0) 100%),
+      linear-gradient(160deg, #d3e4fe 0%, #a6c5fe 28%, #008096 62%, #006577 82%, #0b1c30 100%),
+      var(--surface-container);
+  }
+  .hero-inner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.75rem; width: 100%; }
+  .hero-inner h1 {
+    font-size: 48px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em;
+    color: var(--on-primary);
+  }
+  .tagline { font-size: 18px; font-weight: 400; line-height: 1.6; color: var(--on-primary); }
+
+  /* Hero search — 32rem cap, white input floating on the photograph with shadows.lg */
+  .search-row {
+    display: flex; gap: 0.5rem;
+    width: 100%; max-width: 32rem;
+    margin-top: 0.75rem;
+  }
+  .search-row input {
+    flex: 1; min-width: 0;
+    height: 3rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius-md);
+    background: var(--surface-container-lowest);
+    color: var(--on-surface);
+    font-family: var(--font); font-size: 16px;
+    box-shadow: var(--shadow-lg);
+  }
+  .search-row input:focus { outline: 2px solid var(--primary); outline-offset: 0; border-color: transparent; }
+  .btn-search {
+    height: 3rem; padding: 0 1.25rem;
+    background: var(--primary); color: var(--on-primary);
+    border: none; border-radius: var(--radius-md);
+    font-family: var(--font); font-size: 14px; font-weight: 600; line-height: 1.2; letter-spacing: 0.05em;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer; transition: background 150ms;
+  }
+  .btn-search:hover { background: var(--primary-container); }
+  .btn-search[aria-disabled="true"] { opacity: 0.5; cursor: default; }
+  .btn-search[aria-disabled="true"]:hover { background: var(--primary); }
+  .btn-clear {
+    height: 3rem; padding: 0 1.25rem;
+    background: var(--surface-container-lowest);
+    color: var(--primary);
+    border: 1px solid var(--primary); border-radius: var(--radius-md);
+    font-family: var(--font); font-size: 14px; font-weight: 600; line-height: 1.2; letter-spacing: 0.05em;
+    cursor: pointer; transition: background 150ms;
+  }
+  .btn-clear:hover { background: var(--surface-container-low); }
+
+  /* Popular searches — six curated chips, solid white pills, pre-search only */
+  .popular { margin-top: 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+  .popular-label { font-size: 12px; font-weight: 500; line-height: 1.2; color: var(--on-primary); }
+  .chip-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+  .chip {
+    height: 2rem; padding: 0 0.75rem;
+    display: inline-flex; align-items: center;
+    background: var(--surface-container-lowest);
+    color: var(--on-surface);
+    border: none; border-radius: var(--radius-full);
+    font-family: var(--font); font-size: 12px; font-weight: 500; line-height: 1.2;
+    cursor: pointer; transition: background 150ms;
+  }
+  .chip:hover { background: var(--surface-container-low); }
+  .chip:focus { outline: 2px solid var(--primary); }
+
+  .state-caption {
+    text-align: center;
+    padding: 1.5rem 1.5rem 0;
+    font-size: 12px; font-weight: 500; line-height: 1.2;
+    color: var(--on-surface-variant);
+    background: var(--background);
+    border-top: 1px solid var(--outline-variant);
+  }
+  @media (max-width: 768px) {
+    .hero-band { min-height: 16rem; }
+    .hero-inner h1 { font-size: 32px; line-height: 1.3; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<header class="header">
+  <a class="brand" href="/"><span aria-hidden="true">✈️</span>Trip Planner</a>
+  <nav class="nav">
+    <a href="/login">Login</a>
+    <a href="/register">Register</a>
+  </nav>
+</header>
+
+<main class="content">
+  <section class="hero-band">
+    <div class="hero-inner">
+      <h1>Where to next?</h1>
+      <p class="tagline">Search any city and start building the trip.</p>
+      <form class="search-row" role="search">
+        <input type="text" aria-label="Search">
+        <button class="btn-search" type="submit" aria-disabled="true">Search</button>
+        <button class="btn-clear" type="button">Clear</button>
+      </form>
+      <div class="popular">
+        <p class="popular-label">Popular searches</p>
+        <div class="chip-row">
+          <button class="chip" type="button">Đà Nẵng</button>
+          <button class="chip" type="button">Paris</button>
+          <button class="chip" type="button">Tokyo</button>
+          <button class="chip" type="button">Rome</button>
+          <button class="chip" type="button">Barcelona</button>
+          <button class="chip" type="button">New York</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<p class="state-caption">State: pre-search (first visit) — Search disabled at 50%-opacity primary fill (input empty), Clear in solid white fill, six curated Popular-searches chips inside the band; nothing renders below the band</p>

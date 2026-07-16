@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sign In - Horizon</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#004e5c",
+                        "surface-container": "#e5eeff",
+                        "surface-variant": "#d3e4fe",
+                        "on-secondary-fixed": "#001b3d",
+                        "on-background": "#0b1c30",
+                        "surface-dim": "#cbdbf5",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#0070eb",
+                        "inverse-surface": "#213145",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#d8e2ff",
+                        "on-primary-fixed-variant": "#004493",
+                        "on-tertiary-fixed": "#001f26",
+                        "on-surface-variant": "#414755",
+                        "tertiary": "#006577",
+                        "tertiary-fixed-dim": "#56d6f4",
+                        "background": "#f8f9ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "inverse-primary": "#adc6ff",
+                        "outline": "#717786",
+                        "secondary-container": "#a6c5fe",
+                        "secondary-fixed": "#d6e3ff",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#f9fdff",
+                        "surface": "#f8f9ff",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#a9c7ff",
+                        "on-secondary-fixed-variant": "#264778",
+                        "on-primary-container": "#fefcff",
+                        "secondary": "#405f91",
+                        "surface-tint": "#005bc1",
+                        "on-surface": "#0b1c30",
+                        "tertiary-container": "#008096",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#f8f9ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#eff4ff",
+                        "on-error-container": "#93000a",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-secondary-container": "#315182",
+                        "primary": "#0058bc",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#dce9ff",
+                        "outline-variant": "#c1c6d7",
+                        "tertiary-fixed": "#acedff",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-primary-fixed": "#001a41"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit-lg": "24px",
+                        "unit-md": "16px",
+                        "container-max": "1280px",
+                        "unit-2xl": "80px",
+                        "unit-xl": "48px",
+                        "unit-sm": "8px",
+                        "margin": "40px",
+                        "unit-xs": "4px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "display-sm": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "label-sm": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "label-lg": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.3", "fontWeight": "700" }],
+                        "display-sm": ["48px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "display-lg": ["64px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "label-sm": ["12px", { "lineHeight": "1.2", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md">
+<!-- Top Navigation Bar is suppressed because this is a linear/transactional screen (Sign In) -->
+<!-- Main Content -->
+<main class="flex-grow flex w-full">
+<div class="flex flex-col md:flex-row w-full">
+<!-- Left Side: Hero Image Split -->
+<div class="hidden md:flex md:w-1/2 relative bg-surface-container overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="A breathtaking, serene view of a pristine coastal destination from a high vantage point. The scene features crystal clear turquoise waters gently meeting white sand beaches, surrounded by lush green hills. The lighting is golden hour, casting soft, warm rays across the landscape, evoking a sense of tranquility and premium escape. High-fidelity photography style with a modern, clean aesthetic that fits a luxury travel brand." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCdIRVTRt5-isOh1p09WQlsV6IqAAtfwr-w_g6mt8rz4qMarGiNpgH49SGEQkCUV8268F_Xtbfgj88sj486_RhDF8kNGY_3gA9Wmy23hJ4sro3nUodImEsecEgcd36MjhGrMAaUBK57qfWQKhQnJJ_LmTHvdUQOQ83LcpDng0nKNFNcjqY1NweornKzRINx-yJD3iJhYWLmyEtg-bIEnKMeEQ9RZxcTzDFgcL4UGLYX2jF3w-wZHCrSCHCZcaoIEJMOryF0cMkj3sGs')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-on-background/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-0 left-0 p-margin text-on-primary">
+<h2 class="font-display-sm text-display-sm mb-unit-sm">Welcome Back.</h2>
+<p class="font-body-lg text-body-lg text-on-primary/90 max-w-md">Your next extraordinary journey begins right where you left off.</p>
+</div>
+</div>
+<!-- Right Side: Authentication Card -->
+<div class="w-full md:w-1/2 flex items-center justify-center p-gutter min-h-screen md:min-h-0 bg-surface">
+<div class="w-full max-w-[420px] bg-surface-container-lowest rounded-xl p-margin shadow-sm border border-outline-variant/30 flex flex-col">
+<!-- Brand (Fallback if nav is absent) -->
+<div class="mb-unit-lg flex justify-center">
+<span class="font-headline-lg text-headline-lg font-bold text-primary">Horizon</span>
+</div>
+<div class="mb-unit-xl text-center">
+<h1 class="font-headline-md text-headline-md text-on-surface mb-unit-xs">Sign In</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Please enter your details to continue.</p>
+</div>
+<form class="space-y-unit-md w-full">
+<!-- Email Input -->
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-unit-xs" for="email">Email Address</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-unit-sm top-1/2 -translate-y-1/2 text-outline">mail</span>
+<input class="w-full h-[48px] pl-10 pr-unit-sm rounded-DEFAULT border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary text-on-surface font-body-md text-body-md placeholder-outline-variant transition-colors" id="email" name="email" placeholder="hello@example.com" required="" type="email"/>
+</div>
+</div>
+<!-- Password Input -->
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-unit-xs" for="password">Password</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-unit-sm top-1/2 -translate-y-1/2 text-outline">lock</span>
+<input class="w-full h-[48px] pl-10 pr-10 rounded-DEFAULT border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary text-on-surface font-body-md text-body-md placeholder-outline-variant transition-colors" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+<button class="absolute right-unit-sm top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors focus:outline-none" type="button">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<!-- Remember Me & Forgot Password -->
+<div class="flex items-center justify-between pt-unit-xs">
+<label class="flex items-center space-x-2 cursor-pointer group">
+<div class="relative flex items-center justify-center">
+<input class="appearance-none w-4 h-4 border border-outline rounded-sm bg-surface-container-lowest checked:bg-primary checked:border-primary focus:ring-2 focus:ring-primary/20 transition-all" type="checkbox"/>
+<span class="material-symbols-outlined absolute text-[12px] text-on-primary opacity-0 group-has-[:checked]:opacity-100 pointer-events-none" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Remember me</span>
+</label>
+<a class="font-label-sm text-label-sm text-primary hover:text-primary-container transition-colors font-medium" href="#">Forgot Password?</a>
+</div>
+<!-- Sign In Button -->
+<button class="w-full bg-primary hover:bg-surface-tint text-on-primary h-[48px] rounded-lg font-label-lg text-label-lg flex items-center justify-center transition-colors active:scale-[0.98] mt-unit-lg shadow-sm" type="submit">
+                            Sign In
+                        </button>
+</form>
+<!-- Divider -->
+<div class="relative flex items-center py-unit-lg">
+<div class="flex-grow border-t border-outline-variant/50"></div>
+<span class="flex-shrink-0 mx-4 font-label-sm text-label-sm text-outline">Or continue with</span>
+<div class="flex-grow border-t border-outline-variant/50"></div>
+</div>
+<!-- Social Logins -->
+<div class="grid grid-cols-2 gap-unit-md mb-unit-lg">
+<button class="flex items-center justify-center h-[48px] rounded-DEFAULT border border-outline-variant hover:bg-surface-container-low transition-colors group">
+<img class="w-5 h-5 mr-2 opacity-80 group-hover:opacity-100 transition-opacity" data-alt="A clean, simple Google 'G' logo vector icon, featuring the standard 4 colors (blue, red, yellow, green) on a transparent or white background. Minimalist styling, suitable for a UI button." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDd1mwGXmGrxuhwu4yTxfZkNxRED2KO7WFWTkfj54eyaGnY4g-XU01vE-flpFOcYSbBNagB1vxRFFWJr3GPUb_KP2YmPS1ejsXq8tW2J7cItEd05wz9cySd3SPvxqaVIYe9i0aSNiwVrKwHH_DtCYyKzVHSSxF8ox64TTJaUmJYkeGUgPXyTIFguwn5Dw9kVVOoRGWmWcDiojlO0TFuAWzlm3XKhvXqXzOt22DQTzLjrihQ_HJs2j0BLUaqTPVirW5gUsVjZw_P6N89"/>
+<span class="font-label-lg text-label-lg text-on-surface-variant">Google</span>
+</button>
+<button class="flex items-center justify-center h-[48px] rounded-DEFAULT border border-outline-variant hover:bg-surface-container-low transition-colors group">
+<img class="w-5 h-5 mr-2 opacity-80 group-hover:opacity-100 transition-opacity" data-alt="A clean, simple Apple logo vector icon, stark black silhouette on a transparent or white background. Minimalist styling, suitable for a UI button." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeSDsKROxyxE80j2mqMsOMLrsOWWTD3x-BSGGkJEdSnSRrj0wJT1H88Ji8QA0eo_cQzSaR6Wza5GUfRYO6t1ccyVaA05bispBk102Z-0PDhWlXrzaQ5RqabNbvn8a2j31tQn05PQUykJYYg435qk9BCMNzllQolnTwgyfm6u7PExTfhAPg839SR5r9DfhH2Uqd7f0FeOO-ewZ11mJXTR6Cs9DqG80NAP8rFYutQ1ZZlIvMa1JQcMdpS4siJ8gP5yEnk71QaF2hWHoI"/>
+<span class="font-label-lg text-label-lg text-on-surface-variant">Apple</span>
+</button>
+</div>
+<!-- Sign Up Toggle -->
+<div class="text-center mt-auto pt-unit-md">
+<p class="font-body-md text-body-md text-on-surface-variant">
+                            Don't have an account? 
+                            <a class="text-primary hover:text-primary-container font-semibold transition-colors" href="#">Sign Up</a>
+</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer is suppressed because this is a linear/transactional screen (Sign In) where the focus should purely be on authentication. -->
+</body></html>

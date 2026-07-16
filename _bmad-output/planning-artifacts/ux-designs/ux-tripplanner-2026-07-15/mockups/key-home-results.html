@@ -1,0 +1,379 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="spine-sections" content="DESIGN.md: Brand &amp; Style (home posture), Colors (heritage pair, rating scrim), Typography (title-md, headline-md, label-sm), Layout &amp; Spacing (60rem results column, 16rem grid minimum), Elevation &amp; Depth (badge scrim, card hover lift), Shapes (pill metadata), Components (hero-band, hero-search, location result list, attraction-card, rating-badge, heritage-chip, kind-tag, add-to-trip-row); EXPERIENCE.md: Voice and Tone (Attractions near {name}), Component Patterns (Hero search, Location result list, Attraction card, Rating badge, Heritage chip, Add-to-trip row), State Patterns (Populated grid), Flow 4 steps 2-5">
+<title>Trip Planner — Home populated key screen</title>
+<style>
+  /*
+    Governing spine sections:
+    - DESIGN.md › Brand & Style: home posture — hero band up top, calm white cards on the canvas below,
+      "richer classic" attraction card direction
+    - DESIGN.md › Colors: success pair as the heritage accent; rating badge on the on-surface 80% scrim;
+      kind tags on surface-container-low; 30%-opacity card hairline (documented exception)
+    - DESIGN.md › Typography: headline-md section heading ("Attractions near Paris"), title-md card names,
+      label-sm metadata voice (badge, chips, tags, distance line), label-lg add-to-trip row
+    - DESIGN.md › Layout & Spacing: 60rem results column, spacing.6 band→results gap, auto-fill grid at
+      16rem minimum with spacing.4 gap
+    - DESIGN.md › Elevation & Depth: cards borderline-flat, hover translateY(-4px) + shadows.lg;
+      badge scrim = on-surface at 80% opacity, ≥9.13:1 for white text; hero gradient contract unchanged
+    - DESIGN.md › Shapes: rounded.full pills for rating badge / heritage chip / kind tags; card and image
+      clip to rounded.lg top corners; 12rem card image (spacing.card-image-height)
+    - DESIGN.md › Components: hero-band, hero-search (Search enabled — input filled), location result list
+      (selected = primary border on surface-container-low), attraction-card anatomy, rating-badge,
+      heritage-chip (lowercase "heritage"), kind-tag (underscores humanized, max 3), add-to-trip-row
+    - EXPERIENCE.md › Voice and Tone: "Attractions near Paris"
+    - EXPERIENCE.md › Component Patterns: Hero search (chips gone once a query is submitted), Location result
+      list (aria-pressed toggle buttons), Attraction card (card = one link + one action row; unrated = no badge,
+      no "Not rated" text; distanceMeters line "650 m from center" / "2.3 km from center"; placeholder panel on
+      null image with badge rendered over placeholder alike), Rating badge ("Rated N of 3" announced once),
+      Heritage chip, Add-to-trip row ("Add {name} to a trip")
+    - EXPERIENCE.md › State Patterns: Populated grid
+    - EXPERIENCE.md › Key Flows: Flow 4 steps 2–5
+    Photographic areas (hero band, card cover images) are gradient stand-ins built from DESIGN.md token hexes.
+  */
+  :root {
+    --primary: #0058bc;
+    --primary-container: #0070eb;
+    --on-primary: #ffffff;
+    --secondary: #405f91;
+    --secondary-container: #a6c5fe;
+    --on-secondary-container: #315182;
+    --tertiary: #006577;
+    --tertiary-container: #008096;
+    --success: #146c2e;
+    --success-container: #d7f2dd;
+    --background: #f8f9ff;
+    --surface-container-lowest: #ffffff;
+    --surface-container-low: #eff4ff;
+    --surface-container: #e5eeff;
+    --surface-container-high: #dce9ff;
+    --surface-container-highest: #d3e4fe;
+    --surface-variant: #d3e4fe;
+    --surface-dim: #cbdbf5;
+    --on-surface: #0b1c30;
+    --on-surface-variant: #414755;
+    --outline: #717786;
+    --outline-variant: #c1c6d7;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-full: 999px;
+    --shadow-sm: 0 1px 3px rgba(11, 28, 48, 0.08);
+    --shadow-lg: 0 10px 24px rgba(11, 28, 48, 0.12);
+    --font: 'Plus Jakarta Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--background); color: var(--on-surface); font-size: 16px; line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* AppLayout chrome — as shipped */
+  .header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--surface-container-lowest);
+    box-shadow: var(--shadow-sm);
+  }
+  .brand {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-size: 1.5rem; font-weight: 600; line-height: 1.4;
+    color: var(--primary); text-decoration: none;
+  }
+  .nav { display: flex; align-items: center; gap: 0.5rem; }
+  .nav a {
+    color: var(--on-surface-variant); text-decoration: none;
+    font-size: 0.875rem; font-weight: 600; letter-spacing: 0.05em; line-height: 1.2;
+    padding: 0.5rem 0.9rem; border-radius: var(--radius-md);
+    transition: background 150ms ease, color 150ms ease;
+  }
+  .nav a:hover { color: var(--primary); background: var(--surface-container-low); }
+
+  .content { flex: 1; width: 100%; max-width: 72rem; margin: 0 auto; padding: 1.5rem 1rem 2.5rem; }
+
+  /* Hero band — chips absent once a query is submitted */
+  .hero-band {
+    position: relative;
+    min-height: 22rem;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    padding: 2rem 1.5rem;
+    background:
+      linear-gradient(to top, rgba(11, 28, 48, 0.80) 0%, rgba(11, 28, 48, 0.72) 45%, rgba(11, 28, 48, 0.65) 78%, rgba(11, 28, 48, 0.30) 90%, rgba(11, 28, 48, 0) 100%),
+      linear-gradient(160deg, #d3e4fe 0%, #a6c5fe 28%, #008096 62%, #006577 82%, #0b1c30 100%),
+      var(--surface-container);
+  }
+  .hero-inner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.75rem; width: 100%; }
+  .hero-inner h1 {
+    font-size: 48px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em;
+    color: var(--on-primary);
+  }
+  .tagline { font-size: 18px; font-weight: 400; line-height: 1.6; color: var(--on-primary); }
+  .search-row { display: flex; gap: 0.5rem; width: 100%; max-width: 32rem; margin-top: 0.75rem; }
+  .search-row input {
+    flex: 1; min-width: 0;
+    height: 3rem; padding: 0 0.75rem;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius-md);
+    background: var(--surface-container-lowest);
+    color: var(--on-surface);
+    font-family: var(--font); font-size: 16px;
+    box-shadow: var(--shadow-lg);
+  }
+  .search-row input:focus { outline: 2px solid var(--primary); outline-offset: 0; border-color: transparent; }
+  .btn-search {
+    height: 3rem; padding: 0 1.25rem;
+    background: var(--primary); color: var(--on-primary);
+    border: none; border-radius: var(--radius-md);
+    font-family: var(--font); font-size: 14px; font-weight: 600; line-height: 1.2; letter-spacing: 0.05em;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer; transition: background 150ms;
+  }
+  .btn-search:hover { background: var(--primary-container); }
+  .btn-clear {
+    height: 3rem; padding: 0 1.25rem;
+    background: var(--surface-container-lowest);
+    color: var(--primary);
+    border: 1px solid var(--primary); border-radius: var(--radius-md);
+    font-family: var(--font); font-size: 14px; font-weight: 600; line-height: 1.2; letter-spacing: 0.05em;
+    cursor: pointer; transition: background 150ms;
+  }
+  .btn-clear:hover { background: var(--surface-container-low); }
+
+  /* Results column — 60rem, spacing.6 below the band */
+  .results { max-width: 60rem; margin: 2rem auto 0; display: flex; flex-direction: column; gap: 2rem; }
+
+  /* Location result list — centered 32rem column of toggle buttons */
+  .location-list { max-width: 32rem; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 0.5rem; }
+  .location-btn {
+    width: 100%;
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface-container-lowest);
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius-md);
+    font-family: var(--font); font-size: 16px; line-height: 1.5;
+    color: var(--on-surface);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 150ms, box-shadow 150ms;
+  }
+  .location-btn:hover { border-color: var(--primary); box-shadow: var(--shadow-sm); }
+  .location-btn[aria-pressed="true"] { border-color: var(--primary); background: var(--surface-container-low); }
+  .location-name { font-weight: 600; }
+  .location-pill {
+    font-size: 12px; font-weight: 500; line-height: 1.2;
+    color: var(--on-surface-variant);
+    background: var(--surface-container-low);
+    border-radius: var(--radius-full);
+    padding: 0.25rem 0.5rem;
+  }
+  .location-btn[aria-pressed="true"] .location-pill { background: var(--surface-variant); }
+
+  .section-heading { font-size: 24px; font-weight: 600; line-height: 1.4; letter-spacing: -0.01em; color: var(--on-surface); }
+
+  /* Attraction grid — auto-fill, 16rem minimum, spacing.4 gap */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; margin-top: 1rem; }
+
+  /* Attraction card — richer classic */
+  .card {
+    display: flex; flex-direction: column;
+    background: var(--surface-container-lowest);
+    border: 1px solid rgba(193, 198, 215, 0.3);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: transform 150ms, box-shadow 150ms;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+  .card-link { display: flex; flex-direction: column; flex: 1; color: inherit; text-decoration: none; }
+  .card-link:focus { outline: 2px solid var(--primary); }
+  .cover { position: relative; height: 12rem; }
+  .cover .photo { position: absolute; inset: 0; }
+  .photo-a { background: linear-gradient(165deg, #d3e4fe 0%, #a6c5fe 35%, #405f91 75%, #0b1c30 100%); }
+  .photo-b { background: linear-gradient(150deg, #dce9ff 0%, #a6c5fe 40%, #315182 80%, #0b1c30 100%); }
+  .photo-c { background: linear-gradient(170deg, #d3e4fe 0%, #008096 55%, #006577 80%, #0b1c30 100%); }
+  .cover .placeholder {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-container-low);
+    font-size: 2.5rem;
+  }
+  .rating-badge {
+    position: absolute; top: 0.5rem; right: 0.5rem;
+    display: inline-flex; align-items: center; gap: 0.15rem;
+    padding: 0.3rem 0.6rem;
+    background: rgba(11, 28, 48, 0.8);
+    color: var(--on-primary);
+    border-radius: var(--radius-full);
+    font-size: 12px; font-weight: 500; line-height: 1.2;
+  }
+  .heritage-chip {
+    position: absolute; top: 0.5rem; left: 0.5rem;
+    display: inline-flex; align-items: center;
+    padding: 0.3rem 0.6rem;
+    background: var(--success-container);
+    color: var(--success);
+    border-radius: var(--radius-full);
+    font-size: 12px; font-weight: 500; line-height: 1.2;
+  }
+  .card-body { display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; flex: 1; }
+  .card-name { font-size: 18px; font-weight: 600; line-height: 1.4; letter-spacing: -0.01em; color: var(--on-surface); }
+  .distance { font-size: 12px; font-weight: 500; line-height: 1.2; color: var(--on-surface-variant); }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+  .tag {
+    padding: 0.25rem 0.6rem;
+    background: var(--surface-container-low);
+    color: var(--on-surface-variant);
+    border-radius: var(--radius-full);
+    font-size: 12px; font-weight: 500; line-height: 1.2;
+  }
+  .add-row {
+    width: 100%; height: 3rem;
+    display: flex; align-items: center; justify-content: center; gap: 0.375rem;
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba(193, 198, 215, 0.3);
+    color: var(--primary);
+    font-family: var(--font); font-size: 14px; font-weight: 600; line-height: 1.2; letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background 150ms;
+  }
+  .add-row:hover { background: var(--surface-container-low); }
+  .add-row:active { transform: scale(0.98); }
+  .add-row:focus { outline: 2px solid var(--primary); }
+
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .state-caption {
+    text-align: center;
+    padding: 1.5rem 1.5rem 0;
+    font-size: 12px; font-weight: 500; line-height: 1.2;
+    color: var(--on-surface-variant);
+    background: var(--background);
+    border-top: 1px solid var(--outline-variant);
+  }
+  @media (max-width: 768px) {
+    .hero-band { min-height: 16rem; }
+    .hero-inner h1 { font-size: 32px; line-height: 1.3; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; transform: none !important; }
+  }
+</style>
+
+<header class="header">
+  <a class="brand" href="/"><span aria-hidden="true">✈️</span>Trip Planner</a>
+  <nav class="nav">
+    <a href="/login">Login</a>
+    <a href="/register">Register</a>
+  </nav>
+</header>
+
+<main class="content">
+  <section class="hero-band">
+    <div class="hero-inner">
+      <h1>Where to next?</h1>
+      <p class="tagline">Search any city and start building the trip.</p>
+      <form class="search-row" role="search">
+        <input type="text" aria-label="Search" value="Paris">
+        <button class="btn-search" type="submit">Search</button>
+        <button class="btn-clear" type="button">Clear</button>
+      </form>
+    </div>
+  </section>
+
+  <div class="results">
+    <div class="location-list">
+      <button class="location-btn" type="button" aria-pressed="true">
+        <span class="location-name">Paris</span>
+        <span class="location-pill">FR</span>
+        <span class="location-pill">City</span>
+      </button>
+      <button class="location-btn" type="button" aria-pressed="false">
+        <span class="location-name">Paris</span>
+        <span class="location-pill">US</span>
+        <span class="location-pill">City</span>
+      </button>
+    </div>
+
+    <section>
+      <h2 class="section-heading">Attractions near Paris</h2>
+      <div class="grid">
+
+        <article class="card">
+          <a class="card-link" href="/attractions/W12345">
+            <div class="cover">
+              <div class="photo photo-a" aria-hidden="true"></div>
+              <span class="rating-badge" aria-label="Rated 3 of 3"><span aria-hidden="true">★★★</span></span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-name">Eiffel Tower</h3>
+              <p class="distance">4.3 km from center</p>
+              <div class="tags">
+                <span class="tag">architecture</span>
+                <span class="tag">towers</span>
+                <span class="tag">interesting places</span>
+              </div>
+            </div>
+          </a>
+          <button class="add-row" type="button" aria-label="Add Eiffel Tower to a trip"><span aria-hidden="true">＋</span>Add to trip</button>
+        </article>
+
+        <article class="card">
+          <a class="card-link" href="/attractions/W23456">
+            <div class="cover">
+              <div class="photo photo-b" aria-hidden="true"></div>
+              <span class="heritage-chip">heritage</span>
+              <span class="rating-badge" aria-label="Rated 3 of 3"><span aria-hidden="true">★★★</span></span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-name">Louvre Museum</h3>
+              <p class="distance">1.2 km from center</p>
+              <div class="tags">
+                <span class="tag">museums</span>
+                <span class="tag">art galleries</span>
+                <span class="tag">cultural</span>
+              </div>
+            </div>
+          </a>
+          <button class="add-row" type="button" aria-label="Add Louvre Museum to a trip"><span aria-hidden="true">＋</span>Add to trip</button>
+        </article>
+
+        <article class="card">
+          <a class="card-link" href="/attractions/W34567">
+            <div class="cover">
+              <div class="photo photo-c" aria-hidden="true"></div>
+            </div>
+            <div class="card-body">
+              <h3 class="card-name">Pont Alexandre III</h3>
+              <p class="distance">2.9 km from center</p>
+              <div class="tags">
+                <span class="tag">bridges</span>
+                <span class="tag">urban environment</span>
+              </div>
+            </div>
+          </a>
+          <button class="add-row" type="button" aria-label="Add Pont Alexandre III to a trip"><span aria-hidden="true">＋</span>Add to trip</button>
+        </article>
+
+        <article class="card">
+          <a class="card-link" href="/attractions/W45678">
+            <div class="cover">
+              <div class="placeholder" aria-hidden="true">🏞️</div>
+              <span class="rating-badge" aria-label="Rated 2 of 3"><span aria-hidden="true">★★☆</span></span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-name">Sainte-Chapelle</h3>
+              <p class="distance">350 m from center</p>
+              <div class="tags">
+                <span class="tag">churches</span>
+                <span class="tag">historic architecture</span>
+                <span class="tag">interesting places</span>
+              </div>
+            </div>
+          </a>
+          <button class="add-row" type="button" aria-label="Add Sainte-Chapelle to a trip"><span aria-hidden="true">＋</span>Add to trip</button>
+        </article>
+
+      </div>
+    </section>
+  </div>
+</main>
+
+<p class="state-caption">State: populated grid — "Paris" submitted, City result selected (aria-pressed), four card variants: rated / heritage+rated / unrated (no badge, no "Not rated" text) / image-missing placeholder with badge over the placeholder</p>
