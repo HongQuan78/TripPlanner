@@ -1,11 +1,17 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { register } from '../api/auth';
 import { ApiError } from '../api/client';
+import AuthShell from '../layout/AuthShell';
+import { MailIcon } from './authIcons';
+import PasswordField from './PasswordField';
 import styles from './AuthForm.module.css';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const HERO_HEADLINE = 'Begin Somewhere New.';
+const HERO_SUPPORT = "One account, every itinerary — plan the trips you've been putting off.";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -15,9 +21,14 @@ export default function RegisterPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) {
+      return;
+    }
 
     const nextEmailError = EMAIL_PATTERN.test(email) ? null : 'Enter a valid email address.';
     const nextPasswordError =
@@ -26,6 +37,11 @@ export default function RegisterPage() {
     setPasswordError(nextPasswordError);
     setFormError(null);
     if (nextEmailError || nextPasswordError) {
+      if (nextEmailError) {
+        emailRef.current?.focus();
+      } else {
+        passwordRef.current?.focus();
+      }
       return;
     }
 
@@ -45,56 +61,97 @@ export default function RegisterPage() {
 
   if (successMessage) {
     return (
-      <section className={styles.container}>
-        <h1 className={styles.title}>Registration received</h1>
-        <p className={styles.success}>{successMessage}</p>
-        <p className={styles.hint}>
-          Already verified? <Link to="/login">Log in</Link>
+      <AuthShell heroHeadline={HERO_HEADLINE} heroSupport={HERO_SUPPORT} title="Check your inbox.">
+        <p className={styles.success} aria-live="polite">
+          {successMessage}
         </p>
-      </section>
+        <p className={styles.footer}>
+          Already verified? <Link to="/login">Log in</Link>.
+        </p>
+      </AuthShell>
     );
   }
 
   return (
-    <section className={styles.container}>
-      <h1 className={styles.title}>Register</h1>
+    <AuthShell
+      heroHeadline={HERO_HEADLINE}
+      heroSupport={HERO_SUPPORT}
+      title="Create your account"
+      subtitle="Please enter your details to continue."
+    >
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="register-email">
-            Email
+            Email Address
           </label>
-          <input
-            id="register-email"
-            className={styles.input}
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-          />
-          {emailError && <p className={styles.fieldError}>{emailError}</p>}
+          <div className={styles.inputWrap}>
+            <MailIcon className={styles.leadIcon} />
+            <input
+              id="register-email"
+              ref={emailRef}
+              className={styles.input}
+              type="email"
+              value={email}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setEmailError(null);
+              }}
+              autoComplete="email"
+              aria-describedby={emailError ? 'register-email-error' : undefined}
+              aria-invalid={emailError ? true : undefined}
+            />
+          </div>
+          {emailError && (
+            <p className={styles.fieldError} id="register-email-error">
+              {emailError}
+            </p>
+          )}
         </div>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="register-password">
             Password
           </label>
-          <input
+          <PasswordField
             id="register-password"
-            className={styles.input}
-            type="password"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(value) => {
+              setPassword(value);
+              setPasswordError(null);
+            }}
             autoComplete="new-password"
+            describedBy="register-password-rules"
+            invalid={Boolean(passwordError)}
+            inputRef={passwordRef}
           />
-          {passwordError && <p className={styles.fieldError}>{passwordError}</p>}
+          {passwordError ? (
+            <p className={styles.fieldError} id="register-password-rules">
+              {passwordError}
+            </p>
+          ) : (
+            <p className={styles.helper} id="register-password-rules">
+              At least 8 characters.
+            </p>
+          )}
         </div>
-        {formError && <p className={styles.formError}>{formError}</p>}
-        <button className={styles.submit} type="submit" disabled={pending}>
-          Register
+        {formError && (
+          <p className={styles.formError} role="alert">
+            {formError}
+          </p>
+        )}
+        <button
+          className={styles.submit}
+          type="submit"
+          aria-disabled={pending ? 'true' : undefined}
+        >
+          {pending ? 'Creating your account…' : 'Create Account'}
         </button>
+        <span className={styles.visuallyHidden} role="status">
+          {pending ? 'Creating your account…' : ''}
+        </span>
       </form>
-      <p className={styles.hint}>
-        Already have an account? <Link to="/login">Log in</Link>
+      <p className={styles.footer}>
+        Already have an account? <Link to="/login">Sign In</Link>
       </p>
-    </section>
+    </AuthShell>
   );
 }

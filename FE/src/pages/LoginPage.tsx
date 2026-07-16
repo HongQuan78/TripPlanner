@@ -4,6 +4,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { login as loginRequest } from '../api/auth';
 import { ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import AuthShell from '../layout/AuthShell';
+import { MailIcon } from './authIcons';
+import PasswordField from './PasswordField';
 import styles from './AuthForm.module.css';
 
 export default function LoginPage() {
@@ -17,6 +20,9 @@ export default function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) {
+      return;
+    }
     setFormError(null);
     setPending(true);
     try {
@@ -35,43 +41,59 @@ export default function LoginPage() {
   }
 
   return (
-    <section className={styles.container}>
-      <h1 className={styles.title}>Log in</h1>
+    <AuthShell
+      heroHeadline="Welcome Back."
+      heroSupport="Your next extraordinary journey begins right where you left off."
+      title="Sign In"
+      subtitle="Please enter your details to continue."
+    >
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="login-email">
-            Email
+            Email Address
           </label>
-          <input
-            id="login-email"
-            className={styles.input}
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-          />
+          <div className={styles.inputWrap}>
+            <MailIcon className={styles.leadIcon} />
+            <input
+              id="login-email"
+              className={styles.input}
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+            />
+          </div>
         </div>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="login-password">
             Password
           </label>
-          <input
+          <PasswordField
             id="login-password"
-            className={styles.input}
-            type="password"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={setPassword}
             autoComplete="current-password"
           />
         </div>
-        {formError && <p className={styles.formError}>{formError}</p>}
-        <button className={styles.submit} type="submit" disabled={pending}>
-          Log in
+        {formError && (
+          <p className={styles.formError} role="alert">
+            {formError}
+          </p>
+        )}
+        <button
+          className={styles.submit}
+          type="submit"
+          aria-disabled={pending ? 'true' : undefined}
+        >
+          {pending ? 'Signing in…' : 'Sign In'}
         </button>
+        <span className={styles.visuallyHidden} role="status">
+          {pending ? 'Signing in…' : ''}
+        </span>
       </form>
-      <p className={styles.hint}>
-        Need an account? <Link to="/register">Register</Link>
+      <p className={styles.footer}>
+        Don't have an account? <Link to="/register">Sign Up</Link>
       </p>
-    </section>
+    </AuthShell>
   );
 }

@@ -45,12 +45,12 @@ export const routes: RouteObject[] = [
               </RequireAuth>
             ),
           },
-          { path: '/register', element: <RegisterPage /> },
-          { path: '/login', element: <LoginPage /> },
-          { path: '/verify-email', element: <VerifyEmailPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],
       },
+      { path: '/register', element: <RegisterPage /> },
+      { path: '/login', element: <LoginPage /> },
+      { path: '/verify-email', element: <VerifyEmailPage /> },
     ],
   },
 ];

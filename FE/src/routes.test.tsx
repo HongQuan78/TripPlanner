@@ -59,13 +59,28 @@ describe('routes', () => {
   it('redirects an unauthenticated visitor from /trips to login', () => {
     renderAt('/trips');
 
-    expect(screen.getByRole('heading', { name: /log in/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
   });
 
   it('redirects an unauthenticated visitor from /trips/:id to login', () => {
     renderAt('/trips/7');
 
-    expect(screen.getByRole('heading', { name: /log in/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+  });
+
+  it('renders auth routes without the app header and nav', () => {
+    renderAt('/login');
+
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Trip Planner' })).toHaveAttribute('href', '/');
+  });
+
+  it('keeps the app header on non-auth routes', () => {
+    renderAt('/search');
+
+    expect(screen.getByRole('banner')).toBeInTheDocument();
+    expect(screen.getByRole('navigation')).toBeInTheDocument();
   });
 
   it('renders the not-found page for unknown paths', () => {
