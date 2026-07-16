@@ -38,6 +38,25 @@ export function useAttractions(location: LocationSearchResult | null) {
   });
 }
 
+const nearbyCap = 8;
+
+export function useNearbyAttractions(
+  latitude: number | null,
+  longitude: number | null,
+  selfXid: string,
+) {
+  return useQuery({
+    queryKey: ['nearbyAttractions', latitude, longitude],
+    queryFn: () => getAttractions(latitude!, longitude!),
+    enabled: latitude !== null && longitude !== null,
+    retry: false,
+    staleTime: locationStaleTime,
+    refetchOnWindowFocus: false,
+    select: (attractions) =>
+      attractions.filter((attraction) => attraction.xid !== selfXid).slice(0, nearbyCap),
+  });
+}
+
 export function useDestinationDetails(xid: string) {
   return useQuery({
     queryKey: ['destinationDetails', xid],

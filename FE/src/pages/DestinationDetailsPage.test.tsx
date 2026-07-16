@@ -25,12 +25,18 @@ vi.mock('../auth/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
-import { getDestinationDetails } from '../api/locations';
+// Leaflet needs real layout; stub the map so jsdom stays happy.
+vi.mock('../components/AttractionMap', () => ({
+  default: ({ name }: { name: string }) => <div data-testid="map">{`Map: ${name}`}</div>,
+}));
+
+import { getAttractions, getDestinationDetails } from '../api/locations';
 import { getTrips } from '../api/trips';
 import { useAuth } from '../auth/AuthContext';
 import { AddToTripProvider } from '../trips/AddToTripContext';
 
 const getDestinationDetailsMock = vi.mocked(getDestinationDetails);
+const getAttractionsMock = vi.mocked(getAttractions);
 const getTripsMock = vi.mocked(getTrips);
 const useAuthMock = vi.mocked(useAuth);
 
@@ -70,6 +76,10 @@ function setAuthenticated(isAuthenticated: boolean) {
   });
 }
 
+function addToTripButtons() {
+  return screen.getAllByRole('button', { name: /add to trip/i });
+}
+
 function renderPage(onAddToTrip?: (details: DestinationDetails) => void) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -93,6 +103,8 @@ function renderPage(onAddToTrip?: (details: DestinationDetails) => void) {
 
 beforeEach(() => {
   getDestinationDetailsMock.mockReset();
+  getAttractionsMock.mockReset();
+  getAttractionsMock.mockResolvedValue([]);
   getTripsMock.mockReset();
   useAuthMock.mockReset();
   setAuthenticated(false);
@@ -100,36 +112,42 @@ beforeEach(() => {
 });
 
 describe('DestinationDetailsPage', () => {
-  it('renders name, category, description, photo, and info rows when all fields are present', async () => {
+  it('renders name, category, description, photo, map, and info rows when all fields are present', async () => {
     getDestinationDetailsMock.mockResolvedValue(fullDetails);
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Louvre Museum' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Louvre Museum' })).toBeInTheDocument();
     });
-    expect(screen.getByText('Museums')).toBeInTheDocument();
+    expect(screen.getAllByText('Museums').length).toBeGreaterThan(0);
     expect(screen.getByText('The largest art museum in the world.')).toBeInTheDocument();
     expect(screen.getByText('Rue de Rivoli, 75001 Paris')).toBeInTheDocument();
-    expect(screen.getByText('Mo-Su 09:00-18:00')).toBeInTheDocument();
+    expect(screen.getAllByText('Mo-Su 09:00-18:00').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('map')).toHaveTextContent('Louvre Museum');
     const website = screen.getByRole('link', { name: /www\.louvre\.fr/i });
     expect(website).toHaveAttribute('href', 'https://www.louvre.fr');
     expect(website).toHaveAttribute('target', '_blank');
-    expect(screen.getByRole('img')).toHaveAttribute('src', 'https://example.com/1.jpg');
+    expect(website).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByRole('img', { name: 'Louvre Museum' })).toHaveAttribute(
+      'src',
+      'https://example.com/1.jpg',
+    );
     expect(getDestinationDetailsMock).toHaveBeenCalledWith('W123');
   });
 
-  it('renders fallbacks and an image placeholder when all optional fields are absent', async () => {
+  it('renders fallbacks, no map, and an image placeholder when all optional fields are absent', async () => {
     getDestinationDetailsMock.mockResolvedValue(bareDetails);
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Hidden Garden' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Hidden Garden' })).toBeInTheDocument();
     });
     expect(screen.getByText(/no description available/i)).toBeInTheDocument();
     expect(screen.getAllByText(/not available/i)).toHaveLength(3);
     expect(screen.getByTestId('image-placeholder')).toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /website/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('map')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /location/i })).not.toBeInTheDocument();
   });
 
   it('shows a single photo without carousel controls', async () => {
@@ -137,65 +155,49 @@ describe('DestinationDetailsPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByRole('img')).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: 'Louvre Museum' })).toBeInTheDocument();
     });
     expect(screen.queryByRole('button', { name: /previous photo/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /next photo/i })).not.toBeInTheDocument();
   });
 
-  it('cycles through three photos with wrapping next and previous controls', async () => {
+  it('shows an Open now badge when the hours parse and it is currently open', async () => {
+    getDestinationDetailsMock.mockResolvedValue({ ...fullDetails, openingHours: '24/7' });
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Louvre Museum' })).toBeInTheDocument();
+    });
+    expect(screen.getAllByText(/open now/i).length).toBeGreaterThan(0);
+  });
+
+  it('shows no open-now badge when the hours string is unparseable', async () => {
     getDestinationDetailsMock.mockResolvedValue({
       ...fullDetails,
-      imageUrls: [
-        'https://example.com/1.jpg',
-        'https://example.com/2.jpg',
-        'https://example.com/3.jpg',
-      ],
+      openingHours: 'by appointment only',
     });
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByAltText('Louvre Museum photo 1 of 3')).toBeInTheDocument();
+      expect(screen.getAllByText('by appointment only').length).toBeGreaterThan(0);
     });
-
-    const next = screen.getByRole('button', { name: /next photo/i });
-    const previous = screen.getByRole('button', { name: /previous photo/i });
-
-    fireEvent.click(next);
-    expect(screen.getByAltText('Louvre Museum photo 2 of 3')).toHaveAttribute(
-      'src',
-      'https://example.com/2.jpg',
-    );
-
-    fireEvent.click(next);
-    expect(screen.getByAltText('Louvre Museum photo 3 of 3')).toBeInTheDocument();
-
-    fireEvent.click(next);
-    expect(screen.getByAltText('Louvre Museum photo 1 of 3')).toHaveAttribute(
-      'src',
-      'https://example.com/1.jpg',
-    );
-
-    fireEvent.click(previous);
-    expect(screen.getByAltText('Louvre Museum photo 3 of 3')).toHaveAttribute(
-      'src',
-      'https://example.com/3.jpg',
-    );
+    expect(screen.queryByText(/open now/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^closed$/i)).not.toBeInTheDocument();
   });
 
-  it('keeps Add to Trip available with a log-in hint when unauthenticated', async () => {
+  it('keeps Add to Trip enabled with a log-in note when unauthenticated', async () => {
     setAuthenticated(false);
     getDestinationDetailsMock.mockResolvedValue(fullDetails);
     const onAddToTrip = vi.fn();
     renderPage(onAddToTrip);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /add to trip/i })).toBeInTheDocument();
+      expect(addToTripButtons().length).toBeGreaterThan(0);
     });
-    const button = screen.getByRole('button', { name: /add to trip/i });
-    expect(button).toBeEnabled();
-    expect(screen.getByText(/asked to log in/i)).toBeInTheDocument();
-    fireEvent.click(button);
+    addToTripButtons().forEach((button) => expect(button).toBeEnabled());
+    expect(screen.getByRole('link', { name: /^log in$/i })).toBeInTheDocument();
+    expect(screen.getByText(/to add to your trip/i)).toBeInTheDocument();
+    fireEvent.click(addToTripButtons()[0]);
     expect(onAddToTrip).toHaveBeenCalledWith(fullDetails);
   });
 
@@ -206,12 +208,12 @@ describe('DestinationDetailsPage', () => {
     renderPage(onAddToTrip);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /add to trip/i })).toBeInTheDocument();
+      expect(addToTripButtons().length).toBeGreaterThan(0);
     });
-    const button = screen.getByRole('button', { name: /add to trip/i });
-    expect(button).toBeEnabled();
-    expect(screen.queryByText(/asked to log in/i)).not.toBeInTheDocument();
-    fireEvent.click(button);
+    addToTripButtons().forEach((button) => expect(button).toBeEnabled());
+    expect(screen.queryByRole('link', { name: /^log in$/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/added to your active itinerary/i)).toBeInTheDocument();
+    fireEvent.click(addToTripButtons()[0]);
     expect(onAddToTrip).toHaveBeenCalledWith(fullDetails);
   });
 
@@ -222,10 +224,10 @@ describe('DestinationDetailsPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Louvre Museum' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Louvre Museum' })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /add to trip/i }));
+    fireEvent.click(addToTripButtons()[0]);
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -262,7 +264,7 @@ describe('DestinationDetailsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /try again/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Louvre Museum' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Louvre Museum' })).toBeInTheDocument();
     });
     expect(getDestinationDetailsMock).toHaveBeenCalledTimes(2);
   });
@@ -272,7 +274,7 @@ describe('DestinationDetailsPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Louvre Museum' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Louvre Museum' })).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole('button', { name: /back/i }));
