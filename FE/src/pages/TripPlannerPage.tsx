@@ -1,12 +1,19 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import type { Destination, TripDay } from '../api/types';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EditTripForm from '../components/EditTripForm';
 import StarRating from '../components/StarRating';
 import { useRemoveDestinationFromDay, useTrip } from '../hooks/trips';
-import { formatDate, formatDateRange } from '../lib/dates';
+import {
+  formatDate,
+  formatDateRange,
+  formatSegmentDate,
+  pluralizeCount,
+  todayISO,
+  tripStatus,
+} from '../lib/dates';
 import stateStyles from './PageState.module.css';
 import styles from './TripPlannerPage.module.css';
 
@@ -46,18 +53,41 @@ function DestinationRow({
   );
 }
 
-function DaySection({
+function DaySegment({
   day,
+  isToday,
   onRemove,
+  onAddDestination,
+  headingRef,
 }: {
   day: TripDay;
+  isToday: boolean;
   onRemove: (day: TripDay, destination: Destination) => void;
+  onAddDestination: (day: TripDay) => void;
+  headingRef: (element: HTMLHeadingElement | null) => void;
 }) {
+  const placeCount = day.destinations.length;
+
   return (
-    <section className={styles.day}>
-      <h2 className={styles.dayHeading}>{formatDate(day.day)}</h2>
-      {day.destinations.length === 0 ? (
-        <p className={styles.emptyDay}>No destinations planned for this day yet.</p>
+    <section className={`${styles.segment} ${isToday ? styles.segmentToday : ''}`}>
+      <span className={styles.node} aria-hidden="true" />
+      <div className={styles.segHead}>
+        <h2 className={styles.segDate} ref={headingRef} tabIndex={-1}>
+          {formatSegmentDate(day.day)}
+          {isToday && (
+            <>
+              {' '}
+              <span className={styles.todayMarker}>Today</span>
+            </>
+          )}
+        </h2>
+        {placeCount > 0 && (
+          <span className={styles.segCount}>{pluralizeCount(placeCount, 'place')}</span>
+        )}
+      </div>
+
+      {placeCount === 0 ? (
+        <div className={styles.emptyDay}>No destinations planned for this day yet.</div>
       ) : (
         <ul className={styles.rows}>
           {day.destinations.map((destination) => (
@@ -69,12 +99,22 @@ function DaySection({
           ))}
         </ul>
       )}
+
+      <button
+        type="button"
+        className={styles.addDestination}
+        aria-label={`Add a destination to ${formatDate(day.day)}`}
+        onClick={() => onAddDestination(day)}
+      >
+        <span aria-hidden="true">＋</span> Add destination
+      </button>
     </section>
   );
 }
 
 export default function TripPlannerPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const tripId = Number(id);
   const isValidId = Number.isInteger(tripId) && tripId > 0;
   const trip = useTrip(tripId);
@@ -84,6 +124,23 @@ export default function TripPlannerPage() {
     day: TripDay;
     destination: Destination;
   } | null>(null);
+
+  const dayHeadingRefs = useRef(new Map<string, HTMLHeadingElement>());
+  const focusDayAfterRemoval = useRef<string | null>(null);
+
+  const tripData = trip.data;
+
+  useEffect(() => {
+    const target = focusDayAfterRemoval.current;
+    if (target === null) {
+      return;
+    }
+    const heading = dayHeadingRefs.current.get(target);
+    if (heading) {
+      heading.focus();
+      focusDayAfterRemoval.current = null;
+    }
+  }, [tripData]);
 
   if (!isValidId || (trip.error instanceof ApiError && trip.error.status === 404)) {
     return (
@@ -129,6 +186,11 @@ export default function TripPlannerPage() {
   }
 
   const data = trip.data;
+  const today = todayISO();
+  const status = tripStatus(data.startDate, data.endDate, today);
+  const dayCount = data.tripDays.length;
+  const placeCount = data.tripDays.reduce((total, day) => total + day.destinations.length, 0);
+  const unplannedCount = data.tripDays.filter((day) => day.destinations.length === 0).length;
 
   const removeError =
     removeDestination.error instanceof ApiError
@@ -141,6 +203,7 @@ export default function TripPlannerPage() {
     if (!pendingRemoval) {
       return;
     }
+    const dayKey = pendingRemoval.day.day;
     removeDestination.mutate(
       {
         tripId,
@@ -148,6 +211,9 @@ export default function TripPlannerPage() {
         destinationId: pendingRemoval.destination.id,
       },
       {
+        onSuccess: () => {
+          focusDayAfterRemoval.current = dayKey;
+        },
         onSettled: () => setPendingRemoval(null),
       },
     );
@@ -155,36 +221,70 @@ export default function TripPlannerPage() {
 
   return (
     <section className={styles.page}>
-      <div className={styles.headerRow}>
-        <div>
-          <h1 className={styles.title}>{data.name}</h1>
-          <span className={styles.dates}>{formatDateRange(data.startDate, data.endDate)}</span>
+      <div className={styles.ticket}>
+        <div className={styles.ticketTop}>
+          <div>
+            <h1 className={styles.title}>{data.name}</h1>
+            <span className={styles.dates}>{formatDateRange(data.startDate, data.endDate)}</span>
+          </div>
+          {!editing && (
+            <button type="button" className={styles.edit} onClick={() => setEditing(true)}>
+              Edit trip
+            </button>
+          )}
         </div>
-        {!editing && (
-          <button type="button" className={styles.edit} onClick={() => setEditing(true)}>
-            Edit trip
-          </button>
+
+        {editing ? (
+          <EditTripForm
+            trip={data}
+            onSaved={() => setEditing(false)}
+            onCancel={() => setEditing(false)}
+          />
+        ) : (
+          <div className={styles.ticketStats}>
+            <div className={styles.stat}>
+              <span className={styles.statValue}>{dayCount}</span>
+              <span className={styles.statLabel}>{dayCount === 1 ? 'Day' : 'Days'}</span>
+            </div>
+            <div className={styles.stat}>
+              <span className={styles.statValue}>{placeCount}</span>
+              <span className={styles.statLabel}>{placeCount === 1 ? 'Place' : 'Places'}</span>
+            </div>
+            <div className={styles.stat}>
+              {unplannedCount > 0 ? (
+                <span className={styles.statHint}>{pluralizeCount(unplannedCount, 'day')}</span>
+              ) : (
+                <span className={styles.statHintDone}>All planned</span>
+              )}
+              <span className={styles.statLabel}>Unplanned</span>
+            </div>
+          </div>
         )}
       </div>
 
-      {editing && (
-        <EditTripForm
-          trip={data}
-          onSaved={() => setEditing(false)}
-          onCancel={() => setEditing(false)}
-        />
+      {removeError && (
+        <p className={styles.error} role="alert">
+          {removeError}
+        </p>
       )}
 
-      {removeError && <p className={styles.error}>{removeError}</p>}
-
-      <div className={styles.days}>
+      <div className={styles.rail}>
         {data.tripDays.map((day) => (
-          <DaySection
+          <DaySegment
             key={day.day}
             day={day}
+            isToday={status.kind === 'ongoing' && day.day === today}
             onRemove={(targetDay, destination) =>
               setPendingRemoval({ day: targetDay, destination })
             }
+            onAddDestination={() => navigate('/')}
+            headingRef={(element) => {
+              if (element) {
+                dayHeadingRefs.current.set(day.day, element);
+              } else {
+                dayHeadingRefs.current.delete(day.day);
+              }
+            }}
           />
         ))}
       </div>

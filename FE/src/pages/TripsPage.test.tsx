@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
 import type { Trip } from '../api/types';
 import TripsPage from './TripsPage';
@@ -62,22 +62,50 @@ beforeEach(() => {
   createTripMock.mockReset();
 });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('TripsPage', () => {
-  it('lists my trips with name, date range, day count, and a planner link', async () => {
+  it('renders each trip as a boarding pass with route, stub counts, and a planner link', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 6, 16, 9, 0));
     getTripsMock.mockResolvedValue(trips);
     renderPage();
 
     await waitFor(() => {
       expect(screen.getByText('Paris getaway')).toBeInTheDocument();
     });
-    expect(screen.getByText('Aug 1, 2026 – Aug 3, 2026')).toBeInTheDocument();
-    expect(screen.getByText('3 days')).toBeInTheDocument();
-    expect(screen.getByText('Tokyo weekend')).toBeInTheDocument();
-    expect(screen.getByText('Sep 5, 2026 – Sep 5, 2026')).toBeInTheDocument();
-    expect(screen.getByText('1 day')).toBeInTheDocument();
+
     const links = screen.getAllByRole('link');
     expect(links[0]).toHaveAttribute('href', '/trips/7');
     expect(links[1]).toHaveAttribute('href', '/trips/8');
+
+    const paris = within(links[0]);
+    expect(paris.getByText('1 Aug')).toBeInTheDocument();
+    expect(paris.getByText('3 Aug')).toBeInTheDocument();
+    expect(paris.getByText('3')).toBeInTheDocument();
+    expect(paris.getByText('Days')).toBeInTheDocument();
+    expect(paris.getByText('Places')).toBeInTheDocument();
+    expect(paris.getByText('In 16 days')).toBeInTheDocument();
+
+    const tokyo = within(links[1]);
+    expect(tokyo.getByText('Day')).toBeInTheDocument();
+    expect(tokyo.getByText('Tokyo weekend')).toBeInTheDocument();
+  });
+
+  it('derives ongoing and past status pills from the current date', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 7, 2, 9, 0));
+    getTripsMock.mockResolvedValue(trips);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Paris getaway')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Ongoing · Day 2')).toBeInTheDocument();
+    expect(screen.getByText('In 34 days')).toBeInTheDocument();
   });
 
   it('shows an empty state with a create prompt when I have no trips', async () => {

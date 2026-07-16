@@ -4,21 +4,52 @@ import type { Trip } from '../api/types';
 import CreateTripForm from '../components/CreateTripForm';
 import skeletonStyles from '../components/Skeleton.module.css';
 import { useTrips } from '../hooks/trips';
-import { formatDateRange } from '../lib/dates';
+import { formatShortDate, todayISO, tripStatus } from '../lib/dates';
 import stateStyles from './PageState.module.css';
 import styles from './TripsPage.module.css';
 
 const TRIP_SKELETON_COUNT = 4;
 
-function TripCard({ trip }: { trip: Trip }) {
+const statusClass = {
+  upcoming: styles.statusUpcoming,
+  ongoing: styles.statusOngoing,
+  past: styles.statusPast,
+} as const;
+
+function TripPass({ trip, today }: { trip: Trip; today: string }) {
   const dayCount = trip.tripDays.length;
+  const placeCount = trip.tripDays.reduce((total, day) => total + day.destinations.length, 0);
+  const status = tripStatus(trip.startDate, trip.endDate, today);
+
   return (
-    <Link to={`/trips/${trip.id}`} className={styles.card}>
-      <h2 className={styles.cardName}>{trip.name}</h2>
-      <span className={styles.cardDates}>{formatDateRange(trip.startDate, trip.endDate)}</span>
-      <span className={styles.cardDays}>
-        {dayCount} {dayCount === 1 ? 'day' : 'days'}
-      </span>
+    <Link
+      to={`/trips/${trip.id}`}
+      className={`${styles.pass} ${status.kind === 'past' ? styles.passPast : ''}`}
+    >
+      <div className={styles.passTop}>
+        <div className={styles.passHead}>
+          <h2 className={styles.passName}>{trip.name}</h2>
+          <span className={`${styles.status} ${statusClass[status.kind]}`}>{status.label}</span>
+        </div>
+        <div className={styles.route}>
+          <span>{formatShortDate(trip.startDate)}</span>
+          <span className={styles.routeLine} aria-hidden="true" />
+          <span className={skeletonStyles.visuallyHidden}> to </span>
+          <span>{formatShortDate(trip.endDate)}</span>
+        </div>
+      </div>
+      <div className={styles.perf}>
+        <div className={styles.stubs}>
+          <div className={styles.stub}>
+            <span className={styles.stubValue}>{dayCount}</span>
+            <span className={styles.stubLabel}>{dayCount === 1 ? 'Day' : 'Days'}</span>
+          </div>
+          <div className={styles.stub}>
+            <span className={styles.stubValue}>{placeCount}</span>
+            <span className={styles.stubLabel}>{placeCount === 1 ? 'Place' : 'Places'}</span>
+          </div>
+        </div>
+      </div>
     </Link>
   );
 }
@@ -40,7 +71,7 @@ export default function TripsPage() {
         <p className={skeletonStyles.visuallyHidden}>Loading your trips…</p>
         <div className={styles.grid} aria-hidden="true">
           {Array.from({ length: TRIP_SKELETON_COUNT }, (_, index) => (
-            <div key={index} className={skeletonStyles.card} />
+            <div key={index} className={styles.skeletonPass} />
           ))}
         </div>
       </section>
@@ -65,6 +96,7 @@ export default function TripsPage() {
   }
 
   const hasTrips = trips.data.length > 0;
+  const today = todayISO();
 
   return (
     <section className={styles.page}>
@@ -84,7 +116,7 @@ export default function TripsPage() {
       {hasTrips ? (
         <div className={styles.grid}>
           {trips.data.map((trip) => (
-            <TripCard key={trip.id} trip={trip} />
+            <TripPass key={trip.id} trip={trip} today={today} />
           ))}
         </div>
       ) : (

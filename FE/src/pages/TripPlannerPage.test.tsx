@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
 import type { Trip } from '../api/types';
 import TripPlannerPage from './TripPlannerPage';
@@ -55,6 +55,7 @@ function renderPage(path = '/trips/7') {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/trips/:id" element={<TripPlannerPage />} />
+          <Route path="/" element={<p>search screen</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -65,6 +66,12 @@ beforeEach(() => {
   getTripMock.mockReset();
   removeDestinationFromDayMock.mockReset();
   updateTripMock.mockReset();
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 6, 1, 9, 0));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('TripPlannerPage', () => {
@@ -75,12 +82,87 @@ describe('TripPlannerPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Paris getaway' })).toBeInTheDocument();
     });
-    expect(screen.getByRole('heading', { name: 'Aug 1, 2026' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Aug 2, 2026' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sat · Aug 1' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sun · Aug 2' })).toBeInTheDocument();
     expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
     expect(screen.getByText('Landmark')).toBeInTheDocument();
     expect(screen.getByLabelText('Rated 3 of 3')).toBeInTheDocument();
     expect(screen.getByText(/no destinations planned/i)).toBeInTheDocument();
+  });
+
+  it('renders the summary ticket stats with the unplanned hint', async () => {
+    getTripMock.mockResolvedValue(trip);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Paris getaway' })).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('1 place')).toBeInTheDocument();
+    expect(screen.getByText('1 day')).toBeInTheDocument();
+    expect(screen.getByText('Unplanned')).toBeInTheDocument();
+  });
+
+  it('shows "All planned" when every day has a destination', async () => {
+    getTripMock.mockResolvedValue({
+      ...trip,
+      tripDays: [trip.tripDays[0], { day: '2026-08-02', destinations: trip.tripDays[0].destinations }],
+    });
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Paris getaway' })).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('All planned')).toBeInTheDocument();
+  });
+
+  it('marks the current day with a Today marker while the trip is ongoing', async () => {
+    vi.setSystemTime(new Date(2026, 7, 1, 9, 0));
+    getTripMock.mockResolvedValue(trip);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Sat · Aug 1 Today' })).toBeInTheDocument();
+    });
+    expect(screen.getByText('Today')).toBeInTheDocument();
+  });
+
+  it('hands off to discovery when adding a destination to a day', async () => {
+    getTripMock.mockResolvedValue(trip);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a destination to Aug 1, 2026' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('search screen')).toBeInTheDocument();
+    });
+  });
+
+  it('moves focus to the day heading after a successful removal', async () => {
+    getTripMock.mockResolvedValueOnce(trip);
+    getTripMock.mockResolvedValue({
+      ...trip,
+      tripDays: [{ day: '2026-08-01', destinations: [] }, trip.tripDays[1]],
+    });
+    removeDestinationFromDayMock.mockResolvedValue(undefined);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /remove louvre museum/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^remove$/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Louvre Museum')).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('heading', { name: 'Sat · Aug 1' })).toHaveFocus();
   });
 
   it('links a trip destination with an xid to its details page', async () => {
@@ -216,7 +298,7 @@ describe('TripPlannerPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Aug 3, 2026' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Mon · Aug 3' })).toBeInTheDocument();
     });
     expect(updateTripMock.mock.calls[0]).toEqual([
       7,
@@ -280,7 +362,7 @@ describe('TripPlannerPage', () => {
       { name: 'Paris getaway', startDate: '2026-08-01', endDate: '2026-08-01', confirmed: true },
     ]);
     await waitFor(() => {
-      expect(screen.queryByRole('heading', { name: 'Aug 2, 2026' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Sun · Aug 2' })).not.toBeInTheDocument();
     });
   });
 
@@ -309,7 +391,7 @@ describe('TripPlannerPage', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(updateTripMock).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('heading', { name: 'Aug 2, 2026' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sun · Aug 2' })).toBeInTheDocument();
   });
 
   it('keeps the destination when the remove dialog is cancelled', async () => {
