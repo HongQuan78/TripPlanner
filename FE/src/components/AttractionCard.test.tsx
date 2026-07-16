@@ -111,6 +111,13 @@ describe('AttractionCard distance line', () => {
     expect(screen.getByText('2.3 km from center')).toBeInTheDocument();
   });
 
+  it('switches to kilometers when rounding would reach 1000 m', () => {
+    renderCard({ distanceMeters: 999.6 });
+
+    expect(screen.getByText('1.0 km from center')).toBeInTheDocument();
+    expect(screen.queryByText('1000 m from center')).not.toBeInTheDocument();
+  });
+
   it('renders nothing when the distance is null', () => {
     renderCard({ distanceMeters: null });
 
@@ -153,5 +160,18 @@ describe('AttractionCard image states', () => {
 
     expect(screen.getByTestId('image-placeholder')).toBeInTheDocument();
     expect(screen.queryByTestId('image-loading')).not.toBeInTheDocument();
+  });
+
+  it('clears the loading shimmer when the image is already cached on mount', () => {
+    const completeSpy = vi
+      .spyOn(HTMLImageElement.prototype, 'complete', 'get')
+      .mockReturnValue(true);
+
+    renderCard({ imageUrl: 'https://example.com/louvre.jpg' });
+
+    expect(screen.queryByTestId('image-loading')).not.toBeInTheDocument();
+    expect(screen.getByAltText('Louvre Museum')).toBeInTheDocument();
+
+    completeSpy.mockRestore();
   });
 });

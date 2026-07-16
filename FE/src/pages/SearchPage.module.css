@@ -14,11 +14,11 @@
   background:
     linear-gradient(
       to top,
-      rgba(11, 28, 48, 0.8) 0%,
-      rgba(11, 28, 48, 0.72) 45%,
-      rgba(11, 28, 48, 0.65) 78%,
-      rgba(11, 28, 48, 0.3) 90%,
-      rgba(11, 28, 48, 0) 100%
+      color-mix(in srgb, var(--color-on-surface) 80%, transparent) 0%,
+      color-mix(in srgb, var(--color-on-surface) 72%, transparent) 45%,
+      color-mix(in srgb, var(--color-on-surface) 65%, transparent) 78%,
+      color-mix(in srgb, var(--color-on-surface) 30%, transparent) 90%,
+      color-mix(in srgb, var(--color-on-surface) 0%, transparent) 100%
     ),
     linear-gradient(
       160deg,
@@ -220,7 +220,7 @@
 .chip::after {
   content: '';
   position: absolute;
-  inset: -6px;
+  inset: -6px 0;
 }
 
 .chip:hover {
@@ -229,11 +229,10 @@
 
 .results {
   max-width: 60rem;
-  margin: 0 auto;
+  margin: 2rem auto 0;
 }
 
 .loading {
-  margin-top: 1.5rem;
   color: var(--color-on-surface-variant);
 }
 

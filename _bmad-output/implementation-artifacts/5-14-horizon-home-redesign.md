@@ -4,7 +4,7 @@ baseline_commit: 3a80e86a33052a98ed65efbc9bf25926263376dc
 
 # Story 5.14: Redesign the home/search surface against the Horizon spine pair's home update
 
-Status: review
+Status: done
 
 ## Story
 
@@ -40,6 +40,17 @@ Source of truth: the spine pair at `_bmad-output/planning-artifacts/ux-designs/u
 - [x] Task 4: Results column + skeleton geometry (AC: #4)
   - [x] 4.1 60rem results column below the band, 16rem grid minimum, attraction skeleton height matched to the richer card
 - [x] Task 5: Tests, lint, build, visual verification (AC: #8)
+
+## Review Findings
+
+Adversarial code review 2026-07-16 (4 layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor). 5 patch, 1 defer, 9 dismissed.
+
+- [x] [Review][Patch] Cached image can strand the loading shimmer over an invisible photo [FE/src/components/AttractionCard.tsx:18-44] — `imageLoaded` only flips in `onLoad`; when the browser serves the image from cache the `load` event can fire before React attaches the handler, leaving the `<img>` at `opacity:0` (`imageHidden`) under a permanent shimmer. Add a `ref` + mount `useEffect` that sets `imageLoaded` when `img.complete` is already true; add a test asserting the `imageHidden` class is present while loading and dropped after load. (blind-hunter + edge-case-hunter + verification-gap)
+- [x] [Review][Patch] formatDistance renders "1000 m from center" at the ~1 km boundary [FE/src/components/AttractionCard.tsx:8-13] — `meters < 1000` then `Math.round` yields "1000 m" for values in `[999.5, 1000)` instead of switching to "1.0 km". Round before the branch (e.g. gate on `Math.round(meters) >= 1000`); add a boundary test. (blind-hunter + edge-case-hunter + verification-gap)
+- [x] [Review][Patch] Hero ink overlay hardcodes rgba(11,28,48,…) instead of the --color-on-surface token [FE/src/pages/SearchPage.module.css:14-22] — AC #1 specifies an "ink (`--color-on-surface`) overlay" and the Dev Agent Record claims "no new hex values", but the scrim uses literal `rgba(11,28,48,…)` (the raw value of `--color-on-surface`). No visible impact in the single light theme, but re-theming would desync it. Replace each stop with `color-mix(in srgb, var(--color-on-surface) N%, transparent)`. (blind-hunter + acceptance-auditor)
+- [x] [Review][Patch] Band→content gap is 1.5rem, AC #4 requires 2rem [FE/src/pages/SearchPage.module.css:230] — `.results` has no top margin, so the first post-search element (the location list, `LocationResultList.module.css:3` `margin:1.5rem auto 0`) sits 1.5rem below the band; only the attractions section (`margin-top:2rem`) hits the spec'd 2rem. Normalize the band→content gap to 2rem. (acceptance-auditor)
+- [x] [Review][Patch] Suggestion chip hit areas overlap in the row gap [FE/src/pages/SearchPage.module.css:220-224] — `.chip::after { inset:-6px }` extends each chip 6px on every side, but the row `gap` is 0.5rem (8px), so adjacent chips' invisible hit zones overlap ~4px, making a click in the gap ambiguous. The vertical -6px is what earns the 44px touch target (AC #3); drop only the horizontal extension (`inset:-6px 0`). (blind-hunter)
+- [x] [Review][Defer] AttractionCard distance format diverges from NearbyRail [FE/src/components/NearbyRail.tsx:13-14] — a 250 m attraction reads "250 m from center" on the search card but "0.3 km away" in NearbyRail; NearbyRail ships from story 5-15 and is outside this diff — deferred, cross-story inconsistency, not actionable here.
 
 ## Dev Notes
 

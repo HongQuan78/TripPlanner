@@ -24,6 +24,17 @@ project: tripplanner
 # sticky bar gained the logged-out login note. 222/222 FE tests, lint + build
 # green. Moved to done.
 
+# 2026-07-16: 5-14-horizon-home-redesign code-reviewed (adversarial, 4 layers) —
+# 5 patch findings all fixed, 1 low deferred (cross-story distance-format
+# divergence vs NearbyRail), 9 dismissed. Fixes: cache-hit image guard
+# (img.complete useEffect + test) so cached photos don't strand the shimmer at
+# opacity 0; formatDistance rounds before the 1km branch (no more "1000 m") +
+# boundary test; hero ink overlay re-tokenized to --color-on-surface via
+# color-mix (was hardcoded rgba); band→content gap normalized to the AC #4 2rem;
+# chip hit-area horizontal overlap removed (inset -6px 0). 224/224 FE tests
+# (+2 net), lint clean (2 pre-existing warnings), production build green. Moved
+# to done.
+
 last_updated: 2026-07-16
 
 # 2026-07-16: 5-16-horizon-trips-boarding-pass-redesign implemented — all 4
@@ -306,6 +317,6 @@ development_status:
   8-3-fix-missing-destination-images: review
   8-4-image-loading-state: review
   5-13-horizon-auth-redesign: review
-  5-14-horizon-home-redesign: review
+  5-14-horizon-home-redesign: done
   5-15-azure-attraction-detail-redesign: done
   5-16-horizon-trips-boarding-pass-redesign: review

@@ -1,5 +1,9 @@
 # Deferred Work
 
+## Deferred from: code review of 5-14-horizon-home-redesign (2026-07-16)
+
+- AttractionCard's `formatDistance` and NearbyRail render distances differently — a 250 m attraction reads "250 m from center" on the search card but "0.3 km away" in NearbyRail (`FE/src/components/NearbyRail.tsx:13-14,46`). NearbyRail ships from story 5-15 and is outside this diff/story scope; a shared distance-format helper would unify both. Cross-story inconsistency, not actionable in this review.
+
 ## Deferred from: code review of 5-15-azure-attraction-detail-redesign (2026-07-16)
 
 - `parseOpenNow` computes open/closed in the viewer's browser-local time, not the venue's timezone (`FE/src/utils/openNow.ts:80-81`) — the "Open now"/"Closed" badge is systematically wrong for attractions in other timezones. Not fixable without a timezone in the destination payload (OpenTripMap hours strings carry none).

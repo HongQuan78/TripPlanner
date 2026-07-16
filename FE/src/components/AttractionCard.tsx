@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Attraction } from '../api/types';
 import { useAddToTrip } from '../trips/AddToTripContext';
@@ -6,7 +6,7 @@ import StarRating from './StarRating';
 import styles from './AttractionCard.module.css';
 
 function formatDistance(meters: number): string {
-  if (meters < 1000) {
+  if (Math.round(meters) < 1000) {
     return `${Math.round(meters)} m from center`;
   }
   return `${(meters / 1000).toFixed(1)} km from center`;
@@ -14,9 +14,16 @@ function formatDistance(meters: number): string {
 
 export default function AttractionCard({ attraction }: { attraction: Attraction }) {
   const { requestAdd } = useAddToTrip();
+  const imgRef = useRef<HTMLImageElement>(null);
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const showImage = attraction.imageUrl !== null && !imageFailed;
+
+  useEffect(() => {
+    if (imgRef.current?.complete) {
+      setImageLoaded(true);
+    }
+  }, [attraction.imageUrl]);
   const ratingLevel = attraction.rating === null ? null : Number.parseInt(attraction.rating, 10);
   const isRated = ratingLevel !== null && ratingLevel >= 1 && ratingLevel <= 3;
   const isHeritage = attraction.rating?.endsWith('h') ?? false;
@@ -36,6 +43,7 @@ export default function AttractionCard({ attraction }: { attraction: Attraction 
                 />
               )}
               <img
+                ref={imgRef}
                 className={imageLoaded ? styles.image : `${styles.image} ${styles.imageHidden}`}
                 src={attraction.imageUrl ?? undefined}
                 alt={attraction.name}
