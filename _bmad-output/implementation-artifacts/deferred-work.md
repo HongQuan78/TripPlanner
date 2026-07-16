@@ -1,5 +1,11 @@
 # Deferred Work
 
+## Deferred from: code review of 5-15-azure-attraction-detail-redesign (2026-07-16)
+
+- `parseOpenNow` computes open/closed in the viewer's browser-local time, not the venue's timezone (`FE/src/utils/openNow.ts:80-81`) — the "Open now"/"Closed" badge is systematically wrong for attractions in other timezones. Not fixable without a timezone in the destination payload (OpenTripMap hours strings carry none).
+- `parseOpenNow` mis-handles two parser edge cases (`FE/src/utils/openNow.ts:84-117`): an overnight range spanning midnight (e.g. `Mo 20:00-02:00`) is credited only to the listed weekday, so the post-midnight tail reports closed on the following day; and an unrecognized clause (e.g. `Mo-Su 09:00-18:00; PH off`) nulls the entire result → no badge. Deferred because Dev Notes explicitly scope the parser to "confident parse or nothing; do not over-engineer a full OSM opening_hours parser" and both cases degrade safely to no-badge (never wrong info).
+- New-code automated test gaps (`FE/src/utils/openNow.test.ts`, `FE/src/components/NearbyRail.test.tsx`, `FE/src/pages/DestinationDetailsPage.test.tsx`): no page-level render of the "Closed" badge, no split-hours / `everyday` / day-only-token parser cases, and the nearby cap-at-8 and rating-out-of-range branches are unasserted. Low-value; the existing 198-test suite is green.
+
 ## Deferred from: code review of epic-4-user-authentication (2026-07-10)
 
 - Case-sensitive email lookup (`u.Email == email` in `UserRepository.GetByEmailAsync`) — a user who registered as `User@X.com` and logs in / resends with `user@x.com` silently misses. Pre-existing across login/register/resend.

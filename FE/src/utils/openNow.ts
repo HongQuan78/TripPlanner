@@ -13,7 +13,7 @@ const DAY_INDEX: Record<string, number> = {
 };
 
 const DAY_ORDER = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa'];
-const TIME_RANGE = /^([0-2]?\d):([0-5]\d)-([0-2]?\d):([0-5]\d)$/;
+const TIME_RANGE = /^((?:[01]?\d|2[0-4])):([0-5]\d)-((?:[01]?\d|2[0-4])):([0-5]\d)$/;
 const DAY_RANGE = /^(su|mo|tu|we|th|fr|sa)-(su|mo|tu|we|th|fr|sa)$/;
 
 function minutes(hours: number, mins: number): number {
@@ -52,7 +52,10 @@ function timeCovers(range: string, nowMinutes: number): boolean | null {
   }
   const start = minutes(Number(match[1]), Number(match[2]));
   const end = minutes(Number(match[3]), Number(match[4]));
-  if (end <= start) {
+  if (end === start) {
+    return false;
+  }
+  if (end < start) {
     return nowMinutes >= start || nowMinutes < end;
   }
   return nowMinutes >= start && nowMinutes < end;

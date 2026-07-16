@@ -345,6 +345,13 @@
   color: var(--az-ink);
 }
 
+.stickyNote {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--az-slate);
+}
+
 .stickyBtn {
   width: auto;
   flex: 0 0 auto;

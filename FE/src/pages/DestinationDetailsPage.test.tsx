@@ -195,8 +195,8 @@ describe('DestinationDetailsPage', () => {
       expect(addToTripButtons().length).toBeGreaterThan(0);
     });
     addToTripButtons().forEach((button) => expect(button).toBeEnabled());
-    expect(screen.getByRole('link', { name: /^log in$/i })).toBeInTheDocument();
-    expect(screen.getByText(/to add to your trip/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /^log in$/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/to add to your trip/i).length).toBeGreaterThan(0);
     fireEvent.click(addToTripButtons()[0]);
     expect(onAddToTrip).toHaveBeenCalledWith(fullDetails);
   });

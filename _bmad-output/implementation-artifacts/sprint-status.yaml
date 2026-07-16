@@ -15,6 +15,15 @@
 # requirement/Sheet1.html (no epic file; scope lives in the story files).
 
 project: tripplanner
+# 2026-07-16: 5-15-azure-attraction-detail-redesign code-reviewed (adversarial,
+# 4 layers) — 1 decision + 6 patch findings all fixed, 3 low deferred, 4
+# dismissed. Fixes: escaped attraction name in the Leaflet marker HTML (XSS
+# sink) + new AttractionMap test; keyed hero/map by xid so they reset on
+# attraction→attraction navigation; carousel arrows 40→44px; sticky-bar open-now
+# dot aria-hidden; openNow regex rejects hours >24 / zero-length ranges; mobile
+# sticky bar gained the logged-out login note. 222/222 FE tests, lint + build
+# green. Moved to done.
+
 last_updated: 2026-07-16
 
 # 2026-07-16: 5-16-horizon-trips-boarding-pass-redesign implemented — all 4
@@ -298,5 +307,5 @@ development_status:
   8-4-image-loading-state: review
   5-13-horizon-auth-redesign: review
   5-14-horizon-home-redesign: review
-  5-15-azure-attraction-detail-redesign: review
+  5-15-azure-attraction-detail-redesign: done
   5-16-horizon-trips-boarding-pass-redesign: review

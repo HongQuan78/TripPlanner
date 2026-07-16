@@ -3,6 +3,14 @@ import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import styles from './AttractionMap.module.css';
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export default function AttractionMap({
   latitude,
   longitude,
@@ -14,7 +22,7 @@ export default function AttractionMap({
 }) {
   const marker = divIcon({
     className: styles.markerIcon,
-    html: `<span class="${styles.pin}" role="img" aria-label="${name}"><span class="${styles.pinDot}"></span></span>`,
+    html: `<span class="${styles.pin}" role="img" aria-label="${escapeHtml(name)}"><span class="${styles.pinDot}"></span></span>`,
     iconSize: [26, 26],
     iconAnchor: [13, 26],
   });

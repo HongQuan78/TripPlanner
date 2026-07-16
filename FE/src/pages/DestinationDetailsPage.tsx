@@ -153,6 +153,7 @@ export default function DestinationDetailsPage({
     <section className={styles.page}>
       <div className={styles.heroFull}>
         <AttractionHero
+          key={destination.xid}
           images={destination.imageUrls}
           name={destination.name}
           category={destination.category}
@@ -174,6 +175,7 @@ export default function DestinationDetailsPage({
             <section className={styles.section}>
               <h2 className={styles.secHead}>Location</h2>
               <AttractionMap
+                key={destination.xid}
                 latitude={destination.latitude!}
                 longitude={destination.longitude!}
                 name={destination.name}
@@ -256,7 +258,21 @@ export default function DestinationDetailsPage({
                   : styles.stickyVal
               }
             >
-              {openNow.status === 'open' ? '● Open now' : 'Closed'}
+              {openNow.status === 'open' ? (
+                <>
+                  <span className={styles.openDot} aria-hidden="true" /> Open now
+                </>
+              ) : (
+                'Closed'
+              )}
+            </span>
+          )}
+          {!isAuthenticated && (
+            <span className={styles.stickyNote}>
+              <Link className={styles.noteLink} to="/login">
+                Log in
+              </Link>{' '}
+              to add to your trip
             </span>
           )}
         </div>

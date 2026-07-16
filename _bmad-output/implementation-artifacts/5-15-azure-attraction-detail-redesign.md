@@ -4,7 +4,7 @@ baseline_commit: bc979e3c1d0183387f1fde24b903da42e4993445
 
 # Story 5.15: Redesign the attraction detail page against the Azure spine pair
 
-Status: review
+Status: done
 
 ## Story
 
@@ -122,3 +122,21 @@ Source of truth: the spine pair at `_bmad-output/planning-artifacts/ux-designs/u
 
 - 2026-07-16: Story created from the Azure UX spine pair (`ux-tripplanner-2026-07-16`, DESIGN.md + EXPERIENCE.md) at user request and picked up immediately for implementation.
 - 2026-07-16: Implemented all 7 tasks — added leaflet/react-leaflet, scoped Azure token layer, `openNow` parser, `AttractionHero` (replacing `PhotoCarousel`), `AttractionMap`, `useNearbyAttractions` + `NearbyRail`, and the rebuilt two-column/hero/sticky-bar detail page. 198/198 FE tests, lint and build green; Playwright visual QA deferred (no browser tooling this session). Status → review.
+
+## Review Findings
+
+### Code Review 2026-07-16 (adversarial, 4 layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor)
+
+- [x] [Review][Patch] MEDIUM — Logged-out mobile users get no login note in the sticky bar (decision D1 → resolved: add it). Desktop panel shows "Log in to add to your trip", but `@media (max-width: 1023px)` hides `.panel .btnNote` and the sticky bar renders no note. Add a compact "Log in to add to your trip" affordance to the mobile sticky bar. [FE/src/pages/DestinationDetailsPage.module.css:360-363, FE/src/pages/DestinationDetailsPage.tsx:246-270]
+- [x] [Review][Patch] HIGH — HTML injection sink: attraction `name` interpolated unescaped into Leaflet `divIcon` `html` (set via innerHTML); untrusted OpenTripMap/OSM data can break out of the `aria-label` attribute and inject markup/script [FE/src/components/AttractionMap.tsx:17]
+- [x] [Review][Patch] MEDIUM — Detail-page state not reset on attraction→attraction navigation: the route reuses one `DestinationDetailsPage` instance (no `key`), so on a cached revisit the Leaflet map stays centered on the previous attraction (MapContainer `center` is init-only) and the carousel opens mid-rotation. Fix: `key={xid}` on the route element / page [FE/src/routes.tsx:31, FE/src/components/AttractionMap.tsx:23, FE/src/components/AttractionHero.tsx:22]
+- [x] [Review][Patch] MEDIUM — Carousel prev/next arrows are 40×40px, below the AC9 44px tap-target floor explicitly pre-flagged in review-accessibility.md [FE/src/components/AttractionHero.module.css:124-125]
+- [x] [Review][Patch] MEDIUM — `AttractionMap` has zero real-behavior test coverage (stubbed out in the page test); OSM attribution, map/marker `aria-label`s, and the two defects above would all regress green [FE/src/components/AttractionMap.tsx, FE/src/pages/DestinationDetailsPage.test.tsx:29-31]
+- [x] [Review][Patch] LOW — AC5 violation: sticky-bar "● Open now" bakes the decorative dot into the announced text (screen reader says "black circle Open now"); the info-row `OpenNowBadge` correctly `aria-hidden`s its dot [FE/src/pages/DestinationDetailsPage.tsx:259]
+- [x] [Review][Patch] LOW — `parseOpenNow` `TIME_RANGE` regex accepts impossible hours 24–29 and zero-length ranges (`09:00-09:00`), both yielding a false permanent "Open now" instead of rejecting as unparseable [FE/src/utils/openNow.ts:16,55-56]
+- [x] [Review][Defer] LOW — `parseOpenNow` computes open/closed in the viewer's local time, not the venue's timezone; badge is wrong for far-away attractions [FE/src/utils/openNow.ts:80-81] — deferred: no timezone data in the payload; not fixable without a new data source
+- [x] [Review][Defer] LOW — `parseOpenNow` overnight ranges spanning midnight are attributed to the wrong weekday, and an unrecognized clause (e.g. `PH off`) nulls the whole string → no badge [FE/src/utils/openNow.ts:84-117] — deferred: Dev Notes explicitly scope the parser to "confident parse or nothing; do not over-engineer"; both degrade safely to no-badge
+- [x] [Review][Defer] LOW — New-code test gaps: no page-level "Closed" badge render, no split-hours / `everyday` / day-only parser cases, nearby cap-at-8 and rating-out-of-range not asserted [FE/src/utils/openNow.test.ts, FE/src/components/NearbyRail.test.tsx] — deferred: low-value coverage, existing suite green
+- Dismissed as noise (4): rating gated to 1–3 (by-design per Dev Notes, matches `AttractionCard`); `useNearbyAttractions` cache key omits `selfXid` (the `select` closure re-runs per consumer so the filter is always correct); comma-joined split-hours → no badge (safe degradation by design); `kinds[0]` on a null `kinds` array (the `Attraction.kinds` type is non-nullable `string[]`).
+
+All 7 patches applied 2026-07-16: escaped `name` in the `AttractionMap` marker HTML (+ new `AttractionMap.test.tsx` locking in escaping/attribution/aria-labels); keyed `AttractionHero`/`AttractionMap` by `destination.xid` so map center and carousel reset on attraction→attraction navigation; carousel arrows 40→44px; sticky-bar open-now dot now `aria-hidden`; `openNow` `TIME_RANGE` regex rejects hours >24 and zero-length ranges; mobile sticky bar gained the logged-out "Log in to add to your trip" note. 222/222 FE tests, lint and build green.
