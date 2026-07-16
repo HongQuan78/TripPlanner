@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UX Design Validation: tripplanner — Attraction Detail (Azure)</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+
+  .dimension-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section.dimension details, section.reviewer-section details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before {
+    content: "▸";
+    display: inline-block;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 {
+    display: inline;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .verdict-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .verdict-broken { background: var(--verdict-broken); }
+
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment { color: var(--text); font-size: 14.5px; }
+  .dim-judgment p { margin: 0 0 10px; }
+
+  .findings-list { padding: 0 20px 4px; }
+  article.finding {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  article.finding:first-child { border-top: none; }
+  article.finding header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234, 88, 12, 0.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220, 38, 38, 0.14); color: var(--sev-critical); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+
+  .reviewer-source {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  .mechanical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  .mechanical li { margin-bottom: 4px; color: var(--text); }
+
+  footer.report-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <header class="report-header">
+      <div class="title">
+        <h1>tripplanner — UX Design Validation Report</h1>
+        <div class="subtitle">Attraction Detail (Azure) · DESIGN.md + EXPERIENCE.md spine pair</div>
+      </div>
+    </header>
+
+    <div class="synthesis">
+      <p>This is a tight, downstream-ready spine pair: every <code>{path.to.token}</code> reference resolves, component names line up across both files, the DESIGN section order is canonical, and all eight EXPERIENCE defaults are present with genuinely load-bearing invented sections (Map / Open-Now / Nearby / Add-to-Trip / Data handling). A consumer can source-extract it cleanly and build. Flow, component, bloat, and inheritance discipline are all strong; token, state, visual-reference, and shape-fit coverage are adequate with fixable gaps. The one rubric finding with real teeth is contrast: the palette is asserted "AA verified" but two load-bearing muted grays (<code>label-muted</code>, <code>na</code>) fall below AA on white, and downstream code mirrors tokens verbatim. Two required-when-applicable sections triggered by the memlog (Responsive, Inspiration &amp; Anti-patterns) are absent — the breakpoint info exists but is scattered, and DESIGN even points to a "behavioral breakpoint contract" section that EXPERIENCE never formalizes.</p>
+      <p>The accessibility lens sharpens that one crack into the report's dominant story. Where the rubric flagged two failing grays, the adversarial contrast audit measures <strong>five</strong> load-bearing text combinations below WCAG 2.1 AA — the <code>na</code> gray (2.45:1) and the amber star rating (2.02:1) fail even the 3:1 large/graphic threshold, and the teal taxonomy text, the open-now status badge, and the info-row keys all fail normal-text AA at 12px or smaller. The frontmatter's "Azure palette verified for AA text on its intended surfaces" is false as measured. Beyond contrast, the hero's legibility guarantee is asserted rather than engineered (weak-scrim zone under the eyebrow and title), the logged-out Add-to-Trip uses a <code>disabled</code> pattern that removes the whole conversion path from the tab order, and no focus-visible token exists to verify against 1.4.11. The spine is structurally sound but should be treated as <strong>build-blocked on contrast and the hero scrim</strong> until those combinations are darkened and the scrim floor is specified.</p>
+    </div>
+
+    <div class="dimension-summary">
+      <div class="dim-card">
+        <div class="dim-name">1. Flow coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">Strong</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">2. Token completeness</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">Adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">3. Component coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">Strong</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">4. State coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">Adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">5. Visual reference coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">Adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">6. Bloat &amp; overspecification</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">Strong</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">7. Inheritance discipline</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">Strong</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">8. Shape fit</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">Adequate</div>
+      </div>
+    </div>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>1. Flow coverage</h2>
+          <span class="verdict-pill verdict-strong">Strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Every load-bearing requirement extracted from <code>.memlog.md</code> — epic-2 US1/US2 (detail opens with missing fields), US3 map, US4 opening-hours, nearby rail, logged-out Add-to-Trip gate, and the ratified "Linh" journey — maps to a Key Flow or an embedded failure branch. Both flows carry numbered steps and failure handling; Flow 1 has an explicit CLIMAX beat and failure branches (unparseable hours, empty nearby).</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Flow 2 protagonist is unnamed and lacks a labeled climax</h3>
+              <span class="finding-location">EXPERIENCE.md § Key Flows, Flow 2</span>
+            </header>
+            <div class="finding-note">Flow 2's protagonist is "anonymous browser" (no named person) and has no explicitly labeled climax — it uses "Resolution" instead.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Optionally name the visitor and label the return-and-add moment as the climax for parity with Flow 1; the anonymity is defensible, so low.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details open>
+        <summary>
+          <h2>2. Token completeness</h2>
+          <span class="verdict-pill verdict-adequate">Adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Every frontmatter token type-checks against <code>design-md-spec.md</code>, and every <code>{path.to.token}</code> reference in the components block and prose resolves (all ~30 references spot-checked). All color tokens carry hex or rgba values — no missing-hex criticals. The gap is contrast: targets are asserted qualitatively ("comfortably AA", "verified for AA") but no ratios are stated for load-bearing combos, and two muted grays measurably fail. Recurring fixed pixel values are also stated in prose rather than tokenized.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Load-bearing muted grays asserted AA-verified but fail AA on white</h3>
+              <span class="finding-location">DESIGN.md frontmatter colors; EXPERIENCE.md § Accessibility Floor</span>
+            </header>
+            <div class="finding-note"><code>label-muted #7a8aa0</code> on <code>surface #ffffff</code> computes to ~3.25:1 and <code>na #9aa7b6</code> to ~2.6:1, both below AA 4.5:1 for normal text — yet these carry load-bearing content: <code>label-muted</code> is the info-row keys (Address/Hours/Website, 12px/700 label-caps, not large text) and <code>na</code> is the "Not available" / "No photo yet" text. Both § Accessibility Floor and § Foundation assert the palette is AA-verified; downstream will mirror the tokens and ship failing contrast believing it verified.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Darken <code>label-muted</code> to ≥ ~#5f7086 and <code>na</code> to ≥ ~#6b7a8c to clear 4.5:1 on white, or state the exact ratio + intended text size for each and downgrade any combo deliberately kept below AA.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Recurring fixed pixel values stated in prose, not tokenized</h3>
+              <span class="finding-location">DESIGN.md § Layout &amp; Spacing / § Components; EXPERIENCE.md § IA</span>
+            </header>
+            <div class="finding-note">Booking-panel width <code>340px</code> is restated in both files; info-row label width <code>110px</code> and card padding <code>11–13px</code> appear in DESIGN prose only.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a <code>components.booking-panel.width</code> token (and optionally an info-row label-width token) so the two files can't drift.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>3. Component coverage</h2>
+          <span class="verdict-pill verdict-strong">Strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Every component named anywhere appears in both DESIGN.md.Components (visual) and EXPERIENCE.md § Component Patterns (behavioral), with real rules on both sides: Hero/Photo carousel, Back control, Open-now badge, Info row, Map block, Nearby card, Nearby rail, Booking panel, Sticky action bar, Add to Trip / button-primary, Image placeholder. Names resolve consistently through token aliases. No orphan components, no one-word rows.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">"Not available" text treatment has no dedicated EXPERIENCE pattern row</h3>
+              <span class="finding-location">DESIGN.md § Components; EXPERIENCE.md § Component Patterns</span>
+            </header>
+            <div class="finding-note">The "Not available" text treatment is a standalone Components row in DESIGN.md but its behavior is folded into Info row + Voice and Tone + Data table in EXPERIENCE.md rather than getting its own pattern row.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Acceptable as-is (it is a text treatment, not an interactive component); no change needed unless you want strict row-parity.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>4. State coverage</h2>
+          <span class="verdict-pill verdict-adequate">Adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Walking every IA surface, State Patterns and the behavior sections cover Loading, Loaded, Not-found (404, no-retry), Service-unavailable (Try again), Missing field, No photos, Logged-out, Empty nearby, Map absent, Nearby load-failed, and map tile-failure degradation. Focus states are handled behaviorally in Accessibility Floor. The one gap is the add-mutation path.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">No state defined for a failed authenticated Add-to-Trip action</h3>
+              <span class="finding-location">EXPERIENCE.md § Add-to-Trip Flow, § State Patterns</span>
+            </header>
+            <div class="finding-note">The flow says clicking "adds this attraction and confirms," but page-level error states cover only the detail load, not the add mutation.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a row/beat for add-action failure (e.g. inline "Couldn't add — try again" without navigating away) and, if relevant, an already-added/duplicate treatment — or explicitly delegate both to the downstream add-to-trip context and say so.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>5. Visual reference coverage</h2>
+          <span class="verdict-pill verdict-adequate">Adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Only one visual reference exists: <code>.working/directions-attraction-detail.html</code>. EXPERIENCE.md links it inline at § IA, names what it illustrates, correctly disambiguates the chosen Azure direction from the three in the file, and states spines-win-on-conflict once. No orphans. Two low gaps concern which spine links it and where it lives.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">DESIGN.md (the visual spine) never links the visual reference</h3>
+              <span class="finding-location">DESIGN.md § Layout &amp; Spacing / § Components</span>
+            </header>
+            <div class="finding-note">Only EXPERIENCE.md links the mockup; the look-and-feel spine does not point at its own visual reference.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add one inline "→ Visual reference: <code>.working/directions-attraction-detail.html</code> (Azure section)" near Components.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Chosen mockup lives in scratch <code>.working/</code>, not <code>mockups/</code></h3>
+              <span class="finding-location">repo layout</span>
+            </header>
+            <div class="finding-note">A downstream consumer scanning canonical folders could miss the reference because it sits in a scratch dir.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Promote the Azure mockup into <code>mockups/</code> if it is meant to be a durable contract reference.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>6. Bloat &amp; overspecification</h2>
+          <span class="verdict-pill verdict-strong">Strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>DESIGN.md prose carries editorial voice (allowed); EXPERIENCE.md is table-first with prose reserved for behavior contracts (correct). No source restatement of full personas/FRs, no prose where a table would do, no decorative sections. The "fresh standalone identity" paragraph earns its place given the deliberate non-inheritance from Horizon.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Only prior note: un-tokenized pixel values (see §2)</h3>
+              <span class="finding-location">DESIGN.md § Components / § Layout</span>
+            </header>
+            <div class="finding-note">No new bloat findings beyond the un-tokenized fixed-pixel values already recorded under Token completeness.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Tracked under §2; no separate action.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>7. Inheritance discipline</h2>
+          <span class="verdict-pill verdict-strong">Strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Confirmed fresh standalone run — no <code>sources</code> frontmatter in either file (correct; the memlog logs the decision not to inherit Horizon). All EXPERIENCE.md <code>{token}</code> references resolve to DESIGN.md frontmatter tokens by name. Component and token names are identical across both files. No cross-file naming drift. No findings.</p>
+          </div>
+        </div>
+        <div class="findings-list"></div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>8. Shape fit</h2>
+          <span class="verdict-pill verdict-adequate">Adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>DESIGN.md sections are in exact canonical order (Brand &amp; Style → Colors → Typography → Layout &amp; Spacing → Elevation &amp; Depth → Shapes → Components → Do's and Don'ts). EXPERIENCE.md carries all eight required defaults, and its invented sections each formalize a load-bearing contract. The two gaps are required-when-applicable sections the memlog triggers.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">No dedicated Responsive section despite a multi-surface product with a stated breakpoint</h3>
+              <span class="finding-location">DESIGN.md § Layout &amp; Spacing; EXPERIENCE.md § Foundation</span>
+            </header>
+            <div class="finding-note">Breakpoint behavior is scattered across § Foundation, § IA, and per-row "Desktop only"/"Mobile only" notes, while DESIGN § Layout &amp; Spacing points to a "behavioral breakpoint contract" in EXPERIENCE that is never formalized as a section.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a Responsive section consolidating the desktop↔mobile transition (two-column → single column + sticky-bar handoff, bottom-padding reservation, breakpoint thresholds) so DESIGN's pointer resolves.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">No Inspiration &amp; Anti-patterns section despite named lineage and rejections</h3>
+              <span class="finding-location">EXPERIENCE.md; .memlog.md</span>
+            </header>
+            <div class="finding-note">The memlog names Airbnb as the booking-panel lineage and records rejected modules (share/save) and rejected visual directions (Terra/Lumen). Anti-patterns are partly served by § Interaction Primitives "Banned" and DESIGN's Don'ts, but the positive Airbnb lineage and the share/save rejection rationale are unrecorded.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a short Inspiration &amp; Anti-patterns section capturing the Airbnb booking-panel borrow and the deliberate share/save omission.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="reviewer-section">
+      <details>
+        <summary>
+          <h2>Accessibility review</h2>
+          <span class="reviewer-source">review-accessibility.md</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The behavioral spine is unusually accessibility-literate for a draft — landmarks, heading order, aria-disabled semantics, "absence is spoken," keyboard reachability and 44px targets are all named in the EXPERIENCE Accessibility Floor. But the DESIGN palette writes checks the floor can't cash: five load-bearing text combinations fail WCAG 2.1 AA for normal text, and two of them (the amber rating value and the "Not available" gray) fail even the 3:1 large/graphic threshold. The self-congratulatory frontmatter claim "Azure palette verified for AA text on its intended surfaces" is false as measured, and the hero's legibility guarantee is asserted, not engineered. Treat contrast and the hero scrim as blockers before build.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">"Not available" / "No photo yet" gray is unreadable at 2.45:1</h3>
+              <span class="finding-location">DESIGN.md Colors; EXPERIENCE Voice/Data tables</span>
+            </header>
+            <div class="finding-note">The <code>na</code> gray (<code>#9aa7b6</code>, 2.45:1) carries genuine content the spec explicitly wants read ("absence is spoken, not silent"), yet it's unreadable at any size. The intent ("visibly softer, honestly absent") is legitimate, but 2.45 makes it invisible, not soft.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Darken to ≥4.5:1 (around <code>#6b7c8f</code> or darker) and signal "soft" with italic + weight, not with sub-threshold contrast.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">Star rating amber fails both graphic (3:1) and text (4.5:1) thresholds</h3>
+              <span class="finding-location">DESIGN nearby-card rating-color; booking panel</span>
+            </header>
+            <div class="finding-note">The amber (<code>#f0a92c</code>, 2.02:1) fails the 3:1 graphic threshold for the ★ glyph and the 4.5:1 text threshold for the numeric value it colors. A rating is decision-relevant data on the nearby rail, not decoration.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Use amber only for the star fill on a darker plate and render the numeric value in ink/slate; or darken the amber substantially (amber rarely clears 4.5 on white — reserve it for a large glyph paired with a dark value).</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">Open-now badge — the one status signal — fails AA on its own tint</h3>
+              <span class="finding-location">DESIGN open-now-badge</span>
+            </header>
+            <div class="finding-note">The green (<code>#1f9d5b</code>) is 3.48:1 on white and 3.11:1 on its actual rendered 10% tint (<code>#e9f5ef</code>) at 11px/700. The single status signal on the page fails normal-text AA.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Darken the green to ≥4.5:1 on the tint (around <code>#137a45</code>), or drop the tint and increase the text size; keep the dot decorative as planned.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">Teal taxonomy text fails AA at 12px caps</h3>
+              <span class="finding-location">DESIGN teal usage; typography label-caps</span>
+            </header>
+            <div class="finding-note">Teal (<code>#12a3a3</code>, 3.09:1) is used for the category eyebrow (hero + panel) and the nearby-card <code>kind</code> label, both at 12px caps. Fails normal AA; the 12px size disqualifies the large-text exemption.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Darken teal to ≥4.5:1 (around <code>#0d7d7d</code>) for any text role, keeping the brighter teal for non-text accents only.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">Info-row keys in label-muted fail AA — the row's meaning depends on them</h3>
+              <span class="finding-location">DESIGN info-row label-color</span>
+            </header>
+            <div class="finding-note">Info-row keys in <code>label-muted</code> (<code>#7a8aa0</code>, 3.52:1) at 12px/700 are the "Address / Hours / Website" labels — the row's meaning depends on them. Fails normal AA.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Darken to ≥4.5:1 (around <code>#5c6b80</code>).</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Hero legibility guarantee is asserted, not engineered</h3>
+              <span class="finding-location">DESIGN hero scrim; EXPERIENCE Accessibility Floor</span>
+            </header>
+            <div class="finding-note">The scrim is <code>linear-gradient(scrim-soft 40% → scrim-strong)</code>: only the bottom ~60% darkens and the top 40% is near-transparent (0.05 alpha). White title (42px/800) upper glyph mass — and especially the eyebrow badge above the title — can land in the weak-scrim zone; over a bright/white photo white text there approaches 1:1. No <code>text-shadow</code> and no minimum floor is specified.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Specify a solid dark gradient floor reaching the full text band, add a <code>text-shadow</code>/halo on the title and eyebrow, and set a measurable minimum (white ≥4.5:1) at the top of the text block, not just the bottom.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Category eyebrow badge actively harms legibility</h3>
+              <span class="finding-location">DESIGN hero</span>
+            </header>
+            <div class="finding-note">A <code>rgba(255,255,255,0.16)</code> fill with white text and a <code>rgba(255,255,255,0.4)</code> border: a translucent-white plate under white text adds nothing over a light photo and washes the text out.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Use a dark translucent plate (e.g. <code>rgba(6,24,40,0.55)</code>) behind the eyebrow so white text has a guaranteed dark backing, or ink text on a solid light chip.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">No focus-visible indicator defined anywhere in DESIGN</h3>
+              <span class="finding-location">DESIGN (no focus token); EXPERIENCE Accessibility Floor</span>
+            </header>
+            <div class="finding-note">EXPERIENCE promises "a visible focus ring" on Back, carousel controls, map, each nearby card, the external link, and Add-to-Trip, but no ring color, width, or offset token exists, so it can't be verified against the 3:1 non-text-contrast rule (WCAG 1.4.11) — and a default UA outline will contrast inconsistently across white/photo/blue-button backgrounds.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Define a focus token (e.g. 2px ring + 2px offset in <code>primary</code> or a dark ink) and verify ≥3:1 against every surface it lands on, including the blue button and the photo.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Disabled Add-to-Trip is the wrong pattern for the logged-out gate</h3>
+              <span class="finding-location">DESIGN back/CTA; EXPERIENCE Add-to-Trip Flow</span>
+            </header>
+            <div class="finding-note">DESIGN says "not clickable, cursor: not-allowed" while EXPERIENCE says use <code>aria-disabled</code> with a why-name — a conflict. A truly <code>disabled</code> button is removed from the tab order and many SR users never encounter it, so the "Log in to add to your trip" rationale is only discoverable by chance. The gate is the whole logged-out conversion path.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Make it an enabled control (button or link) that routes to login with return-here, labeled "Log in to add to your trip" — keyboard-focusable, announced, actionable in one step; reserve visual "disabled" styling only.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Touch targets unspecified or too small</h3>
+              <span class="finding-location">DESIGN back-control; carousel dots</span>
+            </header>
+            <div class="finding-note">The back control is a 13px-text chip with 4px radius and no min-height; carousel dot indicators are inherently small; both fall short of 44×44px unless padded. EXPERIENCE only asserts the sticky-bar CTA and nearby cards meet 44px.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Set explicit ≥44px hit areas (padding/invisible hit slop) for the back control, each carousel dot, and desktop carousel arrows.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Map keyboard operability claimed but fragile</h3>
+              <span class="finding-location">EXPERIENCE Map behavior</span>
+            </header>
+            <div class="finding-note">Leaflet is keyboard-pannable only when the container has focus and <code>keyboard: true</code>, and pinch/scroll-zoom have no keyboard equivalent unless the +/− control is focusable.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Require focusable zoom buttons and a focusable map container in the spec, and confirm the OSM attribution link is in the tab order and legible at AA (Leaflet's default attribution gray often isn't).</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Map has no non-visual alternative for "where it is"</h3>
+              <span class="finding-location">EXPERIENCE Map marker name; Flow 1</span>
+            </header>
+            <div class="finding-note">The marker's accessible name is just the attraction name — it conveys no location or distance to a SR user, and the page's spatial value ("gauge how far from my guesthouse") is visual-only.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Ensure the Address info row always carries the textual location, and consider an SR-only summary (e.g. "Map showing &lt;name&gt; at &lt;area&gt;").</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Reduced motion is unaddressed</h3>
+              <span class="finding-location">EXPERIENCE Interaction Primitives</span>
+            </header>
+            <div class="finding-note">EXPERIENCE bans auto-advance (good) but nothing scopes <code>prefers-reduced-motion</code> for the nearby-card hover lift, carousel frame transitions, or sticky-panel motion.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a reduced-motion clause that disables transitions/lifts and any carousel slide animation.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">New-tab website link lacks a new-context warning</h3>
+              <span class="finding-location">EXPERIENCE Website value; WCAG 3.2.5</span>
+            </header>
+            <div class="finding-note"><code>rel="noopener noreferrer"</code> is set, but nothing tells sighted or SR users the link opens a new tab.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a visible/aria "(opens in new tab)" affordance on the Website value.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Card/panel boundaries rely on a sub-3:1 hairline</h3>
+              <span class="finding-location">DESIGN hairline #d7e1ea</span>
+            </header>
+            <div class="finding-note">The <code>#d7e1ea</code> hairline is 1.33:1 on white and 1.23:1 on canvas, and the white-on-canvas tonal delta is tiny, so container edges are near-invisible to low-vision users. Not a strict failure (boundaries aren't the only cue) but weak.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Darken the hairline toward ~3:1 or accept the single soft shadow on more surfaces.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Optional hero location line is small semi-transparent white over photo</h3>
+              <span class="finding-location">DESIGN hero</span>
+            </header>
+            <div class="finding-note">White at 92% opacity in 500 weight compounds the hero-scrim risk above.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Full-opacity white and include it in the guaranteed-scrim band, or treat as non-essential.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Disabled-button text is 1.4.3-exempt but should read gated, not dead</h3>
+              <span class="finding-location">DESIGN disabled state</span>
+            </header>
+            <div class="finding-note">Disabled-button text at 2.02:1 is technically exempt, but if the enabled-control fix is adopted the styling should still read as interactive-but-gated.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Ensure the paired "Log in" link (<code>primary</code>, 4.86:1) remains the focusable, high-contrast affordance.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Confirm heading hierarchy renders as promised</h3>
+              <span class="finding-location">DESIGN panel-title; EXPERIENCE heading intent</span>
+            </header>
+            <div class="finding-note">Name = single <code>&lt;h1&gt;</code>, section labels = <code>&lt;h2&gt;</code> in reading order, and the booking-panel repeated name must not be a competing <code>&lt;h1&gt;</code>.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Ensure DESIGN's <code>panel-title</code> does not emit a second <code>&lt;h1&gt;</code> (should be a non-heading or <code>&lt;h2&gt;</code>/<code>&lt;p&gt;</code>).</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <div class="mechanical">
+      <h3>Mechanical notes</h3>
+      <ul>
+        <li>Cross-references: all <code>{path.to.token}</code> references in both files resolve; no broken paths found.</li>
+        <li>Frontmatter: DESIGN.md complete (name, description, status, colors, typography, rounded, spacing, components); EXPERIENCE.md complete for a standalone run (no <code>sources</code>, correctly).</li>
+        <li>Name consistency: component names consistent across DESIGN frontmatter, DESIGN Components prose, and EXPERIENCE Component Patterns via token aliases; no drift.</li>
+        <li>Un-tokenized values: <code>340px</code> (panel width) appears in both files as a literal; <code>110px</code> and <code>11–13px</code> appear in DESIGN prose only.</li>
+        <li>DESIGN → EXPERIENCE pointer: DESIGN § Layout &amp; Spacing references a "behavioral breakpoint contract" section in EXPERIENCE that does not exist by that name.</li>
+        <li>Mermaid: none present; N/A.</li>
+      </ul>
+    </div>
+
+    <footer class="report-footer">
+      <div class="meta">
+        <span>Project: tripplanner</span>
+        <span>Rubric: review-rubric.md · Accessibility: review-accessibility.md</span>
+        <span>Run at: 2026-07-16</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

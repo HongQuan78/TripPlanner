@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attraction Detail — Design Directions</title>
+<style>
+/* ============================================================
+   GLOBAL SCAFFOLD (neutral chrome only — not part of any direction)
+   ============================================================ */
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#e9eaee;
+  color:#1c1d22;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.5;
+  padding:40px 24px 80px;
+}
+.page-head{max-width:1180px;margin:0 auto 40px;}
+.page-head h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px;}
+.page-head p{font-size:14px;color:#5a5d68;max-width:760px;}
+
+.dir{max-width:1180px;margin:0 auto 72px;}
+.dir-label{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;}
+.dir-label .num{font-size:13px;font-weight:800;color:#8a8d98;letter-spacing:.14em;}
+.dir-label .name{font-size:22px;font-weight:800;letter-spacing:-.01em;}
+.rationale{font-size:14px;color:#4a4d57;max-width:820px;margin-bottom:12px;}
+.palette{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;font-size:11px;}
+.swatch{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #d9dade;border-radius:6px;padding:5px 9px 5px 5px;}
+.swatch i{width:20px;height:20px;border-radius:4px;display:block;border:1px solid rgba(0,0,0,.08)}
+.swatch code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#40434d;}
+
+/* browser frame */
+.frame{border-radius:12px;overflow:hidden;box-shadow:0 24px 60px -24px rgba(20,22,30,.4),0 4px 12px rgba(20,22,30,.08);background:#fff;}
+.frame-bar{display:flex;align-items:center;gap:8px;padding:11px 16px;background:#f3f3f5;border-bottom:1px solid #e2e3e7;}
+.frame-bar .dots{display:flex;gap:6px}
+.frame-bar .dots i{width:11px;height:11px;border-radius:50%;display:block}
+.frame-bar .dots i:nth-child(1){background:#ff5f57}
+.frame-bar .dots i:nth-child(2){background:#febc2e}
+.frame-bar .dots i:nth-child(3){background:#28c840}
+.frame-bar .url{flex:1;background:#fff;border:1px solid #e2e3e7;border-radius:6px;font-size:12px;color:#7c7f8a;padding:5px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+
+.viewport{padding:0;}
+.photo-note{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.7;}
+
+.mockups{display:flex;gap:20px;align-items:flex-start;margin-top:22px;flex-wrap:wrap;}
+.mobile-wrap{flex:0 0 300px;}
+.mobile-cap,.desk-cap{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8a8d98;margin-bottom:8px;}
+.desk-wrap{flex:1;min-width:600px;}
+
+/* =========================================================================
+   Reused structural helpers live inside each direction's scope via classes.
+   ========================================================================= */
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>Attraction Detail — 3 Design Directions</h1>
+  <p>Route <code>/attractions/:xid</code> · Trip Planner consumer web app. Same locked layout &amp; content across all three; each is a distinct visual personality. Hero and thumbnails are CSS gradient stand-ins for real photography.</p>
+</div>
+
+
+<!-- ============================================================================
+     DIRECTION 1 — TERRA
+     PALETTE (hex):
+       Deep forest      #1f3d2f
+       Terracotta       #c05f3c
+       Terracotta soft  #d98ب  -> #d98a6e
+       Warm cream bg    #f7f1e7
+       Card ivory       #fffdf8
+       Warm sand line   #e4d8c4
+       Ink text         #2b2620
+       Muted text       #6f6455
+       Open-now green   #3f7d52
+       Star gold        #c79a3a
+   ============================================================================ -->
+<style>
+.terra{--fg:#2b2620;--muted:#6f6455;--bg:#f7f1e7;--card:#fffdf8;--line:#e4d8c4;--forest:#1f3d2f;--terra:#c05f3c;--terra-soft:#d98a6e;--green:#3f7d52;--gold:#c79a3a;
+  font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif; /* not used as body; see body class */
+}
+.terra .v{background:var(--bg);color:var(--fg);font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;}
+.terra .serif{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;}
+.terra .back{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--forest);background:rgba(255,255,255,.85);border:1px solid var(--line);padding:8px 14px;border-radius:10px;text-decoration:none;}
+.terra .hero{position:relative;height:400px;background:
+   radial-gradient(120% 90% at 20% 0%,rgba(255,247,232,.35),transparent 55%),
+   linear-gradient(200deg,#2f5a41 0%,#3d6b4c 30%,#7d8d5c 60%,#c9a877 100%);
+   overflow:hidden;}
+.terra .hero:after{content:"";position:absolute;inset:0;background:
+   linear-gradient(180deg,rgba(20,30,22,.05) 0%,rgba(20,30,22,0) 30%,rgba(20,30,22,.6) 100%);}
+.terra .hero .karst{position:absolute;bottom:-2px;left:0;right:0;height:180px;background:
+   radial-gradient(60px 120px at 12% 100%,#1f3d2f 60%,transparent 62%),
+   radial-gradient(90px 150px at 30% 100%,#28503a 60%,transparent 62%),
+   radial-gradient(70px 110px at 52% 100%,#1f3d2f 60%,transparent 62%),
+   radial-gradient(110px 170px at 74% 100%,#28503a 60%,transparent 62%),
+   radial-gradient(60px 100px at 92% 100%,#1f3d2f 60%,transparent 62%);opacity:.9}
+.terra .hero .htop{position:absolute;top:18px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:center;z-index:3}
+.terra .hero .pnote{position:absolute;top:16px;right:20px;z-index:3;color:#fff;}
+.terra .hero .hbody{position:absolute;left:36px;bottom:30px;right:36px;z-index:3;color:#fff;}
+.terra .hero .cat{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;background:var(--terra);color:#fff;padding:5px 12px;border-radius:20px;margin-bottom:14px;}
+.terra .hero h1{font-size:52px;line-height:1.02;font-weight:600;letter-spacing:-.01em;text-shadow:0 2px 24px rgba(0,0,0,.4);}
+.terra .hero .loc{margin-top:10px;font-size:15px;opacity:.95;font-family:ui-sans-serif,sans-serif;}
+.terra .body{display:grid;grid-template-columns:1fr 360px;gap:40px;padding:40px 36px 56px;max-width:1120px;margin:0 auto;}
+.terra .lead{font-size:19px;line-height:1.7;color:#443c30;}
+.terra .sect{margin-top:38px;}
+.terra .sect h2{font-size:24px;font-weight:600;margin-bottom:16px;letter-spacing:-.01em;}
+.terra .map{height:230px;border-radius:16px;border:1px solid var(--line);position:relative;overflow:hidden;background:
+   linear-gradient(135deg,#eef0e4,#e2e7d3);box-shadow:inset 0 0 0 1px rgba(255,255,255,.5);}
+.terra .map:before{content:"";position:absolute;inset:0;background-image:
+   linear-gradient(rgba(31,61,47,.08) 1px,transparent 1px),
+   linear-gradient(90deg,rgba(31,61,47,.08) 1px,transparent 1px);background-size:34px 34px;}
+.terra .map .pin{position:absolute;top:44%;left:48%;width:22px;height:22px;background:var(--terra);border:3px solid #fff;border-radius:50%;box-shadow:0 6px 14px rgba(192,95,60,.5);transform:translate(-50%,-50%)}
+.terra .map .pin:after{content:"";position:absolute;left:50%;top:100%;width:2px;height:14px;background:var(--terra);transform:translateX(-50%)}
+.terra .info{margin-top:14px;border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden;}
+.terra .irow{display:flex;gap:16px;padding:16px 20px;border-bottom:1px solid var(--line);align-items:flex-start;}
+.terra .irow:last-child{border-bottom:0}
+.terra .irow .k{width:120px;flex:0 0 120px;font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.03em;text-transform:uppercase;padding-top:2px}
+.terra .irow .val{font-size:15px;color:var(--fg)}
+.terra .irow .val a{color:var(--terra);text-decoration:none;font-weight:600}
+.terra .open{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--green);background:rgba(63,125,82,.12);padding:3px 10px;border-radius:20px;margin-left:8px;}
+.terra .open i{width:7px;height:7px;border-radius:50%;background:var(--green);display:block}
+.terra .na{color:#a49a88;font-style:italic}
+.terra .rail{display:flex;gap:18px;overflow:hidden;padding-bottom:6px;}
+.terra .ncard{flex:0 0 210px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 8px 20px -14px rgba(80,60,30,.35)}
+.terra .ncard .thumb{height:120px;background:linear-gradient(160deg,#3d6b4c,#c9a877)}
+.terra .ncard .thumb.t2{background:linear-gradient(160deg,#2f5a41,#7d8d5c)}
+.terra .ncard .thumb.ph{background:repeating-linear-gradient(45deg,#efe7d6,#efe7d6 12px,#e7ddc8 12px,#e7ddc8 24px);display:flex;align-items:center;justify-content:center;color:#a89b82;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.terra .ncard .nb{padding:12px 14px 15px}
+.terra .ncard .nb h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.terra .ncard .meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;margin-top:8px}
+.terra .ncard .kind{font-size:11px;color:var(--terra);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.terra .star{color:var(--gold);font-weight:700}
+/* booking panel */
+.terra .panel{position:sticky;top:20px;align-self:start;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:0 20px 50px -24px rgba(60,45,25,.4)}
+.terra .panel .pcat{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--terra)}
+.terra .panel h3{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-size:24px;font-weight:600;margin:6px 0 4px;letter-spacing:-.01em}
+.terra .panel .prating{font-size:13px;color:var(--muted);margin-bottom:18px}
+.terra .fact{display:flex;justify-content:space-between;font-size:14px;padding:11px 0;border-bottom:1px solid var(--line)}
+.terra .fact span:first-child{color:var(--muted)}
+.terra .fact span:last-child{font-weight:600;text-align:right}
+.terra .cta{display:block;width:100%;margin-top:20px;background:var(--terra);color:#fff;border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 10px 22px -10px rgba(192,95,60,.7)}
+.terra .cta.dis{background:#e6dccb;color:#a99e88;box-shadow:none;cursor:not-allowed}
+.terra .cta-note{text-align:center;font-size:12px;color:var(--muted);margin-top:10px}
+.terra .cta-note a{color:var(--terra);font-weight:700;text-decoration:none}
+/* mobile */
+.terra .m{width:300px;border-radius:26px;overflow:hidden;border:8px solid #2b2620;background:var(--bg);position:relative;box-shadow:0 20px 40px -18px rgba(0,0,0,.4)}
+.terra .m .mhero{height:190px;position:relative;background:linear-gradient(200deg,#2f5a41,#7d8d5c 55%,#c9a877)}
+.terra .m .mhero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(20,30,22,.65))}
+.terra .m .mhero .mh{position:absolute;bottom:14px;left:16px;right:16px;z-index:2;color:#fff}
+.terra .m .mhero .cat{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;background:var(--terra);padding:3px 9px;border-radius:14px;margin-bottom:8px}
+.terra .m .mhero h1{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-size:26px;font-weight:600;line-height:1.05}
+.terra .m .mbody{padding:16px;font-size:13px;color:#443c30;line-height:1.6;padding-bottom:84px}
+.terra .m .msticky{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 -8px 20px -12px rgba(0,0,0,.25)}
+.terra .m .msticky .mp{font-size:11px;color:var(--muted)}
+.terra .m .msticky .mp b{display:block;font-size:15px;color:var(--fg);font-family:"Iowan Old Style",Palatino,serif}
+.terra .m .msticky button{margin-left:auto;background:var(--terra);color:#fff;border:0;border-radius:10px;padding:12px 18px;font-weight:700;font-size:14px}
+</style>
+
+<section class="dir">
+  <div class="dir-label"><span class="num">DIRECTION 01</span><span class="name">Terra</span></div>
+  <p class="rationale">Warm, earthy premium-editorial — the register of a printed travel magazine. An elegant serif display carries the attraction name over generous cream whitespace; terracotta accents and soft, low shadows make it feel curated and trustworthy rather than transactional. Medium radii and hand-set spacing signal craft.</p>
+  <div class="palette">
+    <span class="swatch"><i style="background:#1f3d2f"></i><code>#1f3d2f</code></span>
+    <span class="swatch"><i style="background:#c05f3c"></i><code>#c05f3c</code></span>
+    <span class="swatch"><i style="background:#d98a6e"></i><code>#d98a6e</code></span>
+    <span class="swatch"><i style="background:#f7f1e7"></i><code>#f7f1e7</code></span>
+    <span class="swatch"><i style="background:#fffdf8"></i><code>#fffdf8</code></span>
+    <span class="swatch"><i style="background:#e4d8c4"></i><code>#e4d8c4</code></span>
+    <span class="swatch"><i style="background:#3f7d52"></i><code>#3f7d52</code></span>
+    <span class="swatch"><i style="background:#c79a3a"></i><code>#c79a3a</code></span>
+  </div>
+
+  <div class="terra">
+  <div class="mockups">
+    <div class="desk-wrap">
+      <div class="desk-cap">Desktop · ~1:1</div>
+      <div class="frame">
+        <div class="frame-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">tripplanner.app/attractions/trang-an-scenic-landscape</span></div>
+        <div class="viewport v">
+          <div class="hero">
+            <div class="karst"></div>
+            <div class="htop"><a class="back" href="#">← Back</a></div>
+            <span class="photo-note pnote">Photo · limestone karsts</span>
+            <div class="hbody">
+              <span class="cat">Landmark</span>
+              <h1 class="serif">Tràng An Scenic<br>Landscape Complex</h1>
+              <div class="loc">📍 Ninh Bình, Vietnam</div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="main">
+              <p class="lead">Glide beneath towering limestone karsts on a rower-guided sampan through Tràng An's flooded caves and hidden valleys. A UNESCO World Heritage site, this labyrinth of emerald waterways and ancient temples is one of Vietnam's most breathtaking natural wonders — best experienced slowly, one grotto at a time.</p>
+
+              <div class="sect">
+                <h2 class="serif">Where you'll be</h2>
+                <div class="map"><div class="pin"></div><span class="photo-note" style="position:absolute;bottom:10px;left:14px;color:#5c6a4e">Map · interactive</span></div>
+              </div>
+
+              <div class="sect">
+                <h2 class="serif">Good to know</h2>
+                <div class="info">
+                  <div class="irow"><div class="k">Address</div><div class="val">Tràng An, Ninh Bình, Vietnam</div></div>
+                  <div class="irow"><div class="k">Hours</div><div class="val">Daily 07:00–17:00 <span class="open"><i></i>Open now</span></div></div>
+                  <div class="irow"><div class="k">Website</div><div class="val"><a href="#">trangandanhthang.vn</a></div></div>
+                </div>
+              </div>
+
+              <div class="sect">
+                <h2 class="serif">Nearby attractions</h2>
+                <div class="rail">
+                  <div class="ncard"><div class="thumb"></div><div class="nb"><span class="kind">Landmark</span><h3 class="serif">Bái Đính Temple</h3><div class="meta"><span class="star">★ 4.6</span><span>3.1 km away</span></div></div></div>
+                  <div class="ncard"><div class="thumb t2"></div><div class="nb"><span class="kind">Viewpoint</span><h3 class="serif">Mua Cave Viewpoint</h3><div class="meta"><span class="star">★ 4.7</span><span>5.4 km away</span></div></div></div>
+                  <div class="ncard"><div class="thumb ph">Photo unavailable</div><div class="nb"><span class="kind">Landmark</span><h3 class="serif">Tam Cốc</h3><div class="meta"><span class="star">★ 4.5</span><span>7.0 km away</span></div></div></div>
+                </div>
+              </div>
+            </div>
+
+            <aside class="panel">
+              <div class="pcat">Landmark</div>
+              <h3>Tràng An Scenic Landscape</h3>
+              <div class="prating"><span class="star">★ 4.8</span> · 12,400 reviews</div>
+              <div class="fact"><span>Best for</span><span>Boat tours · Half day</span></div>
+              <div class="fact"><span>Hours</span><span>07:00–17:00</span></div>
+              <div class="fact"><span>Entry</span><span>From 250,000₫</span></div>
+              <div class="fact"><span>Distance</span><span>Ninh Bình center · 7 km</span></div>
+              <button class="cta">Add to Trip</button>
+              <div class="cta-note">Free to add — plan now, decide later.</div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-wrap">
+      <div class="mobile-cap">Mobile · sticky add-to-trip</div>
+      <div class="m">
+        <div class="mhero"><div class="mh"><span class="cat">Landmark</span><h1>Tràng An Scenic Landscape</h1></div></div>
+        <div class="mbody">Glide beneath towering limestone karsts on a rower-guided sampan through Tràng An's flooded caves. A UNESCO World Heritage site of emerald waterways and ancient temples.<br><br><b>Daily 07:00–17:00</b> <span style="color:#3f7d52;font-weight:700">● Open now</span></div>
+        <div class="msticky"><div class="mp">From<b>250,000₫</b></div><button>Add to Trip</button></div>
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+
+
+<!-- ============================================================================
+     DIRECTION 2 — AZURE
+     PALETTE (hex):
+       Deep navy ink    #0f2540
+       Primary blue     #1a73c7
+       Teal accent      #12a3a3
+       Sky tint         #e8f1fb
+       Page white       #ffffff
+       Cool gray bg     #f4f7fa
+       Hairline         #d7e1ea
+       Text slate       #45566b
+       Open-now green   #1f9d5b
+       Star             #f0a92c
+   ============================================================================ -->
+<style>
+.azure .v{--fg:#0f2540;--pri:#1a73c7;--teal:#12a3a3;--sky:#e8f1fb;--bg:#f4f7fa;--line:#d7e1ea;--slate:#45566b;--green:#1f9d5b;--gold:#f0a92c;
+  background:var(--bg);color:var(--fg);font-family:ui-sans-serif,"Segoe UI Variable","Segoe UI",Inter,system-ui,-apple-system,sans-serif;}
+.azure .back{position:absolute;top:16px;left:18px;z-index:3;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#0f2540;background:rgba(255,255,255,.92);border:1px solid rgba(255,255,255,.6);padding:7px 13px;border-radius:6px;text-decoration:none}
+.azure .hero{position:relative;height:360px;overflow:hidden;background:
+   linear-gradient(180deg,#5ba8e0 0%,#2f7dc0 45%,#12617e 100%);}
+.azure .hero:before{content:"";position:absolute;inset:0;background:
+   radial-gradient(140% 60% at 80% 10%,rgba(255,255,255,.35),transparent 50%);}
+.azure .hero .water{position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(180deg,rgba(18,97,126,.1),#0d4b63);}
+.azure .hero .peaks{position:absolute;bottom:80px;left:0;right:0;height:150px;background:
+   radial-gradient(80px 130px at 15% 100%,#123e50 60%,transparent 62%),
+   radial-gradient(120px 170px at 40% 100%,#0f4a5e 60%,transparent 62%),
+   radial-gradient(90px 140px at 66% 100%,#123e50 60%,transparent 62%),
+   radial-gradient(110px 160px at 88% 100%,#0f4a5e 60%,transparent 62%);}
+.azure .hero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,24,40,.05) 40%,rgba(6,24,40,.72))}
+.azure .hero .pnote{position:absolute;top:16px;right:18px;z-index:3;color:#fff}
+.azure .hero .hbody{position:absolute;left:32px;bottom:26px;right:32px;z-index:3;color:#fff}
+.azure .hero .cat{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);backdrop-filter:blur(4px);color:#fff;padding:4px 11px;border-radius:4px;margin-bottom:12px}
+.azure .hero h1{font-size:42px;line-height:1.05;font-weight:800;letter-spacing:-.02em}
+.azure .hero .loc{margin-top:8px;font-size:14px;opacity:.92;font-weight:500}
+.azure .body{display:grid;grid-template-columns:1fr 340px;gap:32px;padding:32px;max-width:1120px;margin:0 auto}
+.azure .lead{font-size:16px;line-height:1.7;color:var(--slate)}
+.azure .sect{margin-top:30px}
+.azure .sect h2{font-size:15px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:#0f2540;margin-bottom:12px}
+.azure .map{height:210px;border:1px solid var(--line);border-radius:6px;position:relative;overflow:hidden;background:linear-gradient(135deg,#eaf2f9,#dfeaf3)}
+.azure .map:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(26,115,199,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(26,115,199,.09) 1px,transparent 1px);background-size:28px 28px}
+.azure .map .pin{position:absolute;top:46%;left:50%;width:18px;height:18px;background:var(--pri);border:3px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 3px 8px rgba(15,37,64,.35)}
+.azure .info{border:1px solid var(--line);border-radius:6px;background:#fff;overflow:hidden}
+.azure .irow{display:flex;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.azure .irow:last-child{border-bottom:0}
+.azure .irow .k{width:110px;flex:0 0 110px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#7a8aa0}
+.azure .irow .val{font-size:14px;color:var(--fg)}
+.azure .irow .val a{color:var(--pri);text-decoration:none;font-weight:600}
+.azure .open{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--green);background:rgba(31,157,91,.1);padding:2px 8px;border-radius:4px;margin-left:8px}
+.azure .open i{width:6px;height:6px;border-radius:50%;background:var(--green);display:block}
+.azure .na{color:#9aa7b6;font-style:italic}
+.azure .rail{display:flex;gap:14px;overflow:hidden}
+.azure .ncard{flex:0 0 200px;background:#fff;border:1px solid var(--line);border-radius:6px;overflow:hidden;transition:.15s}
+.azure .ncard .thumb{height:108px;background:linear-gradient(160deg,#3f8fc9,#12617e)}
+.azure .ncard .thumb.t2{background:linear-gradient(160deg,#12a3a3,#0d4b63)}
+.azure .ncard .thumb.ph{background:repeating-linear-gradient(45deg,#eef4f9,#eef4f9 11px,#e2ebf3 11px,#e2ebf3 22px);display:flex;align-items:center;justify-content:center;color:#9aa7b6;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.azure .ncard .nb{padding:11px 13px 13px}
+.azure .ncard .kind{font-size:10px;color:var(--teal);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.azure .ncard h3{font-size:14px;font-weight:700;margin:3px 0 8px;letter-spacing:-.01em}
+.azure .ncard .meta{font-size:12px;color:var(--slate);display:flex;justify-content:space-between}
+.azure .star{color:var(--gold);font-weight:700}
+.azure .panel{position:sticky;top:20px;align-self:start;background:#fff;border:1px solid var(--line);border-radius:8px;padding:20px;box-shadow:0 2px 10px rgba(15,37,64,.05)}
+.azure .panel .pcat{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+.azure .panel h3{font-size:20px;font-weight:800;margin:5px 0 3px;letter-spacing:-.01em}
+.azure .panel .prating{font-size:13px;color:var(--slate);margin-bottom:16px}
+.azure .fact{display:flex;justify-content:space-between;font-size:13px;padding:10px 0;border-bottom:1px solid var(--line)}
+.azure .fact span:first-child{color:#7a8aa0}
+.azure .fact span:last-child{font-weight:700;text-align:right}
+.azure .cta{display:block;width:100%;margin-top:18px;background:var(--pri);color:#fff;border:0;border-radius:6px;padding:14px;font-size:15px;font-weight:700;cursor:pointer}
+.azure .cta.dis{background:#e3eaf1;color:#9aa7b6;cursor:not-allowed}
+.azure .cta-note{text-align:center;font-size:12px;color:var(--slate);margin-top:9px}
+.azure .cta-note a{color:var(--pri);font-weight:700;text-decoration:none}
+.azure .m{width:300px;border-radius:22px;overflow:hidden;border:8px solid #0f2540;background:var(--bg);position:relative;box-shadow:0 20px 40px -18px rgba(0,0,0,.4)}
+.azure .m .mhero{height:180px;position:relative;background:linear-gradient(180deg,#5ba8e0,#12617e)}
+.azure .m .mhero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(6,24,40,.7))}
+.azure .m .mhero .mh{position:absolute;bottom:14px;left:16px;right:16px;z-index:2;color:#fff}
+.azure .m .mhero .cat{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.18);padding:3px 8px;border-radius:4px}
+.azure .m .mhero h1{font-size:23px;font-weight:800;line-height:1.08;margin-top:8px}
+.azure .m .mbody{padding:16px;font-size:13px;color:var(--slate);line-height:1.6;padding-bottom:80px}
+.azure .m .msticky{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px}
+.azure .m .msticky .mp{font-size:11px;color:#7a8aa0}
+.azure .m .msticky .mp b{display:block;font-size:15px;color:var(--fg);font-weight:800}
+.azure .m .msticky button{margin-left:auto;background:var(--pri);color:#fff;border:0;border-radius:6px;padding:12px 18px;font-weight:700;font-size:14px}
+</style>
+
+<section class="dir">
+  <div class="dir-label"><span class="num">DIRECTION 02</span><span class="name">Azure</span></div>
+  <p class="rationale">Crisp modern coastal minimalism. Cool blues and teal on white, an all-sans geometric type system, tighter density, hairline borders and small sharp radii keep it clean and efficient. A single confident solid-blue primary button anchors conversion without ornament — reads fast, feels reliable.</p>
+  <div class="palette">
+    <span class="swatch"><i style="background:#0f2540"></i><code>#0f2540</code></span>
+    <span class="swatch"><i style="background:#1a73c7"></i><code>#1a73c7</code></span>
+    <span class="swatch"><i style="background:#12a3a3"></i><code>#12a3a3</code></span>
+    <span class="swatch"><i style="background:#e8f1fb"></i><code>#e8f1fb</code></span>
+    <span class="swatch"><i style="background:#f4f7fa"></i><code>#f4f7fa</code></span>
+    <span class="swatch"><i style="background:#d7e1ea"></i><code>#d7e1ea</code></span>
+    <span class="swatch"><i style="background:#1f9d5b"></i><code>#1f9d5b</code></span>
+    <span class="swatch"><i style="background:#f0a92c"></i><code>#f0a92c</code></span>
+  </div>
+
+  <div class="azure">
+  <div class="mockups">
+    <div class="desk-wrap">
+      <div class="desk-cap">Desktop · ~1:1 · logged-out state</div>
+      <div class="frame">
+        <div class="frame-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">tripplanner.app/attractions/trang-an-scenic-landscape</span></div>
+        <div class="viewport v">
+          <div class="hero">
+            <a class="back" href="#">← Back</a>
+            <div class="peaks"></div><div class="water"></div>
+            <span class="photo-note pnote">Photo · Tràng An waterways</span>
+            <div class="hbody">
+              <span class="cat">Landmark</span>
+              <h1>Tràng An Scenic Landscape Complex</h1>
+              <div class="loc">Ninh Bình, Vietnam</div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="main">
+              <p class="lead">Row through a maze of emerald channels and flooded caves framed by dramatic limestone karsts. A UNESCO World Heritage site, Tràng An pairs guided sampan tours with ancient temples and hidden valleys — a serene, unhurried highlight of northern Vietnam.</p>
+
+              <div class="sect"><h2>Location</h2>
+                <div class="map"><div class="pin"></div><span class="photo-note" style="position:absolute;bottom:9px;left:12px;color:#5a7089">Map · interactive</span></div>
+              </div>
+
+              <div class="sect"><h2>Details</h2>
+                <div class="info">
+                  <div class="irow"><div class="k">Address</div><div class="val">Tràng An, Ninh Bình, Vietnam</div></div>
+                  <div class="irow"><div class="k">Hours</div><div class="val">Daily 07:00–17:00 <span class="open"><i></i>Open now</span></div></div>
+                  <div class="irow"><div class="k">Website</div><div class="val"><a href="#">trangandanhthang.vn</a></div></div>
+                </div>
+              </div>
+
+              <div class="sect"><h2>Nearby attractions</h2>
+                <div class="rail">
+                  <div class="ncard"><div class="thumb"></div><div class="nb"><span class="kind">Landmark</span><h3>Bái Đính Temple</h3><div class="meta"><span class="star">★ 4.6</span><span>3.1 km away</span></div></div></div>
+                  <div class="ncard"><div class="thumb t2"></div><div class="nb"><span class="kind">Viewpoint</span><h3>Mua Cave Viewpoint</h3><div class="meta"><span class="star">★ 4.7</span><span>5.4 km away</span></div></div></div>
+                  <div class="ncard"><div class="thumb ph">No photo yet</div><div class="nb"><span class="kind">Landmark</span><h3>Tam Cốc</h3><div class="meta"><span class="star">★ 4.5</span><span>7.0 km away</span></div></div></div>
+                </div>
+              </div>
+            </div>
+
+            <aside class="panel">
+              <div class="pcat">Landmark</div>
+              <h3>Tràng An Scenic Landscape</h3>
+              <div class="prating"><span class="star">★ 4.8</span> · 12,400 reviews</div>
+              <div class="fact"><span>Best for</span><span>Boat tours</span></div>
+              <div class="fact"><span>Duration</span><span>Half day</span></div>
+              <div class="fact"><span>Hours</span><span>07:00–17:00</span></div>
+              <div class="fact"><span>Entry</span><span>From 250,000₫</span></div>
+              <button class="cta dis" disabled>Add to Trip</button>
+              <div class="cta-note"><a href="#">Log in</a> to add to your trip</div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-wrap">
+      <div class="mobile-cap">Mobile · sticky add-to-trip</div>
+      <div class="m">
+        <div class="mhero"><div class="mh"><span class="cat">Landmark</span><h1>Tràng An Scenic Landscape</h1></div></div>
+        <div class="mbody">Row through emerald channels and flooded caves framed by limestone karsts. A UNESCO World Heritage site with guided sampan tours and ancient temples.<br><br><b>Daily 07:00–17:00</b> <span style="color:#1f9d5b;font-weight:700">● Open now</span></div>
+        <div class="msticky"><div class="mp">From<b>250,000₫</b></div><button>Add to Trip</button></div>
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+
+
+<!-- ============================================================================
+     DIRECTION 3 — LUMEN
+     PALETTE (hex):
+       Deep indigo bg   #16123a
+       Panel indigo     #211c53
+       Electric indigo  #5b46ff
+       Sunset coral     #ff5a5f
+       Coral soft       #ff8a5b
+       Off-white surf   #fbf7ff
+       Card white       #ffffff
+       Line lilac       #e5e0f5
+       Text plum        #3a3358
+       Open-now lime    #16b878
+       Star amber       #ffb32c
+   ============================================================================ -->
+<style>
+.lumen .v{--bg:#fbf7ff;--card:#ffffff;--line:#e5e0f5;--fg:#1c1740;--plum:#5b5580;--indigo:#5b46ff;--coral:#ff5a5f;--coral2:#ff8a5b;--lime:#16b878;--gold:#ffb32c;
+  background:var(--bg);color:var(--fg);font-family:ui-sans-serif,"Segoe UI",Inter,system-ui,-apple-system,sans-serif;}
+.lumen .back{position:absolute;top:18px;left:20px;z-index:3;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(6px);padding:9px 15px;border-radius:30px;text-decoration:none}
+.lumen .hero{position:relative;height:400px;overflow:hidden;background:
+   linear-gradient(135deg,#5b46ff 0%,#8b3bd6 40%,#ff5a5f 78%,#ff8a5b 100%);}
+.lumen .hero:before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 85% 15%,rgba(255,255,255,.4),transparent 45%)}
+.lumen .hero .peaks{position:absolute;bottom:0;left:0;right:0;height:200px;background:
+   radial-gradient(90px 150px at 12% 100%,#2a1666 62%,transparent 64%),
+   radial-gradient(130px 200px at 36% 100%,#3d1c7a 62%,transparent 64%),
+   radial-gradient(100px 160px at 60% 100%,#2a1666 62%,transparent 64%),
+   radial-gradient(140px 210px at 84% 100%,#3d1c7a 62%,transparent 64%);opacity:.85}
+.lumen .hero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,18,58,.05) 35%,rgba(22,18,58,.78))}
+.lumen .hero .pnote{position:absolute;top:18px;right:22px;z-index:3;color:#fff}
+.lumen .hero .hbody{position:absolute;left:34px;bottom:32px;right:34px;z-index:3;color:#fff}
+.lumen .hero .cat{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;background:var(--coral);color:#fff;padding:6px 14px;border-radius:30px;margin-bottom:14px;box-shadow:0 6px 18px rgba(255,90,95,.5)}
+.lumen .hero h1{font-size:56px;line-height:1;font-weight:900;letter-spacing:-.03em;text-shadow:0 4px 30px rgba(0,0,0,.35)}
+.lumen .hero .loc{margin-top:12px;font-size:15px;font-weight:600;opacity:.95}
+.lumen .body{display:grid;grid-template-columns:1fr 360px;gap:36px;padding:36px;max-width:1120px;margin:0 auto}
+.lumen .lead{font-size:18px;line-height:1.7;color:#453e6b}
+.lumen .sect{margin-top:34px}
+.lumen .sect h2{font-size:26px;font-weight:900;letter-spacing:-.02em;margin-bottom:16px}
+.lumen .map{height:230px;border:2px solid var(--line);border-radius:22px;position:relative;overflow:hidden;background:linear-gradient(135deg,#efeafc,#f6e9f0)}
+.lumen .map:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(91,70,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(91,70,255,.1) 1px,transparent 1px);background-size:32px 32px}
+.lumen .map .pin{position:absolute;top:45%;left:49%;width:26px;height:26px;background:var(--coral);border:4px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 8px 20px rgba(255,90,95,.6)}
+.lumen .info{border:2px solid var(--line);border-radius:22px;background:var(--card);overflow:hidden}
+.lumen .irow{display:flex;gap:16px;padding:16px 20px;border-bottom:2px solid var(--line)}
+.lumen .irow:last-child{border-bottom:0}
+.lumen .irow .k{width:120px;flex:0 0 120px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--indigo)}
+.lumen .irow .val{font-size:15px;font-weight:500;color:var(--fg)}
+.lumen .irow .val a{color:var(--coral);text-decoration:none;font-weight:800}
+.lumen .open{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:#fff;background:var(--lime);padding:3px 11px;border-radius:30px;margin-left:8px}
+.lumen .open i{width:6px;height:6px;border-radius:50%;background:#fff;display:block}
+.lumen .na{color:#a89fc4;font-style:italic}
+.lumen .rail{display:flex;gap:18px;overflow:hidden}
+.lumen .ncard{flex:0 0 215px;background:var(--card);border:2px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 14px 30px -16px rgba(91,70,255,.4)}
+.lumen .ncard .thumb{height:125px;background:linear-gradient(160deg,#5b46ff,#ff5a5f)}
+.lumen .ncard .thumb.t2{background:linear-gradient(160deg,#8b3bd6,#ff8a5b)}
+.lumen .ncard .thumb.ph{background:repeating-linear-gradient(45deg,#efeafc,#efeafc 12px,#e5ddf7 12px,#e5ddf7 24px);display:flex;align-items:center;justify-content:center;color:#a89fc4;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.lumen .ncard .nb{padding:13px 15px 16px}
+.lumen .ncard .kind{font-size:10px;color:var(--indigo);font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.lumen .ncard h3{font-size:16px;font-weight:800;margin:4px 0 9px;letter-spacing:-.01em}
+.lumen .ncard .meta{font-size:12px;font-weight:600;color:var(--plum);display:flex;justify-content:space-between}
+.lumen .star{color:var(--gold);font-weight:800}
+.lumen .panel{position:sticky;top:20px;align-self:start;background:var(--card);border:2px solid var(--line);border-radius:26px;padding:24px;box-shadow:0 24px 50px -20px rgba(91,70,255,.45)}
+.lumen .panel .pcat{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--coral)}
+.lumen .panel h3{font-size:24px;font-weight:900;margin:6px 0 4px;letter-spacing:-.02em}
+.lumen .panel .prating{font-size:13px;font-weight:600;color:var(--plum);margin-bottom:18px}
+.lumen .fact{display:flex;justify-content:space-between;font-size:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.lumen .fact span:first-child{color:var(--plum)}
+.lumen .fact span:last-child{font-weight:800;text-align:right}
+.lumen .cta{display:block;width:100%;margin-top:20px;background:linear-gradient(120deg,var(--indigo),var(--coral));color:#fff;border:0;border-radius:30px;padding:16px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 12px 28px -8px rgba(255,90,95,.6)}
+.lumen .cta-note{text-align:center;font-size:12px;font-weight:600;color:var(--plum);margin-top:11px}
+.lumen .cta-note a{color:var(--coral);font-weight:800;text-decoration:none}
+.lumen .m{width:300px;border-radius:30px;overflow:hidden;border:8px solid #16123a;background:var(--bg);position:relative;box-shadow:0 20px 40px -18px rgba(0,0,0,.45)}
+.lumen .m .mhero{height:195px;position:relative;background:linear-gradient(135deg,#5b46ff,#ff5a5f 80%,#ff8a5b)}
+.lumen .m .mhero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(22,18,58,.72))}
+.lumen .m .mhero .mh{position:absolute;bottom:14px;left:16px;right:16px;z-index:2;color:#fff}
+.lumen .m .mhero .cat{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;background:var(--coral);padding:3px 10px;border-radius:20px}
+.lumen .m .mhero h1{font-size:27px;font-weight:900;line-height:1.02;margin-top:8px;letter-spacing:-.02em}
+.lumen .m .mbody{padding:16px;font-size:13px;color:#453e6b;line-height:1.6;padding-bottom:86px}
+.lumen .m .msticky{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-top:2px solid var(--line);padding:13px 16px;display:flex;align-items:center;gap:12px}
+.lumen .m .msticky .mp{font-size:11px;color:var(--plum)}
+.lumen .m .msticky .mp b{display:block;font-size:15px;color:var(--fg);font-weight:900}
+.lumen .m .msticky button{margin-left:auto;background:linear-gradient(120deg,var(--indigo),var(--coral));color:#fff;border:0;border-radius:24px;padding:12px 20px;font-weight:800;font-size:14px}
+</style>
+
+<section class="dir">
+  <div class="dir-label"><span class="num">DIRECTION 03</span><span class="name">Lumen</span></div>
+  <p class="rationale">Vibrant and adventurous without losing trust. A saturated indigo-to-coral gradient system, oversized black display type and high contrast give it momentum and energy; large radii, pill buttons and punchy elevation make it feel modern and expressive. Built to excite first-time explorers while keeping facts crisp and readable.</p>
+  <div class="palette">
+    <span class="swatch"><i style="background:#16123a"></i><code>#16123a</code></span>
+    <span class="swatch"><i style="background:#5b46ff"></i><code>#5b46ff</code></span>
+    <span class="swatch"><i style="background:#ff5a5f"></i><code>#ff5a5f</code></span>
+    <span class="swatch"><i style="background:#ff8a5b"></i><code>#ff8a5b</code></span>
+    <span class="swatch"><i style="background:#fbf7ff"></i><code>#fbf7ff</code></span>
+    <span class="swatch"><i style="background:#e5e0f5"></i><code>#e5e0f5</code></span>
+    <span class="swatch"><i style="background:#16b878"></i><code>#16b878</code></span>
+    <span class="swatch"><i style="background:#ffb32c"></i><code>#ffb32c</code></span>
+  </div>
+
+  <div class="lumen">
+  <div class="mockups">
+    <div class="desk-wrap">
+      <div class="desk-cap">Desktop · ~1:1</div>
+      <div class="frame">
+        <div class="frame-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">tripplanner.app/attractions/trang-an-scenic-landscape</span></div>
+        <div class="viewport v">
+          <div class="hero">
+            <a class="back" href="#">← Back</a>
+            <div class="peaks"></div>
+            <span class="photo-note pnote">Photo · karst sunrise</span>
+            <div class="hbody">
+              <span class="cat">Landmark</span>
+              <h1>Tràng An Scenic Landscape</h1>
+              <div class="loc">📍 Ninh Bình, Vietnam</div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="main">
+              <p class="lead">Drift through cathedral-like caves and glassy jade waterways ringed by soaring limestone karsts. A UNESCO World Heritage site, Tràng An delivers one of Vietnam's most cinematic boat adventures — ancient temples, hidden lagoons, and views that stop you mid-sentence.</p>
+
+              <div class="sect"><h2>On the map</h2>
+                <div class="map"><div class="pin"></div><span class="photo-note" style="position:absolute;bottom:10px;left:14px;color:#6a5f96">Map · interactive</span></div>
+              </div>
+
+              <div class="sect"><h2>Good to know</h2>
+                <div class="info">
+                  <div class="irow"><div class="k">Address</div><div class="val">Tràng An, Ninh Bình, Vietnam</div></div>
+                  <div class="irow"><div class="k">Hours</div><div class="val">Daily 07:00–17:00 <span class="open"><i></i>Open now</span></div></div>
+                  <div class="irow"><div class="k">Website</div><div class="val"><a href="#">trangandanhthang.vn</a></div></div>
+                </div>
+              </div>
+
+              <div class="sect"><h2>Nearby attractions</h2>
+                <div class="rail">
+                  <div class="ncard"><div class="thumb"></div><div class="nb"><span class="kind">Landmark</span><h3>Bái Đính Temple</h3><div class="meta"><span class="star">★ 4.6</span><span>3.1 km away</span></div></div></div>
+                  <div class="ncard"><div class="thumb t2"></div><div class="nb"><span class="kind">Viewpoint</span><h3>Mua Cave Viewpoint</h3><div class="meta"><span class="star">★ 4.7</span><span>5.4 km away</span></div></div></div>
+                  <div class="ncard"><div class="thumb ph">Photo coming soon</div><div class="nb"><span class="kind">Landmark</span><h3>Tam Cốc</h3><div class="meta"><span class="star">★ 4.5</span><span>7.0 km away</span></div></div></div>
+                </div>
+              </div>
+            </div>
+
+            <aside class="panel">
+              <div class="pcat">Landmark</div>
+              <h3>Tràng An Scenic Landscape</h3>
+              <div class="prating"><span class="star">★ 4.8</span> · 12,400 reviews</div>
+              <div class="fact"><span>Best for</span><span>Boat adventure</span></div>
+              <div class="fact"><span>Duration</span><span>Half day</span></div>
+              <div class="fact"><span>Hours</span><span>07:00–17:00</span></div>
+              <div class="fact"><span>Entry</span><span>From 250,000₫</span></div>
+              <button class="cta">Add to Trip →</button>
+              <div class="cta-note">Save it now — build the perfect itinerary later.</div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-wrap">
+      <div class="mobile-cap">Mobile · sticky add-to-trip</div>
+      <div class="m">
+        <div class="mhero"><div class="mh"><span class="cat">Landmark</span><h1>Tràng An Scenic Landscape</h1></div></div>
+        <div class="mbody">Drift through cathedral-like caves and jade waterways ringed by soaring limestone karsts. A UNESCO World Heritage site with one of Vietnam's most cinematic boat adventures.<br><br><b>Daily 07:00–17:00</b> <span style="color:#16b878;font-weight:800">● Open now</span></div>
+        <div class="msticky"><div class="mp">From<b>250,000₫</b></div><button>Add to Trip</button></div>
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+
+</body>
+</html>

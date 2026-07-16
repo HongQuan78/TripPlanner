@@ -17,6 +17,30 @@
 project: tripplanner
 last_updated: 2026-07-16
 
+# 2026-07-16: 5-15-azure-attraction-detail-redesign implemented — all 7 tasks
+# done. Full-bleed hero (carousel/placeholder + two-band scrim + overlaid Back/
+# eyebrow/single-h1), two-column desktop with sticky 340px booking panel
+# collapsing to single-column + sticky bottom Add-to-Trip bar on mobile,
+# hairline info rows with a confident-parse open-now badge, interactive
+# Leaflet+OSM map (new leaflet/react-leaflet deps + custom Azure divIcon), and
+# a self-filtered/capped nearby rail. Azure tokens scoped to the page root
+# (Horizon global tokens untouched); PhotoCarousel folded into AttractionHero.
+# 198/198 FE tests (+23 net), lint clean, production build green. Playwright
+# visual QA deferred (no browser tooling this session) — recommended at review.
+# Moved to review.
+
+# 2026-07-16: added 5-15-azure-attraction-detail-redesign — rebuild of the
+# attraction detail page (/attractions/:xid) against the Azure UX spine pair in
+# _bmad-output/planning-artifacts/ux-designs/ux-tripplanner-2026-07-16
+# (DESIGN.md + EXPERIENCE.md): full-bleed hero with two-band scrim + overlaid
+# h1/eyebrow/location/back, two-column desktop with a sticky 340px booking panel
+# collapsing to a single column + sticky bottom Add-to-Trip bar on mobile,
+# hairline info rows with a confident-parse open-now badge, an interactive
+# Leaflet+OSM map (new user-approved leaflet/react-leaflet deps), and a nearby
+# attractions rail — Azure tokens scoped locally (Horizon global tokens
+# untouched), every shipped data-degradation/add-to-trip/state/accessibility
+# contract preserved. Picked up immediately for dev-story implementation.
+
 # 2026-07-16: 5-14-horizon-home-redesign implemented — all 5 tasks done. Hero
 # band (ink-gradient stand-in, 48px→32px responsive headline, band kept on all
 # viewports), hero search recomposed with the full typeahead/ARIA contract
@@ -245,3 +269,4 @@ development_status:
   8-4-image-loading-state: review
   5-13-horizon-auth-redesign: review
   5-14-horizon-home-redesign: review
+  5-15-azure-attraction-detail-redesign: review
