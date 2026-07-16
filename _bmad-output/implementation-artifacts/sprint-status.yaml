@@ -17,6 +17,35 @@
 project: tripplanner
 last_updated: 2026-07-16
 
+# 2026-07-16: 5-16-horizon-trips-boarding-pass-redesign implemented — all 4
+# tasks done. Trips list rebuilt as a boarding-pass grid (accent-gradient spine
+# + past desaturate, derived status pill upcoming/ongoing/past, departure→return
+# route with visually-hidden "to" + aria-hidden ✈, perforated Days/Places stub,
+# pass-shaped skeleton) and Trip detail rebuilt as a summary ticket (h1 + range
+# + Edit + Days/Places/Unplanned-hint stats) over a journey rail of day segments
+# (lit today node + "Today" marker folded into the day <h2>, count pills, per-day
+# add-destination handoff to /, empty-day treatment) with a role=alert removal
+# error and deterministic post-remove focus to the owning day <h2>. New
+# date-derivation helpers (tripStatus/daysBetween/todayISO/formatShortDate/
+# formatSegmentDate/pluralizeCount) with 24 unit tests. No new tokens/deps/data;
+# all richness derived from the payload + local date. 220/220 FE tests (+22 net),
+# lint clean (2 pre-existing warnings), production build green. Playwright visual
+# QA deferred (no browser tooling this session) — recommended at review. Moved to
+# review.
+
+# 2026-07-16: added 5-16-horizon-trips-boarding-pass-redesign — rebuild of the
+# Trips list (/trips) and Trip detail (/trips/:id) against the Horizon "Boarding
+# Pass" spine pair in _bmad-output/planning-artifacts/ux-designs/
+# ux-tripplanner-2026-07-16-trips (DESIGN.md + EXPERIENCE.md): each trip a
+# boarding pass (accent-gradient spine, derived status pill, departure→return
+# route line, perforated Days/Places stub) and each trip an itinerary rendered
+# as a summary ticket + a vertical journey rail of day segments (lit today node
+# + "Today" marker, count pills, per-day add-destination handoff to discovery,
+# empty-day treatment). Refine-and-elevate only: no new tokens/deps/data, every
+# shipped hook/state/removal/accessibility contract preserved; all richness
+# derived from the existing payload + local date. Picked up immediately for
+# dev-story implementation.
+
 # 2026-07-16: 5-15-azure-attraction-detail-redesign implemented — all 7 tasks
 # done. Full-bleed hero (carousel/placeholder + two-band scrim + overlaid Back/
 # eyebrow/single-h1), two-column desktop with sticky 340px booking panel
@@ -270,3 +299,4 @@ development_status:
   5-13-horizon-auth-redesign: review
   5-14-horizon-home-redesign: review
   5-15-azure-attraction-detail-redesign: review
+  5-16-horizon-trips-boarding-pass-redesign: review

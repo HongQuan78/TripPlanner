@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Boarding Pass — refined key screens</title>
+<style>
+  :root{
+    --primary:#0058bc; --on-primary:#ffffff; --primary-container:#0070eb; --on-primary-container:#fefcff;
+    --secondary:#405f91; --secondary-container:#a6c5fe; --on-secondary-container:#315182;
+    --tertiary:#006577; --tertiary-container:#008096;
+    --error:#ba1a1a; --error-container:#ffdad6; --success:#146c2e; --success-container:#d7f2dd;
+    --bg:#f8f9ff; --s-lowest:#ffffff; --s-low:#eff4ff; --s:#e5eeff; --s-high:#dce9ff; --s-highest:#d3e4fe;
+    --s-variant:#d3e4fe; --on-surface:#0b1c30; --on-surface-variant:#414755; --outline:#717786; --outline-variant:#c1c6d7;
+    --radius-md:.5rem; --radius-lg:.75rem; --radius-full:999px;
+    --shadow-sm:0 1px 3px rgba(11,28,48,.08); --shadow-lg:0 10px 24px rgba(11,28,48,.12);
+    --spring:cubic-bezier(.34,1.56,.64,1);
+    --star:#b5780f;
+    --font:'Plus Jakarta Sans',system-ui,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font);color:var(--on-surface);background:#cdd8ec;line-height:1.5;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{letter-spacing:-.01em;margin:0}
+  .stage{max-width:1280px;margin:0 auto;padding:28px 20px 72px;display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+  @media(max-width:980px){.stage{grid-template-columns:1fr}}
+  .frame{background:var(--bg);border:1px solid var(--outline-variant);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-lg)}
+  .bar{display:flex;align-items:center;gap:6px;padding:9px 13px;background:var(--s-lowest);border-bottom:1px solid var(--outline-variant)}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .url{margin-left:10px;font-size:.72rem;color:var(--outline);font-weight:600}
+  .body{padding:22px}
+  .tag{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--primary);font-weight:800;margin-bottom:10px}
+  .hRow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .h1{font-size:1.6rem;font-weight:800}
+  .btnP{border:none;border-radius:var(--radius-md);background:var(--primary);color:var(--on-primary);font:inherit;font-size:.82rem;font-weight:700;letter-spacing:.03em;padding:.6rem 1.2rem;cursor:pointer;transition:background .15s,transform .15s}
+  .btnP:hover{background:var(--primary-container)}
+  .btnP:active{transform:scale(.98)}
+  .btnG{border:1px solid var(--primary);border-radius:var(--radius-md);background:transparent;color:var(--primary);font:inherit;font-size:.82rem;font-weight:700;padding:.55rem 1.1rem;cursor:pointer}
+  .muted{color:var(--on-surface-variant)}
+  .star{color:var(--star);font-size:.82rem;letter-spacing:1px;white-space:nowrap}
+  .chip{padding:.14rem .6rem;border-radius:var(--radius-md);background:var(--s-variant);color:var(--on-surface-variant);font-size:.68rem;font-weight:700;line-height:1.3;white-space:nowrap}
+
+  /* ---- PASS CARD ---- */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:520px){.grid{grid-template-columns:1fr}}
+  .pass{position:relative;background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm);text-decoration:none;color:inherit;transition:transform .15s var(--spring),box-shadow .15s}
+  .pass:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+  .pass:before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:linear-gradient(var(--primary),var(--tertiary))}
+  .passTop{padding:14px 16px 12px 20px}
+  .passHead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .passName{font-size:1.1rem;font-weight:800;line-height:1.25}
+  .status{font-size:.64rem;font-weight:800;letter-spacing:.03em;padding:.2rem .55rem;border-radius:var(--radius-full);white-space:nowrap;flex:none}
+  .st-upcoming{background:var(--secondary-container);color:var(--on-secondary-container)}
+  .st-ongoing{background:var(--success-container);color:var(--success)}
+  .st-past{background:var(--s);color:var(--on-surface-variant)}
+  .pass.past:before{background:var(--outline-variant)}
+  .route{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:.82rem;font-weight:700}
+  .route .arw{flex:1;height:0;border-top:1.6px dashed var(--outline-variant);position:relative}
+  .route .arw:after{content:"✈";position:absolute;right:-3px;top:-11px;color:var(--primary);font-size:.85rem}
+  .perf{border-top:1.6px dashed var(--outline-variant);position:relative;background:var(--s-low)}
+  .perf:before,.perf:after{content:"";position:absolute;top:-8px;width:14px;height:14px;border-radius:50%;background:var(--bg)}
+  .perf:before{left:-7px}.perf:after{right:-7px}
+  .stubs{display:flex;gap:22px;padding:11px 20px}
+  .stub{font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;color:var(--on-surface-variant);font-weight:800}
+  .stub b{display:block;font-size:1.05rem;color:var(--on-surface);letter-spacing:0}
+
+  /* ---- EMPTY STATE ---- */
+  .empty{text-align:center;padding:40px 20px;border:1px dashed var(--outline-variant);border-radius:14px;background:var(--s-lowest)}
+  .empty .em{font-size:2.4rem}
+  .empty h3{font-size:1.15rem;margin:10px 0 4px}
+
+  /* ---- DETAIL ---- */
+  .ticket{position:relative;background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:16px;padding:18px 20px 18px 24px;overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:20px}
+  .ticket:before{content:"";position:absolute;left:0;top:0;bottom:0;width:7px;background:linear-gradient(var(--primary),var(--tertiary))}
+  .tkTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .tkName{font-size:1.5rem;font-weight:800}
+  .tkStats{display:flex;gap:26px;margin-top:14px;padding-top:14px;border-top:1.5px dashed var(--outline-variant)}
+  .tkStat{font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;color:var(--on-surface-variant);font-weight:800}
+  .tkStat b{display:block;font-size:1.15rem;color:var(--on-surface);letter-spacing:0}
+  .tkStat.hint b{color:var(--secondary)}
+
+  .rail{position:relative;margin-left:7px;padding-left:26px;border-left:2px solid var(--outline-variant)}
+  .seg{position:relative;padding-bottom:22px}
+  .node{position:absolute;left:-35px;top:2px;width:16px;height:16px;border-radius:50%;border:3px solid var(--primary);background:var(--s-lowest)}
+  .seg.today .node{background:var(--primary);box-shadow:0 0 0 4px var(--s-high)}
+  .segHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+  .segDate{font-size:.85rem;font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:.05em}
+  .segCount{font-size:.64rem;font-weight:700;color:var(--on-secondary-container);background:var(--secondary-container);padding:.12rem .5rem;border-radius:var(--radius-full)}
+  .dRow{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--outline-variant);border-radius:10px;padding:9px 12px;margin-top:7px;transition:border-color .15s,transform .15s}
+  .dRow:hover{border-color:var(--primary)}
+  .dName{font-weight:700;font-size:.9rem}
+  .dRow:hover .dName{color:var(--primary)}
+  .remove{margin-left:auto;border:none;border-radius:var(--radius-md);background:var(--error-container);color:var(--error);font:inherit;font-size:.72rem;font-weight:700;padding:.3rem .7rem;cursor:pointer}
+  .emptyDay{display:flex;align-items:center;gap:10px;background:var(--s-low);border:1px dashed var(--outline-variant);border-radius:10px;padding:11px 13px;margin-top:2px}
+  .emptyDay .txt{font-size:.82rem;color:var(--on-surface-variant)}
+  .addDay{margin-top:8px}
+  .addBtn{display:inline-flex;align-items:center;gap:6px;border:1px dashed var(--primary);border-radius:var(--radius-md);background:transparent;color:var(--primary);font:inherit;font-size:.78rem;font-weight:700;padding:.4rem .85rem;cursor:pointer;transition:background .15s}
+  .addBtn:hover{background:var(--s-low)}
+  .caption{font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--outline);font-weight:800;margin:22px 0 8px}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ================= /trips ================= -->
+  <div class="frame">
+    <div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url">localhost:5173/trips</span></div>
+    <div class="body">
+      <div class="tag">Boarding Pass · Trips list</div>
+      <div class="hRow"><div class="h1">My trips</div><button class="btnP">New trip</button></div>
+
+      <div class="grid">
+        <a class="pass" href="#">
+          <div class="passTop">
+            <div class="passHead"><div class="passName">Hà Nội food crawl</div><span class="status st-ongoing">Ongoing · Day 3</span></div>
+            <div class="route"><span>14 Jul</span><span class="arw"></span><span>18 Jul</span></div>
+          </div>
+          <div class="perf"><div class="stubs"><div class="stub">Days<b>5</b></div><div class="stub">Places<b>6</b></div></div></div>
+        </a>
+
+        <a class="pass" href="#">
+          <div class="passTop">
+            <div class="passHead"><div class="passName">Đà Nẵng escape</div><span class="status st-upcoming">In 27 days</span></div>
+            <div class="route"><span>12 Aug</span><span class="arw"></span><span>16 Aug</span></div>
+          </div>
+          <div class="perf"><div class="stubs"><div class="stub">Days<b>5</b></div><div class="stub">Places<b>9</b></div></div></div>
+        </a>
+
+        <a class="pass" href="#">
+          <div class="passTop">
+            <div class="passHead"><div class="passName">Hội An weekend</div><span class="status st-upcoming">In 80 days</span></div>
+            <div class="route"><span>4 Oct</span><span class="arw"></span><span>6 Oct</span></div>
+          </div>
+          <div class="perf"><div class="stubs"><div class="stub">Days<b>3</b></div><div class="stub">Places<b>4</b></div></div></div>
+        </a>
+
+        <a class="pass past" href="#">
+          <div class="passTop">
+            <div class="passHead"><div class="passName">Nha Trang getaway</div><span class="status st-past">Past</span></div>
+            <div class="route"><span>2 Jun</span><span class="arw"></span><span>5 Jun</span></div>
+          </div>
+          <div class="perf"><div class="stubs"><div class="stub">Days<b>4</b></div><div class="stub">Places<b>7</b></div></div></div>
+        </a>
+      </div>
+
+      <div class="caption">Empty state (no trips)</div>
+      <div class="empty">
+        <div class="em">🧳</div>
+        <h3>No trips yet</h3>
+        <p class="muted" style="max-width:34ch;margin:0 auto 14px">Plan your next adventure — create a trip and start adding destinations.</p>
+        <button class="btnP">Create your first trip</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= /trips/:id ================= -->
+  <div class="frame">
+    <div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url">localhost:5173/trips/2</span></div>
+    <div class="body">
+      <div class="tag">Boarding Pass · Trip detail</div>
+
+      <div class="ticket">
+        <div class="tkTop">
+          <div>
+            <div class="tkName">Đà Nẵng escape</div>
+            <div class="muted" style="font-size:.85rem;margin-top:3px">12 – 16 August 2026</div>
+          </div>
+          <button class="btnG">Edit trip</button>
+        </div>
+        <div class="tkStats">
+          <div class="tkStat">Days<b>5</b></div>
+          <div class="tkStat">Places<b>9</b></div>
+          <div class="tkStat hint">Unplanned<b>2 days</b></div>
+        </div>
+      </div>
+
+      <div class="rail">
+        <div class="seg">
+          <div class="node"></div>
+          <div class="segHead"><span class="segDate">Tue · Aug 12</span><span class="segCount">2 places</span></div>
+          <div class="dRow"><span class="dName">Marble Mountains</span><span class="chip">Landmark</span><span class="star">★★★★☆</span><button class="remove">Remove</button></div>
+          <div class="dRow"><span class="dName">Mỹ Khê Beach</span><span class="chip">Landmark</span><span class="star">★★★★★</span><button class="remove">Remove</button></div>
+          <div class="addDay"><button class="addBtn">＋ Add destination</button></div>
+        </div>
+
+        <div class="seg">
+          <div class="node"></div>
+          <div class="segHead"><span class="segDate">Wed · Aug 13</span><span class="segCount">1 place</span></div>
+          <div class="dRow"><span class="dName">Bà Nà Hills &amp; Golden Bridge</span><span class="chip">Landmark</span><span class="star">★★★★☆</span><button class="remove">Remove</button></div>
+          <div class="addDay"><button class="addBtn">＋ Add destination</button></div>
+        </div>
+
+        <div class="seg">
+          <div class="node"></div>
+          <div class="segHead"><span class="segDate">Thu · Aug 14</span></div>
+          <div class="emptyDay"><span class="txt">No destinations planned for this day yet.</span></div>
+          <div class="addDay"><button class="addBtn">＋ Add destination</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

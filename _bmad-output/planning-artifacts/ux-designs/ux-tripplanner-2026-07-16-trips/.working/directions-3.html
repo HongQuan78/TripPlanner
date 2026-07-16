@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trip Planner — Trips & Detail · 3 directions</title>
+<style>
+  /* ===== Horizon tokens (verbatim from FE/src/index.css) ===== */
+  :root{
+    --primary:#0058bc; --on-primary:#ffffff; --primary-container:#0070eb; --on-primary-container:#fefcff;
+    --secondary:#405f91; --secondary-container:#a6c5fe; --on-secondary-container:#315182;
+    --tertiary:#006577; --tertiary-container:#008096;
+    --error:#ba1a1a; --error-container:#ffdad6; --success:#146c2e; --success-container:#d7f2dd;
+    --bg:#f8f9ff; --surface:#f8f9ff; --s-lowest:#ffffff; --s-low:#eff4ff; --s:#e5eeff;
+    --s-high:#dce9ff; --s-highest:#d3e4fe; --s-variant:#d3e4fe; --s-dim:#cbdbf5;
+    --on-surface:#0b1c30; --on-surface-variant:#414755; --outline:#717786; --outline-variant:#c1c6d7;
+    --radius-sm:.25rem; --radius-md:.5rem; --radius-lg:.75rem; --radius-full:999px;
+    --shadow-sm:0 1px 3px rgba(11,28,48,.08); --shadow-lg:0 10px 24px rgba(11,28,48,.12);
+    --spring:cubic-bezier(.34,1.56,.64,1);
+    /* Plus Jakarta Sans in the app; no-network review file uses a close system stack */
+    --font:'Plus Jakarta Sans',system-ui,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font);color:var(--on-surface);background:#dfe7f5;line-height:1.5;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{letter-spacing:-.01em;margin:0}
+  .wrap{max-width:1360px;margin:0 auto;padding:32px 24px 80px}
+  .pageTitle{font-size:1.6rem;font-weight:800;margin-bottom:4px}
+  .pageSub{color:#3a4a63;margin-bottom:28px;max-width:70ch}
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
+  @media(max-width:1100px){.cols{grid-template-columns:1fr}}
+  .col{background:var(--bg);border:1px solid var(--outline-variant);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-lg)}
+  .colHead{padding:16px 18px;border-bottom:1px solid var(--outline-variant);background:var(--s-lowest)}
+  .colHead .k{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--primary);font-weight:700}
+  .colHead .n{font-size:1.15rem;font-weight:800;margin-top:2px}
+  .colHead .r{font-size:.82rem;color:var(--on-surface-variant);margin-top:6px}
+  .mini{padding:18px;display:flex;flex-direction:column;gap:22px}
+  .caption{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--outline);font-weight:700}
+  /* generic app chrome for the mini viewports */
+  .vp{background:var(--bg);border:1px solid var(--outline-variant);border-radius:12px;overflow:hidden}
+  .vpbar{display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--s-lowest);border-bottom:1px solid var(--outline-variant)}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .vpbody{padding:16px}
+  .hRow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .btnP{border:none;border-radius:var(--radius-md);background:var(--primary);color:var(--on-primary);font:inherit;font-size:.78rem;font-weight:700;letter-spacing:.03em;padding:.5rem 1rem;cursor:pointer}
+  .btnG{border:1px solid var(--primary);border-radius:var(--radius-md);background:transparent;color:var(--primary);font:inherit;font-size:.78rem;font-weight:700;padding:.45rem .95rem;cursor:pointer}
+  .star{color:#b5780f;font-size:.8rem;letter-spacing:1px}
+  .muted{color:var(--on-surface-variant)}
+
+  /* ============ DIRECTION 1 — BOARDING PASS ============ */
+  /* hex: pass name #0b1c30, rail #0058bc, ticket notch bg #dfe7f5, chip #eff4ff */
+  .d1 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .d1 .pass{position:relative;background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm)}
+  .d1 .pass:before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:linear-gradient(var(--primary),var(--tertiary))}
+  .d1 .passTop{padding:12px 14px 12px 18px}
+  .d1 .passName{font-size:1rem;font-weight:800}
+  .d1 .route{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:.78rem;font-weight:600}
+  .d1 .route .arw{flex:1;height:0;border-top:1.5px dashed var(--outline-variant);position:relative}
+  .d1 .route .arw:after{content:"✈";position:absolute;right:-2px;top:-10px;color:var(--primary);font-size:.8rem}
+  .d1 .perf{border-top:1.5px dashed var(--outline-variant);position:relative;background:var(--s-low)}
+  .d1 .perf:before,.d1 .perf:after{content:"";position:absolute;top:-7px;width:12px;height:12px;border-radius:50%;background:#dfe7f5}
+  .d1 .perf:before{left:-6px}.d1 .perf:after{right:-6px}
+  .d1 .stubs{display:flex;gap:8px;padding:9px 14px}
+  .d1 .stub{font-size:.7rem;font-weight:700;color:var(--on-secondary-container)}
+  .d1 .stub b{display:block;font-size:.95rem;color:var(--on-surface)}
+  /* detail */
+  .d1 .tik{background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;margin-bottom:12px}
+  .d1 .tik:before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:linear-gradient(var(--primary),var(--tertiary))}
+  .d1 .seg{display:flex;gap:12px;margin-top:12px}
+  .d1 .segRail{display:flex;flex-direction:column;align-items:center}
+  .d1 .segNode{width:14px;height:14px;border-radius:50%;border:3px solid var(--primary);background:var(--s-lowest)}
+  .d1 .segLine{flex:1;width:2px;background:var(--outline-variant)}
+  .d1 .segBody{flex:1;padding-bottom:8px}
+  .d1 .segDate{font-size:.72rem;font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:.06em}
+  .d1 .dRow{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--outline-variant);border-radius:10px;padding:7px 10px;margin-top:7px}
+  .d1 .dRow .nm{font-weight:700;font-size:.84rem}
+  .chip{padding:.12rem .55rem;border-radius:var(--radius-md);background:var(--s-variant);color:var(--on-surface-variant);font-size:.66rem;font-weight:700;line-height:1.3}
+
+  /* ============ DIRECTION 2 — EDITORIAL CALM ============ */
+  /* hex: name #0b1c30, eyebrow #717786, hairline #c1c6d7, no card fill */
+  .d2 .list{display:flex;flex-direction:column}
+  .d2 .item{padding:16px 4px;border-bottom:1px solid var(--outline-variant);cursor:pointer;transition:padding-left .2s var(--spring)}
+  .d2 .item:hover{padding-left:10px}
+  .d2 .eyebrow{font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--outline);font-weight:700}
+  .d2 .iname{font-size:1.35rem;font-weight:300;letter-spacing:-.02em;margin:3px 0 8px}
+  .d2 .imeta{display:flex;gap:16px;font-size:.76rem;color:var(--on-surface-variant)}
+  .d2 .imeta b{color:var(--on-surface);font-weight:700}
+  /* detail */
+  .d2 .dhead{padding-bottom:14px;border-bottom:2px solid var(--on-surface)}
+  .d2 .dh-eye{font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--outline);font-weight:700}
+  .d2 .dh-name{font-size:1.7rem;font-weight:300;letter-spacing:-.02em;margin:4px 0}
+  .d2 .tl{margin-top:16px;padding-left:18px;border-left:1.5px solid var(--outline-variant)}
+  .d2 .tlDay{position:relative;padding-bottom:18px}
+  .d2 .tlDay:before{content:"";position:absolute;left:-25px;top:4px;width:9px;height:9px;border-radius:50%;background:var(--primary)}
+  .d2 .tlDate{font-size:.82rem;font-weight:700;letter-spacing:.02em}
+  .d2 .er{display:flex;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid var(--s-high)}
+  .d2 .er .nm{font-weight:600;font-size:.86rem}
+  .d2 .er .cat{font-size:.68rem;color:var(--outline);text-transform:uppercase;letter-spacing:.08em}
+
+  /* ============ DIRECTION 3 — DASHBOARD ============ */
+  /* hex: tiles bg #eff4ff, accent #0058bc, meter track #d3e4fe, meter fill #0070eb */
+  .d3 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .d3 .card{background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:12px;padding:13px;box-shadow:var(--shadow-sm)}
+  .d3 .cn{font-size:.95rem;font-weight:800}
+  .d3 .cd{font-size:.72rem;color:var(--on-surface-variant);margin:2px 0 10px}
+  .d3 .stats{display:flex;gap:14px;margin-bottom:9px}
+  .d3 .stat b{font-size:1.05rem;font-weight:800;color:var(--primary)}
+  .d3 .stat span{display:block;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--outline);font-weight:700}
+  .d3 .meter{height:6px;border-radius:99px;background:var(--s-highest);overflow:hidden}
+  .d3 .meter i{display:block;height:100%;background:var(--primary-container);border-radius:99px}
+  .d3 .mlab{font-size:.62rem;color:var(--on-surface-variant);margin-top:5px;font-weight:600}
+  /* detail */
+  .d3 .summary{display:flex;gap:10px;margin-bottom:14px}
+  .d3 .tile{flex:1;background:var(--s-low);border:1px solid var(--outline-variant);border-radius:10px;padding:10px 12px}
+  .d3 .tile b{font-size:1.3rem;font-weight:800;color:var(--primary);display:block}
+  .d3 .tile span{font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--outline);font-weight:700}
+  .d3 .dayc{background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:12px;padding:12px;margin-bottom:10px}
+  .d3 .dayHd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .d3 .dayHd .dt{font-weight:800;font-size:.85rem;color:var(--primary)}
+  .d3 .cnt{font-size:.62rem;font-weight:700;color:var(--on-secondary-container);background:var(--secondary-container);padding:.1rem .5rem;border-radius:99px}
+  .d3 .r3{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:var(--surface);border:1px solid var(--outline-variant);margin-top:6px}
+  .d3 .r3 .nm{font-weight:700;font-size:.82rem;flex:1}
+  .d3 .catf{padding:.1rem .5rem;border-radius:6px;background:var(--tertiary-container);color:#fff;font-size:.62rem;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pageTitle">Trip Planner — Trips list &amp; Trip detail · three directions</div>
+  <div class="pageSub">Same Horizon tokens, same real data (name · dates · day count · destinations, ratings, categories). No cover images, no city field, no reordering — richness comes from hierarchy, derived stats, and motion. Pick a personality; we refine from there.</div>
+
+  <div class="cols">
+
+    <!-- ============ DIRECTION 1 ============ -->
+    <div class="col d1">
+      <div class="colHead">
+        <div class="k">Direction 1</div>
+        <div class="n">Boarding Pass</div>
+        <div class="r">Travel-ticket character. Trip = a pass with a perforated stub of stats; detail reads as an itinerary of segments on a journey rail. Warm, on-theme, memorable.</div>
+      </div>
+      <div class="mini">
+        <div>
+          <div class="caption">/trips — list</div>
+          <div class="vp">
+            <div class="vpbar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span></div>
+            <div class="vpbody">
+              <div class="hRow"><h1 style="font-size:1.25rem">My trips</h1><button class="btnP">New trip</button></div>
+              <div class="grid">
+                <div class="pass">
+                  <div class="passTop"><div class="passName">Đà Nẵng escape</div>
+                    <div class="route"><span>12 Aug</span><span class="arw"></span><span>16 Aug</span></div></div>
+                  <div class="perf"><div class="stubs"><div class="stub">DAYS<b>5</b></div><div class="stub">PLACES<b>9</b></div></div></div>
+                </div>
+                <div class="pass">
+                  <div class="passTop"><div class="passName">Hội An weekend</div>
+                    <div class="route"><span>4 Oct</span><span class="arw"></span><span>6 Oct</span></div></div>
+                  <div class="perf"><div class="stubs"><div class="stub">DAYS<b>3</b></div><div class="stub">PLACES<b>4</b></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="caption">/trips/:id — detail</div>
+          <div class="vp">
+            <div class="vpbar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span></div>
+            <div class="vpbody">
+              <div class="tik">
+                <div class="hRow" style="margin:0"><div><div class="passName" style="font-size:1.1rem">Đà Nẵng escape</div><div class="muted" style="font-size:.76rem">12–16 Aug 2026 · 5 days · 9 places</div></div><button class="btnG">Edit</button></div>
+              </div>
+              <div class="seg">
+                <div class="segRail"><div class="segNode"></div><div class="segLine"></div></div>
+                <div class="segBody"><div class="segDate">Tue · Aug 12</div>
+                  <div class="dRow"><span class="nm">Marble Mountains</span><span class="chip">Landmark</span><span class="star">★★★★☆</span></div>
+                  <div class="dRow"><span class="nm">Mỹ Khê Beach</span><span class="chip">Landmark</span><span class="star">★★★★★</span></div>
+                </div>
+              </div>
+              <div class="seg">
+                <div class="segRail"><div class="segNode"></div></div>
+                <div class="segBody"><div class="segDate">Wed · Aug 13</div>
+                  <div class="dRow"><span class="nm">Bà Nà Hills</span><span class="chip">Landmark</span><span class="star">★★★★☆</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DIRECTION 2 ============ -->
+    <div class="col d2">
+      <div class="colHead">
+        <div class="k">Direction 2</div>
+        <div class="n">Editorial Calm</div>
+        <div class="r">Premium restraint. No card boxes — hairline-divided rows, big light-weight names, dates as quiet eyebrows. Detail is a thin itinerary timeline. Feels like a design-led travel journal.</div>
+      </div>
+      <div class="mini">
+        <div>
+          <div class="caption">/trips — list</div>
+          <div class="vp">
+            <div class="vpbar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span></div>
+            <div class="vpbody">
+              <div class="hRow"><h1 style="font-size:1.25rem;font-weight:300">My trips</h1><button class="btnP">New trip</button></div>
+              <div class="list">
+                <div class="item"><div class="eyebrow">12 – 16 Aug 2026</div><div class="iname">Đà Nẵng escape</div><div class="imeta"><span><b>5</b> days</span><span><b>9</b> places</span></div></div>
+                <div class="item"><div class="eyebrow">4 – 6 Oct 2026</div><div class="iname">Hội An weekend</div><div class="imeta"><span><b>3</b> days</span><span><b>4</b> places</span></div></div>
+                <div class="item"><div class="eyebrow">20 – 24 Dec 2026</div><div class="iname">Sa Pa in winter</div><div class="imeta"><span><b>5</b> days</span><span><b>0</b> places</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="caption">/trips/:id — detail</div>
+          <div class="vp">
+            <div class="vpbar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span></div>
+            <div class="vpbody">
+              <div class="dhead"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="dh-eye">12 – 16 Aug 2026 · 5 days</div><div class="dh-name">Đà Nẵng escape</div></div><button class="btnG">Edit</button></div></div>
+              <div class="tl">
+                <div class="tlDay"><div class="tlDate">Tuesday, Aug 12</div>
+                  <div class="er"><span class="nm">Marble Mountains</span><span class="cat">Landmark</span><span class="star" style="margin-left:auto">★★★★☆</span></div>
+                  <div class="er"><span class="nm">Mỹ Khê Beach</span><span class="cat">Landmark</span><span class="star" style="margin-left:auto">★★★★★</span></div>
+                </div>
+                <div class="tlDay"><div class="tlDate">Wednesday, Aug 13</div>
+                  <div class="er"><span class="nm">Bà Nà Hills</span><span class="cat">Landmark</span><span class="star" style="margin-left:auto">★★★★☆</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DIRECTION 3 ============ -->
+    <div class="col d3">
+      <div class="colHead">
+        <div class="k">Direction 3</div>
+        <div class="n">Dashboard</div>
+        <div class="r">Planner utility. Cards carry a stat strip and a “days planned” progress meter; detail opens with metric tiles and per-day counts. Best if the job is managing many trips at a glance.</div>
+      </div>
+      <div class="mini">
+        <div>
+          <div class="caption">/trips — list</div>
+          <div class="vp">
+            <div class="vpbar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span></div>
+            <div class="vpbody">
+              <div class="hRow"><h1 style="font-size:1.25rem">My trips</h1><button class="btnP">New trip</button></div>
+              <div class="grid">
+                <div class="card"><div class="cn">Đà Nẵng escape</div><div class="cd">12–16 Aug 2026</div>
+                  <div class="stats"><div class="stat"><b>5</b><span>Days</span></div><div class="stat"><b>9</b><span>Places</span></div></div>
+                  <div class="meter"><i style="width:80%"></i></div><div class="mlab">4 of 5 days planned</div></div>
+                <div class="card"><div class="cn">Sa Pa in winter</div><div class="cd">20–24 Dec 2026</div>
+                  <div class="stats"><div class="stat"><b>5</b><span>Days</span></div><div class="stat"><b>0</b><span>Places</span></div></div>
+                  <div class="meter"><i style="width:0%"></i></div><div class="mlab">Nothing planned yet</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="caption">/trips/:id — detail</div>
+          <div class="vp">
+            <div class="vpbar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span></div>
+            <div class="vpbody">
+              <div class="hRow" style="margin-bottom:10px"><div><div class="cn" style="font-size:1.1rem">Đà Nẵng escape</div><div class="cd">12–16 Aug 2026</div></div><button class="btnG">Edit</button></div>
+              <div class="summary">
+                <div class="tile"><b>5</b><span>Days</span></div>
+                <div class="tile"><b>9</b><span>Places</span></div>
+                <div class="tile"><b>4.5</b><span>Avg ★</span></div>
+              </div>
+              <div class="dayc"><div class="dayHd"><span class="dt">Tue · Aug 12</span><span class="cnt">2 places</span></div>
+                <div class="r3"><span class="nm">Marble Mountains</span><span class="catf">Landmark</span><span class="star">★★★★☆</span></div>
+                <div class="r3"><span class="nm">Mỹ Khê Beach</span><span class="catf">Landmark</span><span class="star">★★★★★</span></div>
+              </div>
+              <div class="dayc"><div class="dayHd"><span class="dt">Wed · Aug 13</span><span class="cnt">1 place</span></div>
+                <div class="r3"><span class="nm">Bà Nà Hills</span><span class="catf">Landmark</span><span class="star">★★★★☆</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
