@@ -23,6 +23,40 @@
   background: var(--color-surface-container-low);
 }
 
+.imageHidden {
+  opacity: 0;
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-container-low) 25%,
+    var(--color-surface-container-lowest) 50%,
+    var(--color-surface-container-low) 75%
+  );
+  background-size: 200% 100%;
+  animation: photo-loading-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes photo-loading-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading {
+    animation: none;
+    background: var(--color-surface-container-low);
+  }
+}
+
 .control {
   position: absolute;
   top: 50%;

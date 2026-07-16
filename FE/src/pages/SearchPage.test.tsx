@@ -185,7 +185,7 @@ describe('SearchPage', () => {
     expect(within(card).getByRole('img')).toHaveAttribute('src', 'https://example.com/louvre.jpg');
   });
 
-  it('renders placeholders for missing image and rating', async () => {
+  it('renders the image placeholder and no rating badge for a bare attraction', async () => {
     searchLocationsMock.mockResolvedValue([parisCity]);
     getAttractionsMock.mockResolvedValue([barePlace]);
     renderPage();
@@ -202,7 +202,8 @@ describe('SearchPage', () => {
     const card = screen.getByRole('link', { name: /hidden garden/i });
     expect(within(card).queryByRole('img')).not.toBeInTheDocument();
     expect(within(card).getByTestId('image-placeholder')).toBeInTheDocument();
-    expect(within(card).getByText(/not rated/i)).toBeInTheDocument();
+    expect(within(card).queryByText(/not rated/i)).not.toBeInTheDocument();
+    expect(within(card).queryByLabelText(/rated/i)).not.toBeInTheDocument();
   });
 
   it('falls back to the image placeholder when the image fails to load', async () => {
@@ -326,7 +327,7 @@ describe('SearchPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /clear/i }));
 
-    expect(screen.queryByText('Paris')).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0);
     expect(screen.getByRole('searchbox', { name: /search/i })).toHaveValue('');
   });
 
@@ -400,6 +401,86 @@ describe('SearchPage', () => {
       setTimeout(resolve, ms);
     });
   }
+
+  describe('hero band and suggestion chips', () => {
+    const chipCities = ['Đà Nẵng', 'Paris', 'Tokyo', 'Rome', 'Barcelona', 'New York'];
+
+    it('renders the hero headline, tagline, and an input without placeholder text', () => {
+      renderPage();
+
+      expect(screen.getByRole('heading', { level: 1, name: 'Where to next?' })).toBeInTheDocument();
+      expect(
+        screen.getByText('Search any city and start building the trip.'),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('searchbox', { name: /search/i })).not.toHaveAttribute(
+        'placeholder',
+      );
+    });
+
+    it('shows the six popular-search chips under their label before any search', () => {
+      renderPage();
+
+      expect(screen.getByText('Popular searches')).toBeInTheDocument();
+      for (const city of chipCities) {
+        expect(screen.getByRole('button', { name: city })).toBeInTheDocument();
+      }
+    });
+
+    it('pre-fills the input and submits the search in one gesture when a chip is activated', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity]);
+      renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Paris' }));
+
+      expect(screen.getByRole('searchbox', { name: /search/i })).toHaveValue('Paris');
+      await waitFor(() => {
+        expect(screen.getByText('Paris')).toBeInTheDocument();
+      });
+      expect(searchLocationsMock).toHaveBeenCalledWith('Paris');
+      expect(screen.queryByText('Popular searches')).not.toBeInTheDocument();
+    });
+
+    it('hides the chips once a query has been submitted and restores them on Clear', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity]);
+      renderPage();
+
+      submitSearch('paris');
+      await waitFor(() => {
+        expect(screen.getByText('Paris')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Popular searches')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /clear/i }));
+
+      expect(screen.getByText('Popular searches')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Tokyo' })).toBeInTheDocument();
+    });
+
+    it('keeps chips visible while typing an unsubmitted query', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity]);
+      renderPage();
+
+      typeInput('pa');
+      await screen.findByRole('listbox', { name: /location suggestions/i });
+
+      expect(screen.getByText('Popular searches')).toBeInTheDocument();
+    });
+
+    it('skips the pre-search chips when a session is restored', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity]);
+      const first = renderPage();
+
+      submitSearch('paris');
+      await waitFor(() => {
+        expect(screen.getByText('Paris')).toBeInTheDocument();
+      });
+      first.unmount();
+
+      renderPage();
+
+      expect(screen.queryByText('Popular searches')).not.toBeInTheDocument();
+    });
+  });
 
   describe('auto-suggest', () => {
     it('shows debounced suggestions with name, country code, and type labels after typing 2+ characters', async () => {

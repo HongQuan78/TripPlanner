@@ -21,11 +21,14 @@ const attraction: Attraction = {
   distanceMeters: 120.5,
 };
 
-function renderCard() {
+function renderCard(overrides: Partial<Attraction> = {}) {
   return render(
     <MemoryRouter initialEntries={['/search']}>
       <Routes>
-        <Route path="/search" element={<AttractionCard attraction={attraction} />} />
+        <Route
+          path="/search"
+          element={<AttractionCard attraction={{ ...attraction, ...overrides }} />}
+        />
         <Route path="/attractions/:xid" element={<p>details screen</p>} />
       </Routes>
     </MemoryRouter>,
@@ -55,5 +58,100 @@ describe('AttractionCard add-to-trip', () => {
     fireEvent.click(screen.getByRole('link', { name: /louvre museum/i }));
 
     expect(screen.getByText('details screen')).toBeInTheDocument();
+  });
+});
+
+describe('AttractionCard rating badge and heritage chip', () => {
+  beforeEach(() => {
+    useAddToTripMock.mockReturnValue({ requestAdd: vi.fn() });
+  });
+
+  it('renders the rating badge over the placeholder when there is no image', () => {
+    renderCard({ rating: '2', imageUrl: null });
+
+    expect(screen.getByTestId('image-placeholder')).toBeInTheDocument();
+    expect(screen.getByLabelText('Rated 2 of 3')).toBeInTheDocument();
+  });
+
+  it('renders no badge and no "Not rated" text for an unrated attraction', () => {
+    renderCard({ rating: null });
+
+    expect(screen.queryByLabelText(/rated/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/not rated/i)).not.toBeInTheDocument();
+  });
+
+  it('renders the heritage chip inside the card link when the rating carries the h flag', () => {
+    renderCard({ rating: '3h' });
+
+    const link = screen.getByRole('link', { name: /louvre museum/i });
+    expect(link).toHaveTextContent('heritage');
+  });
+
+  it('renders no heritage chip without the h flag', () => {
+    renderCard({ rating: '3' });
+
+    expect(screen.queryByText('heritage')).not.toBeInTheDocument();
+  });
+});
+
+describe('AttractionCard distance line', () => {
+  beforeEach(() => {
+    useAddToTripMock.mockReturnValue({ requestAdd: vi.fn() });
+  });
+
+  it('shows rounded meters below 1 km', () => {
+    renderCard({ distanceMeters: 350.4 });
+
+    expect(screen.getByText('350 m from center')).toBeInTheDocument();
+  });
+
+  it('shows kilometers with one decimal at or above 1 km', () => {
+    renderCard({ distanceMeters: 2345 });
+
+    expect(screen.getByText('2.3 km from center')).toBeInTheDocument();
+  });
+
+  it('renders nothing when the distance is null', () => {
+    renderCard({ distanceMeters: null });
+
+    expect(screen.queryByText(/from center/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('AttractionCard image states', () => {
+  beforeEach(() => {
+    useAddToTripMock.mockReturnValue({ requestAdd: vi.fn() });
+  });
+
+  it('shows the loading shimmer while the image has not loaded yet', () => {
+    renderCard({ imageUrl: 'https://example.com/louvre.jpg' });
+
+    expect(screen.getByTestId('image-loading')).toBeInTheDocument();
+    expect(screen.queryByTestId('image-placeholder')).not.toBeInTheDocument();
+  });
+
+  it('removes the loading shimmer once the image loads', () => {
+    renderCard({ imageUrl: 'https://example.com/louvre.jpg' });
+
+    fireEvent.load(screen.getByAltText('Louvre Museum'));
+
+    expect(screen.queryByTestId('image-loading')).not.toBeInTheDocument();
+    expect(screen.getByAltText('Louvre Museum')).toBeInTheDocument();
+  });
+
+  it('shows the placeholder when the image fails to load', () => {
+    renderCard({ imageUrl: 'https://example.com/louvre.jpg' });
+
+    fireEvent.error(screen.getByAltText('Louvre Museum'));
+
+    expect(screen.getByTestId('image-placeholder')).toBeInTheDocument();
+    expect(screen.queryByTestId('image-loading')).not.toBeInTheDocument();
+  });
+
+  it('shows the placeholder without a loading state when there is no image url', () => {
+    renderCard();
+
+    expect(screen.getByTestId('image-placeholder')).toBeInTheDocument();
+    expect(screen.queryByTestId('image-loading')).not.toBeInTheDocument();
   });
 });

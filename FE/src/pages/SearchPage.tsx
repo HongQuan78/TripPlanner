@@ -15,6 +15,7 @@ import { getSearchState, saveSearchState } from './searchState';
 
 const suggestionListId = 'location-suggestions';
 const ATTRACTION_SKELETON_COUNT = 4;
+const POPULAR_CITIES = ['Đà Nẵng', 'Paris', 'Tokyo', 'Rome', 'Barcelona', 'New York'];
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError && error.status !== 503 && error.status !== 0) {
@@ -103,6 +104,15 @@ export default function SearchPage() {
     setActiveIndex(-1);
   }
 
+  function handleChipSelect(city: string) {
+    setInput(city);
+    setSelected(null);
+    setSubmittedQuery(city);
+    setSuppressedQuery(city);
+    setDismissedQuery(trimmedDebounced);
+    setActiveIndex(-1);
+  }
+
   function handleClear() {
     setInput('');
     setSubmittedQuery('');
@@ -116,130 +126,155 @@ export default function SearchPage() {
 
   return (
     <section className={styles.page}>
-      <h1 className={styles.title}>Where to next?</h1>
-      <p className={styles.tagline}>Search for a city or country to discover attractions.</p>
-      <form className={styles.form} role="search" onSubmit={handleSubmit}>
-        <div className={styles.inputWrap}>
-          <input
-            type="search"
-            className={styles.input}
-            aria-label="Search"
-            placeholder="Search for a city or country"
-            autoComplete="off"
-            aria-autocomplete="list"
-            aria-expanded={dropdownOpen}
-            aria-controls={suggestionListId}
-            aria-activedescendant={
-              dropdownOpen && activeIndex >= 0
-                ? suggestionOptionId(suggestionListId, activeIndex)
-                : undefined
-            }
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          {dropdownOpen && (
-            <SuggestionDropdown
-              id={suggestionListId}
-              suggestions={suggestions}
-              activeIndex={activeIndex}
-              onChoose={handleChoose}
-            />
-          )}
-        </div>
-        <button type="submit" className={styles.submit} disabled={input.trim().length === 0}>
-          Search
-        </button>
-        <button type="button" className={styles.clear} onClick={handleClear}>
-          Clear
-        </button>
-      </form>
-
-      {search.isFetching && <p className={styles.loading}>Searching…</p>}
-
-      {search.isError && !search.isFetching && (
-        <div className={stateStyles.state}>
-          <span className={stateStyles.emoji} aria-hidden="true">
-            ⛅
-          </span>
-          <p className={stateStyles.text}>{errorMessage(search.error)}</p>
-          <button type="button" className={styles.retry} onClick={() => void search.refetch()}>
-            Try again
-          </button>
-        </div>
-      )}
-
-      {search.isSuccess && results.length === 0 && (
-        <div className={stateStyles.state}>
-          <span className={stateStyles.emoji} aria-hidden="true">
-            🔍
-          </span>
-          <p className={stateStyles.text}>No matching places found.</p>
-        </div>
-      )}
-
-      {results.length > 0 && (
-        <LocationResultList results={results} selected={selected} onSelect={setSelected} />
-      )}
-
-      {selected !== null && selected.locationType === 'Country' && (
-        <div className={stateStyles.state}>
-          <span className={stateStyles.emoji} aria-hidden="true">
-            🗺️
-          </span>
-          <p className={stateStyles.text}>
-            {selected.name} is a country — search for a specific city to see attractions.
-          </p>
-        </div>
-      )}
-
-      {selected !== null && selected.locationType === 'City' && (
-        <section className={styles.attractions}>
-          <h2 className={styles.subtitle}>Attractions near {selected.name}</h2>
-          {attractions.isFetching && !attractions.isSuccess && (
-            <>
-              <p className={skeletonStyles.visuallyHidden}>Loading attractions…</p>
-              <div className={styles.grid} aria-hidden="true">
-                {Array.from({ length: ATTRACTION_SKELETON_COUNT }, (_, index) => (
-                  <div key={index} className={skeletonStyles.card} />
+      <section className={styles.heroBand}>
+        <div className={styles.heroInner}>
+          <h1 className={styles.title}>Where to next?</h1>
+          <p className={styles.tagline}>Search any city and start building the trip.</p>
+          <form className={styles.form} role="search" onSubmit={handleSubmit}>
+            <div className={styles.inputWrap}>
+              <input
+                type="search"
+                className={styles.input}
+                aria-label="Search"
+                autoComplete="off"
+                aria-autocomplete="list"
+                aria-expanded={dropdownOpen}
+                aria-controls={suggestionListId}
+                aria-activedescendant={
+                  dropdownOpen && activeIndex >= 0
+                    ? suggestionOptionId(suggestionListId, activeIndex)
+                    : undefined
+                }
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              {dropdownOpen && (
+                <SuggestionDropdown
+                  id={suggestionListId}
+                  suggestions={suggestions}
+                  activeIndex={activeIndex}
+                  onChoose={handleChoose}
+                />
+              )}
+            </div>
+            <button type="submit" className={styles.submit} disabled={input.trim().length === 0}>
+              Search
+            </button>
+            <button type="button" className={styles.clear} onClick={handleClear}>
+              Clear
+            </button>
+          </form>
+          {submittedQuery === '' && (
+            <div className={styles.popular}>
+              <p className={styles.popularLabel}>Popular searches</p>
+              <div className={styles.chipRow}>
+                {POPULAR_CITIES.map((city) => (
+                  <button
+                    key={city}
+                    type="button"
+                    className={styles.chip}
+                    onClick={() => handleChipSelect(city)}
+                  >
+                    {city}
+                  </button>
                 ))}
               </div>
-            </>
-          )}
-          {attractions.isError && !attractions.isFetching && (
-            <div className={stateStyles.state}>
-              <span className={stateStyles.emoji} aria-hidden="true">
-                ⛅
-              </span>
-              <p className={stateStyles.text}>{errorMessage(attractions.error)}</p>
-              <button
-                type="button"
-                className={styles.retry}
-                onClick={() => void attractions.refetch()}
-              >
-                Try again
-              </button>
             </div>
           )}
-          {attractions.isSuccess && attractions.data.length === 0 && (
-            <div className={stateStyles.state}>
-              <span className={stateStyles.emoji} aria-hidden="true">
-                🗺️
-              </span>
-              <p className={stateStyles.text}>
-                No attractions in this area yet — try another city.
-              </p>
-            </div>
-          )}
-          {attractions.isSuccess && attractions.data.length > 0 && (
-            <div className={styles.grid}>
-              {attractions.data.map((attraction) => (
-                <AttractionCard key={attraction.xid} attraction={attraction} />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+        </div>
+      </section>
+
+      <div className={styles.results}>
+        {search.isFetching && <p className={styles.loading}>Searching…</p>}
+
+        {search.isError && !search.isFetching && (
+          <div className={stateStyles.state}>
+            <span className={stateStyles.emoji} aria-hidden="true">
+              ⛅
+            </span>
+            <p className={stateStyles.text}>{errorMessage(search.error)}</p>
+            <button type="button" className={styles.retry} onClick={() => void search.refetch()}>
+              Try again
+            </button>
+          </div>
+        )}
+
+        {search.isSuccess && results.length === 0 && (
+          <div className={stateStyles.state}>
+            <span className={stateStyles.emoji} aria-hidden="true">
+              🔍
+            </span>
+            <p className={stateStyles.text}>No matching places found.</p>
+          </div>
+        )}
+
+        {results.length > 0 && (
+          <LocationResultList results={results} selected={selected} onSelect={setSelected} />
+        )}
+
+        {selected !== null && selected.locationType === 'Country' && (
+          <div className={stateStyles.state}>
+            <span className={stateStyles.emoji} aria-hidden="true">
+              🗺️
+            </span>
+            <p className={stateStyles.text}>
+              {selected.name} is a country — search for a specific city to see attractions.
+            </p>
+          </div>
+        )}
+
+        {selected !== null && selected.locationType === 'City' && (
+          <section className={styles.attractions}>
+            <h2 className={styles.subtitle}>Attractions near {selected.name}</h2>
+            {attractions.isFetching && !attractions.isSuccess && (
+              <>
+                <p className={skeletonStyles.visuallyHidden}>Loading attractions…</p>
+                <div className={styles.grid} aria-hidden="true">
+                  {Array.from({ length: ATTRACTION_SKELETON_COUNT }, (_, index) => (
+                    <div
+                      key={index}
+                      className={`${skeletonStyles.card} ${styles.attractionSkeleton}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+            {attractions.isError && !attractions.isFetching && (
+              <div className={stateStyles.state}>
+                <span className={stateStyles.emoji} aria-hidden="true">
+                  ⛅
+                </span>
+                <p className={stateStyles.text}>{errorMessage(attractions.error)}</p>
+                <button
+                  type="button"
+                  className={styles.retry}
+                  onClick={() => void attractions.refetch()}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+            {attractions.isSuccess && attractions.data.length === 0 && (
+              <div className={stateStyles.state}>
+                <span className={stateStyles.emoji} aria-hidden="true">
+                  🗺️
+                </span>
+                <p className={stateStyles.text}>
+                  No attractions in this area yet — try another city.
+                </p>
+              </div>
+            )}
+            {attractions.isSuccess && attractions.data.length > 0 && (
+              <div className={styles.grid}>
+                {attractions.data.map((attraction) => (
+                  <AttractionCard key={attraction.xid} attraction={attraction} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+      </div>
     </section>
   );
 }

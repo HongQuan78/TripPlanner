@@ -73,19 +73,61 @@
 .cardLink {
   display: flex;
   flex-direction: column;
+  flex: 1;
   text-decoration: none;
   color: inherit;
 }
 
+.cover {
+  position: relative;
+  width: 100%;
+  height: 12rem;
+}
+
 .image {
   width: 100%;
-  height: 9rem;
+  height: 12rem;
   object-fit: cover;
+  display: block;
+}
+
+.imageHidden {
+  opacity: 0;
+}
+
+.imageLoading {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-container-low) 25%,
+    var(--color-surface-container-lowest) 50%,
+    var(--color-surface-container-low) 75%
+  );
+  background-size: 200% 100%;
+  animation: image-loading-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes image-loading-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imageLoading {
+    animation: none;
+    background: var(--color-surface-container-low);
+  }
 }
 
 .placeholder {
-  width: 100%;
-  height: 9rem;
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,29 +135,33 @@
   background: var(--color-surface-container-low);
 }
 
-.body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.9rem 1rem 0.25rem;
-}
-
-.name {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.meta {
-  display: flex;
+.ratingBadge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-on-surface) 80%, transparent);
+  color: var(--color-on-primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.ratingBadge > span {
+  color: var(--color-on-primary);
 }
 
 .heritage {
-  padding: 0.2rem 0.6rem;
-  border-radius: var(--radius-md);
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-full);
   background: var(--color-success-container);
   color: var(--color-success);
   font-size: 0.75rem;
@@ -123,15 +169,38 @@
   line-height: 1.2;
 }
 
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.5rem;
+  padding: 1rem 1rem 0.75rem;
+}
+
+.name {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.distance {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--color-on-surface-variant);
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.375rem;
 }
 
 .tag {
-  padding: 0.2rem 0.6rem;
-  border-radius: var(--radius-md);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
   background: var(--color-surface-container-low);
   color: var(--color-on-surface-variant);
   font-size: 0.75rem;
@@ -140,16 +209,23 @@
 }
 
 .addToTrip {
-  align-self: flex-start;
-  margin: 0.35rem 1rem 1.1rem;
-  padding: 0.4rem 1rem;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-md);
+  width: 100%;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--color-outline-variant) 30%, transparent);
   background: transparent;
   color: var(--color-primary);
-  font: inherit;
-  font-size: 0.85rem;
+  font-family: inherit;
+  font-size: 0.875rem;
   font-weight: 600;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
   cursor: pointer;
   transition:
     background var(--duration-fast) ease,
