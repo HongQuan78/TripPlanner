@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -15,6 +16,9 @@ public class OpenTripMapAttractionSearchService(
 {
     private const string DefaultKinds = "interesting_places";
     private const string MinimumRate = "2";
+    private const int MaxEnrichmentConcurrency = 5;
+    private const int RateLimitRetryCount = 2;
+    private static readonly TimeSpan RateLimitRetryDelay = TimeSpan.FromMilliseconds(600);
 
     public async Task<List<AttractionResponse>> GetNearbyAsync(double latitude, double longitude, int radiusMeters, int limit, CancellationToken cancellationToken = default)
     {
@@ -28,7 +32,19 @@ public class OpenTripMapAttractionSearchService(
             .Take(limit)
             .ToList();
 
-        var enriched = await Task.WhenAll(named.Select(feature => EnrichAsync(feature, cancellationToken)));
+        using var throttle = new SemaphoreSlim(MaxEnrichmentConcurrency);
+        var enriched = await Task.WhenAll(named.Select(async feature =>
+        {
+            await throttle.WaitAsync(cancellationToken);
+            try
+            {
+                return await EnrichAsync(feature, cancellationToken);
+            }
+            finally
+            {
+                throttle.Release();
+            }
+        }));
         return [.. enriched];
     }
 
@@ -44,15 +60,14 @@ public class OpenTripMapAttractionSearchService(
 
         try
         {
-            var url = $"xid/{Uri.EscapeDataString(feature.Xid!)}?apikey={options.Value.ApiKey}";
-            var detail = await httpClient.GetFromJsonAsync<OpenTripMapPlaceModel>(url, cancellationToken);
+            var detail = await FetchDetailAsync(feature.Xid!, cancellationToken);
             if (detail is null)
             {
                 return attraction;
             }
 
             var imageUrl = await imageProvider.GetImageUrlAsync(
-                new DestinationImageContext { Name = feature.Name!, WikipediaUrl = detail.Wikipedia },
+                new DestinationImageContext { Name = feature.Name!, WikipediaUrl = detail.Wikipedia, WikidataId = detail.Wikidata },
                 cancellationToken);
 
             return attraction with
@@ -65,6 +80,22 @@ public class OpenTripMapAttractionSearchService(
         catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException)
         {
             return attraction;
+        }
+    }
+
+    private async Task<OpenTripMapPlaceModel?> FetchDetailAsync(string xid, CancellationToken cancellationToken)
+    {
+        var url = $"xid/{Uri.EscapeDataString(xid)}?apikey={options.Value.ApiKey}";
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                return await httpClient.GetFromJsonAsync<OpenTripMapPlaceModel>(url, cancellationToken);
+            }
+            catch (HttpRequestException exception) when (exception.StatusCode == HttpStatusCode.TooManyRequests && attempt < RateLimitRetryCount)
+            {
+                await Task.Delay(RateLimitRetryDelay, cancellationToken);
+            }
         }
     }
 

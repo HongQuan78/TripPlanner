@@ -105,6 +105,7 @@ public static class InfrastructureServicesExtension
         var settings = serviceProvider.GetRequiredService<IOptions<WikipediaSettings>>().Value;
         client.BaseAddress = new Uri(settings.BaseUrl.TrimEnd('/') + "/");
         client.Timeout = TimeSpan.FromMilliseconds(settings.TimeoutMilliseconds);
+        client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("TripPlanner", "1.0"));
     }
 
     private static void ConfigurePhotonClient(IServiceProvider serviceProvider, HttpClient client)

@@ -40,6 +40,9 @@ internal sealed record OpenTripMapPlaceModel
     [JsonPropertyName("wikipedia")]
     public string? Wikipedia { get; init; }
 
+    [JsonPropertyName("wikidata")]
+    public string? Wikidata { get; init; }
+
     [JsonPropertyName("address")]
     public OpenTripMapAddressModel? Address { get; init; }
 

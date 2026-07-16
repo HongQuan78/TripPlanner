@@ -29,7 +29,7 @@ public class OpenTripMapDestinationDetailsService(
         }
 
         var imageUrl = await imageProvider.GetImageUrlAsync(
-            new DestinationImageContext { Name = place.Name, WikipediaUrl = place.Wikipedia },
+            new DestinationImageContext { Name = place.Name, WikipediaUrl = place.Wikipedia, WikidataId = place.Wikidata },
             cancellationToken);
         List<string> imageUrls = string.IsNullOrWhiteSpace(imageUrl) ? [] : [imageUrl];
 

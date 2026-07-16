@@ -10,4 +10,6 @@ public sealed record DestinationImageContext
     public required string Name { get; init; }
 
     public string? WikipediaUrl { get; init; }
+
+    public string? WikidataId { get; init; }
 }
