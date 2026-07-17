@@ -35,7 +35,106 @@ project: tripplanner
 # (+2 net), lint clean (2 pre-existing warnings), production build green. Moved
 # to done.
 
-last_updated: 2026-07-16
+last_updated: 2026-07-18
+
+# 2026-07-17: added 3-5-reorder-destinations-within-day (Feature 3 / US5, the
+# deferred within-day reorder story). Resolves the data-model prerequisite the
+# epic flagged: trip_day_destinations is an unordered many-to-many with no
+# position column. Approach (epic-sanctioned): promote the implicit skip-nav
+# join to an explicit TripDayDestination entity carrying an int Position, while
+# keeping TripDay.Destinations as a computed IReadOnlyList<Destination> ordered
+# by Position so the mapper, TripDayResponse, and both day-add use cases need no
+# signature change. Full-stack: TripDayDestination + TripDay._items/mutators
+# (AddDestination appends, RemoveDestination renumbers, new ReorderDestinations),
+# EF explicit-join config + AddTripDayDestinationOrder migration (additive
+# position column + ROW_NUMBER backfill), repository string-include
+# "Days._items.Destination", IReorderDayDestinationsUseCase + PUT
+# /days/{date}/destinations/order endpoint (permutation guard → BadRequest). FE:
+# @dnd-kit/sortable within-day sortable + optimistic useReorderDayDestinations
+# (reorder + rollback, NFR4) + accessible Move up/down fallback. Scope: within-day
+# only (US6 day↔day move stays deferred). Created via create-story;
+# ready-for-dev.
+
+# 2026-07-17: added 3-4-schedule-destinations-into-day (Feature 3 / US4, the
+# deferred drag-and-drop story) and reopened epic-3 to in-progress. US4 needs a
+# NEW trip-level "Saved Places" pool (trip_saved_places join mirroring
+# trip_day_destinations) that the current model lacks — destinations attach
+# directly to days today. Full-stack: Trip._savedPlaces + mutators, EF join +
+# AddTripSavedPlaces migration, savedPlaces on TripResponse, three use cases
+# (add-to-pool / remove-from-pool / schedule = atomic pool→day move with the
+# per-day duplicate guard), three endpoints, extracted IDestinationResolver.
+# FE: @dnd-kit drag-from-pool-to-day with optimistic move + rollback (NFR4 +
+# Sheet AC5), an accessible non-drag "Add to day" fallback, Saved Places panel
+# on TripPlannerPage, and an "Add to Saved Places" option in AddToTripDialog
+# (US3 day-add kept per user). Scope: pool→day only (US5/US6 stay deferred).
+# Planned + picked up immediately for dev-story implementation.
+
+# 2026-07-17: 3-4-schedule-destinations-into-day implemented — all 13 tasks done.
+# Added the Saved Places pool (Trip._savedPlaces + trip_saved_places join +
+# AddTripSavedPlaces migration, applied to dev DB), savedPlaces on TripResponse,
+# extracted IDestinationResolver, and 3 use cases/endpoints (add-to-pool /
+# remove-from-pool / schedule = atomic pool→day move with per-day dup guard). FE:
+# @dnd-kit drag-to-day with optimistic move + rollback (NFR4 + Sheet AC5), an
+# accessible non-drag "Add to a day" select fallback, Saved Places panel on
+# TripPlannerPage, and an "Add to Saved Places" option in AddToTripDialog. BE
+# 203/203 (+19), FE 242/242 (+18), lint clean (2 pre-existing warnings), tsc+vite
+# build green. Live browser/drag QA deferred (no browser tooling) — recommended
+# at review. Moved to review.
+
+# 2026-07-17: added 5-18-verify-email-page-rebuild — user clicked the email
+# verification link and saw raw JSON ({"message":"Email verified successfully..."})
+# instead of a page. Root-caused to the dev EmailSettings:VerificationUrlBase
+# pointing at the backend API (http://localhost:5000/api/auth/verify-email) rather
+# than the FE SPA route /verify-email (prod config is already correct). A
+# VerifyEmailPage already exists (5-13, on AuthShell); per user choice this story
+# REBUILDS it from scratch as a self-contained, more beautiful page (own CSS
+# module, no AuthShell) — preserving every state/resend/accessibility/single-fire
+# contract — AND repoints the dev config so the link reaches it. Created via
+# create-story.
+
+# 2026-07-17: 9-1-dockerize-for-production implemented — all 6 tasks done. Added
+# multi-stage Dockerfiles for the .NET 10 API (SDK build → aspnet runtime, non-root,
+# :8080) and the Vite/React SPA (Node build → nginx serving dist/ with SPA fallback,
+# reverse-proxying /api + /swagger to the api container so the browser is same-origin
+# and the loopback-only CORS policy is never a blocker), a docker-compose stack
+# (postgres:16 healthchecked + named pgdata volume, api depends_on db healthy, web
+# publishing 8080:80), BE/FE .dockerignore files, .env.production.example documenting
+# every runtime-injected secret (nothing baked into images; compose conn string drops
+# SSL Mode=Require), and gated EF Core migrate-on-startup in Program.cs
+# (RunMigrationsOnStartup, default true) so a fresh volume is schema-ready on boot.
+# CLAUDE.md + FE/README.md documented. Docker not installed here → live `compose up`
+# deferred; wrapped artifacts verified instead (dotnet build BE Release clean, FE
+# vite build clean). BE 184/184, FE 224/224, no regressions. Moved to review.
+
+# 2026-07-17: added epic-9 (deployment/infrastructure, no formal epic file — scope
+# lives in the story file, same convention as epics 6/7/8) and its first story,
+# 9-1-dockerize-for-production — user wants the project containerized for
+# production: multi-stage Dockerfiles for the .NET 10 API and the Vite/React SPA
+# (nginx-served + reverse-proxying /api to sidestep the loopback-only CORS policy
+# via same-origin), a docker-compose stack wiring Postgres + api + web with
+# healthchecks and a named pg volume, .dockerignore files, runtime-injected
+# secrets via the existing Section__Key env convention (nothing baked into images),
+# and EF Core migrate-on-startup gated by a config flag. Created via create-story.
+
+# 2026-07-17: 5-17-frontend-feature-based-restructure implemented — all 5 tasks
+# done. Added a @/ → src alias (vite.config.ts + tsconfig.app.json) and moved the
+# whole src tree from type-based (api/components/hooks/pages/auth/trips/layout/
+# lib/utils) to feature-based: app/ (main/index.css/routes/AppLayout/NotFound),
+# shared/{api,lib,ui}, features/{auth,destinations,trips} — each feature co-locates
+# its pages/components/hooks.ts/api.ts/styles/tests. Imports rewritten via a Node
+# script (cross-boundary → @/, same-folder → ./), including vi.mock paths; old
+# empty dirs removed; index.html entry → /src/app/main.tsx; README Structure
+# section rewritten. Pure structural refactor, zero behavior change: 224/224 FE
+# tests (unchanged count), tsc+vite build green, lint clean (2 pre-existing
+# warnings). Browser visual QA deferred (no browser tooling). Moved to review.
+
+# 2026-07-17: added 5-17-frontend-feature-based-restructure — user wants the FE
+# reorganized from a type-based layout (api/components/hooks/pages/auth/trips/
+# layout/lib/utils) into a feature-based one (app/ + shared/{api,lib,ui} +
+# features/{auth,destinations,trips}) with a new @/ path alias. Pure structural
+# refactor: files move, imports rewrite to @/ across boundaries, zero behavior
+# change; the 224-test suite is the safety net. Picked up immediately for
+# dev-story implementation.
 
 # 2026-07-16: 7-3-google-smtp-email-provider code-reviewed (adversarial, 4 layers)
 # — 1 decision + 2 patch findings fixed, 2 low deferred, 10 dismissed. AC audit
@@ -318,7 +417,9 @@ last_updated: 2026-07-16
 development_status:
   epic-1: done
   epic-2: done
-  epic-3: done
+  epic-3: in-progress
+  3-4-schedule-destinations-into-day: done
+  3-5-reorder-destinations-within-day: done
   epic-4: done
   epic-5: in-progress
   5-1-frontend-scaffold-and-api-client: done
@@ -350,3 +451,7 @@ development_status:
   5-14-horizon-home-redesign: done
   5-15-azure-attraction-detail-redesign: done
   5-16-horizon-trips-boarding-pass-redesign: review
+  5-17-frontend-feature-based-restructure: review
+  epic-9: in-progress
+  9-1-dockerize-for-production: review
+  5-18-verify-email-page-rebuild: review
