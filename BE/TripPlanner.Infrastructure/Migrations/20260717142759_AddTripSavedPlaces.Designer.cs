@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TripPlanner.Infrastructure.Data;
@@ -11,9 +12,11 @@ using TripPlanner.Infrastructure.Data;
 namespace TripPlanner.Infrastructure.Migrations
 {
     [DbContext(typeof(TripPlannerDbContext))]
-    partial class TripPlannerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260717142759_AddTripSavedPlaces")]
+    partial class AddTripSavedPlaces
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -110,27 +113,6 @@ namespace TripPlanner.Infrastructure.Migrations
                     b.ToTable("trip_days", (string)null);
                 });
 
-            modelBuilder.Entity("TripPlanner.Domain.Models.TripDayDestination", b =>
-                {
-                    b.Property<int>("TripDayId")
-                        .HasColumnType("integer")
-                        .HasColumnName("trip_day_id");
-
-                    b.Property<int>("DestinationId")
-                        .HasColumnType("integer")
-                        .HasColumnName("destination_id");
-
-                    b.Property<int>("Position")
-                        .HasColumnType("integer")
-                        .HasColumnName("position");
-
-                    b.HasKey("TripDayId", "DestinationId");
-
-                    b.HasIndex("DestinationId");
-
-                    b.ToTable("trip_day_destinations", (string)null);
-                });
-
             modelBuilder.Entity("TripPlanner.Domain.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -175,6 +157,21 @@ namespace TripPlanner.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("trip_day_destinations", b =>
+                {
+                    b.Property<int>("trip_day_id")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("destination_id")
+                        .HasColumnType("integer");
+
+                    b.HasKey("trip_day_id", "destination_id");
+
+                    b.HasIndex("destination_id");
+
+                    b.ToTable("trip_day_destinations", (string)null);
                 });
 
             modelBuilder.Entity("trip_saved_places", b =>
@@ -292,21 +289,19 @@ namespace TripPlanner.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("TripPlanner.Domain.Models.TripDayDestination", b =>
+            modelBuilder.Entity("trip_day_destinations", b =>
                 {
-                    b.HasOne("TripPlanner.Domain.Models.Destination", "Destination")
+                    b.HasOne("TripPlanner.Domain.Models.Destination", null)
                         .WithMany()
-                        .HasForeignKey("DestinationId")
+                        .HasForeignKey("destination_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("TripPlanner.Domain.Models.TripDay", null)
-                        .WithMany("_items")
-                        .HasForeignKey("TripDayId")
+                        .WithMany()
+                        .HasForeignKey("trip_day_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Destination");
                 });
 
             modelBuilder.Entity("trip_saved_places", b =>
@@ -327,11 +322,6 @@ namespace TripPlanner.Infrastructure.Migrations
             modelBuilder.Entity("TripPlanner.Domain.Models.Trip", b =>
                 {
                     b.Navigation("Days");
-                });
-
-            modelBuilder.Entity("TripPlanner.Domain.Models.TripDay", b =>
-                {
-                    b.Navigation("_items");
                 });
 #pragma warning restore 612, 618
         }

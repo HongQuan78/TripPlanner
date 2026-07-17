@@ -32,4 +32,17 @@ public class MappingProfileTests
 
         Assert.Null(response.Xid);
     }
+
+    [Fact]
+    public void Map_TripWithSavedPlaces_PopulatesSavedPlaces()
+    {
+        var trip = new Trip("Paris", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
+        trip.AddSavedPlace(new Landmark("Louvre", 4.9, "9am-6pm", "xid-louvre"));
+
+        var response = Mapper.Map<TripResponse>(trip);
+
+        var savedPlace = Assert.Single(response.SavedPlaces);
+        Assert.Equal("Louvre", savedPlace.Name);
+        Assert.Equal("xid-louvre", savedPlace.Xid);
+    }
 }

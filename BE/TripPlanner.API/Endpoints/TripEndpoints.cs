@@ -1,5 +1,6 @@
 using TripPlanner.Application.DTOs.Requests;
 using TripPlanner.Application.Helpers;
+using TripPlanner.Application.UseCases.SavedPlaces;
 using TripPlanner.Application.UseCases.Trip;
 using TripPlanner.Application.UseCases.TripDay;
 using TripPlanner.API.Extensions;
@@ -17,6 +18,10 @@ public static class TripEndpoints
         group.MapPut("/{id:int}", UpdateTrip);
         group.MapPost("/{id:int}/days/{date}/destinations", AddDestinationToTripDay);
         group.MapDelete("/{id:int}/days/{date}/destinations/{destinationId:int}", RemoveDestinationFromTripDay);
+        group.MapPost("/{id:int}/saved-places", AddDestinationToSavedPlaces);
+        group.MapDelete("/{id:int}/saved-places/{destinationId:int}", RemoveDestinationFromSavedPlaces);
+        group.MapPost("/{id:int}/days/{date}/schedule", ScheduleSavedPlace);
+        group.MapPut("/{id:int}/days/{date}/destinations/order", ReorderDayDestinations);
         return group;
     }
 
@@ -64,5 +69,47 @@ public static class TripEndpoints
         var date = DateOnly.ParseExact(parameter.Date!, DateHelper.DateFormat, null);
         var result = await useCase.ExecuteAsync(parameter.Id, date, parameter.DestinationId, httpContext.User.GetUserId(), cancellationToken);
         return result.ToResponse(Results.NoContent);
+    }
+
+    private static async Task<IResult> AddDestinationToSavedPlaces(
+        [AsParameters] AddSavedPlaceParameter parameter,
+        HttpContext httpContext,
+        IAddDestinationToSavedPlacesUseCase useCase,
+        CancellationToken cancellationToken)
+    {
+        var result = await useCase.ExecuteAsync(parameter.Id, parameter.AddSavedPlaceRequest!, httpContext.User.GetUserId(), cancellationToken);
+        return result.ToResponse(onSuccess => Results.Ok(result.Data));
+    }
+
+    private static async Task<IResult> RemoveDestinationFromSavedPlaces(
+        [AsParameters] RemoveSavedPlaceParameter parameter,
+        HttpContext httpContext,
+        IRemoveDestinationFromSavedPlacesUseCase useCase,
+        CancellationToken cancellationToken)
+    {
+        var result = await useCase.ExecuteAsync(parameter.Id, parameter.DestinationId, httpContext.User.GetUserId(), cancellationToken);
+        return result.ToResponse(Results.NoContent);
+    }
+
+    private static async Task<IResult> ScheduleSavedPlace(
+        [AsParameters] ScheduleSavedPlaceParameter parameter,
+        HttpContext httpContext,
+        IScheduleSavedPlaceUseCase useCase,
+        CancellationToken cancellationToken)
+    {
+        var date = DateOnly.ParseExact(parameter.Date!, DateHelper.DateFormat, null);
+        var result = await useCase.ExecuteAsync(parameter.Id, date, parameter.ScheduleSavedPlaceRequest!.DestinationId!.Value, httpContext.User.GetUserId(), cancellationToken);
+        return result.ToResponse(onSuccess => Results.Ok(result.Data));
+    }
+
+    private static async Task<IResult> ReorderDayDestinations(
+        [AsParameters] ReorderDayDestinationsParameter parameter,
+        HttpContext httpContext,
+        IReorderDayDestinationsUseCase useCase,
+        CancellationToken cancellationToken)
+    {
+        var date = DateOnly.ParseExact(parameter.Date!, DateHelper.DateFormat, null);
+        var result = await useCase.ExecuteAsync(parameter.Id, date, parameter.ReorderDayDestinationsRequest!.DestinationIds!, httpContext.User.GetUserId(), cancellationToken);
+        return result.ToResponse(onSuccess => Results.Ok(result.Data));
     }
 }

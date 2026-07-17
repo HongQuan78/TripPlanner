@@ -23,6 +23,8 @@ public class MappingProfile : Profile
 
         CreateMap<Trip, TripResponse>()
             .ForMember(dest => dest.TripDays,
-                opt => opt.MapFrom(src => src.Days));
+                opt => opt.MapFrom(src => src.Days))
+            .ForMember(dest => dest.SavedPlaces,
+                opt => opt.MapFrom(src => src.SavedPlaces));
     }
 }

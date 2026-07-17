@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TripPlanner.Domain.Models;
 
@@ -17,28 +18,14 @@ internal sealed class TripDayConfiguration : IEntityTypeConfiguration<TripDay>
 
         builder.HasIndex(d => new { d.TripId, d.Day }).IsUnique();
 
-        builder.HasMany(d => d.Destinations)
-            .WithMany()
-            .UsingEntity<Dictionary<string, object>>(
-                "trip_day_destinations",
-                right => right
-                    .HasOne<Destination>()
-                    .WithMany()
-                    .HasForeignKey("destination_id")
-                    .OnDelete(DeleteBehavior.Cascade),
-                left => left
-                    .HasOne<TripDay>()
-                    .WithMany()
-                    .HasForeignKey("trip_day_id")
-                    .OnDelete(DeleteBehavior.Cascade),
-                join =>
-                {
-                    join.HasKey("trip_day_id", "destination_id");
-                    join.ToTable("trip_day_destinations");
-                });
+        builder.HasMany<TripDayDestination>("_items")
+            .WithOne()
+            .HasForeignKey(item => item.TripDayId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Navigation(d => d.Destinations)
-            .HasField("_destinations")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Metadata.FindNavigation("_items")!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Ignore(d => d.Destinations);
     }
 }

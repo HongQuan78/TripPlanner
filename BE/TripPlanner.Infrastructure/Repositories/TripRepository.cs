@@ -10,13 +10,15 @@ public class TripRepository(TripPlannerDbContext context) : Repository<Trip>(con
     public async Task<Trip?> GetWithDaysAndDestinationsAsync(int id, int userId, CancellationToken cancellationToken = default) =>
         await Context.Trips
             .Include(t => t.Days)
-                .ThenInclude(d => d.Destinations)
+            .Include("Days._items.Destination")
+            .Include(t => t.SavedPlaces)
             .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId, cancellationToken);
 
     public async Task<List<Trip>> GetAllWithDaysAndDestinationsAsync(int userId, CancellationToken cancellationToken = default) =>
         await Context.Trips
             .Include(t => t.Days)
-                .ThenInclude(d => d.Destinations)
+            .Include("Days._items.Destination")
+            .Include(t => t.SavedPlaces)
             .Where(t => t.UserId == userId)
             .ToListAsync(cancellationToken);
 }

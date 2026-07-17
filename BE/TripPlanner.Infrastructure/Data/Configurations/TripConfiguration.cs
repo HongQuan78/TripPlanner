@@ -32,5 +32,29 @@ internal sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
         builder.Navigation(t => t.Days)
             .HasField("_days")
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(t => t.SavedPlaces)
+            .WithMany()
+            .UsingEntity<Dictionary<string, object>>(
+                "trip_saved_places",
+                right => right
+                    .HasOne<Destination>()
+                    .WithMany()
+                    .HasForeignKey("destination_id")
+                    .OnDelete(DeleteBehavior.Cascade),
+                left => left
+                    .HasOne<Trip>()
+                    .WithMany()
+                    .HasForeignKey("trip_id")
+                    .OnDelete(DeleteBehavior.Cascade),
+                join =>
+                {
+                    join.HasKey("trip_id", "destination_id");
+                    join.ToTable("trip_saved_places");
+                });
+
+        builder.Navigation(t => t.SavedPlaces)
+            .HasField("_savedPlaces")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

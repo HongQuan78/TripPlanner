@@ -3,6 +3,7 @@ namespace TripPlanner.Domain.Models;
 public class Trip
 {
     private readonly List<TripDay> _days = [];
+    private readonly List<Destination> _savedPlaces = [];
 
     public int Id { get; private set; }
     public string Name { get; private set; } = string.Empty;
@@ -10,6 +11,7 @@ public class Trip
     public DateOnly EndDate { get; private set; }
     public int UserId { get; private set; }
     public IReadOnlyList<TripDay> Days => _days;
+    public IReadOnlyList<Destination> SavedPlaces => _savedPlaces;
 
     private Trip() { }
 
@@ -30,6 +32,16 @@ public class Trip
         _days.RemoveAll(day => day.Day < startDate || day.Day > endDate);
         GenerateDays();
         _days.Sort((left, right) => left.Day.CompareTo(right.Day));
+    }
+
+    public void AddSavedPlace(Destination destination) => _savedPlaces.Add(destination);
+
+    public void RemoveSavedPlace(Destination destination) => _savedPlaces.Remove(destination);
+
+    public void ScheduleFromSavedPlaces(Destination destination, TripDay tripDay)
+    {
+        _savedPlaces.Remove(destination);
+        tripDay.AddDestination(destination);
     }
 
     private void GenerateDays()

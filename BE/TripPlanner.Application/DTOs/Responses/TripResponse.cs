@@ -7,4 +7,5 @@ public sealed record TripResponse
     public DateOnly StartDate { get; init; }
     public DateOnly EndDate { get; init; }
     public List<TripDayResponse> TripDays { get; init; } = [];
+    public List<DestinationResponse> SavedPlaces { get; init; } = [];
 }
