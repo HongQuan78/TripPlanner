@@ -18,6 +18,7 @@ public class RegisterUserUseCase(
     ILogger<RegisterUserUseCase> logger) : IRegisterUserUseCase
 {
     private const string GenericMessage = "Check your inbox for a link to verify your email address.";
+    private const string EmailFailureMessage = "We could not send the verification email. Please try again later.";
 
     public async Task<Result<MessageResponse>> ExecuteAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
@@ -39,20 +40,20 @@ public class RegisterUserUseCase(
 
         try
         {
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                await unitOfWork.SaveChangesAsync(ct);
+                await emailSender.SendVerificationEmailAsync(user.Email, token.RawToken, ct);
+            }, cancellationToken);
         }
         catch (UniqueConstraintViolationException)
         {
             return Result<MessageResponse>.Success(new MessageResponse { Message = GenericMessage });
         }
-
-        try
-        {
-            await emailSender.SendVerificationEmailAsync(user.Email, token.RawToken, cancellationToken);
-        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Failed to send verification email for user {UserId}.", user.Id);
+            logger.LogError(ex, "Failed to send verification email for {Email}. Registration rolled back.", user.Email);
+            return Result<MessageResponse>.Failure(ErrorType.ServiceUnavailable, EmailFailureMessage);
         }
 
         return Result<MessageResponse>.Success(new MessageResponse { Message = GenericMessage });

@@ -22,6 +22,12 @@ public class AuthServiceTests
     private readonly IVerificationTokenService _verificationTokenService = Substitute.For<IVerificationTokenService>();
     private readonly IEmailSender _emailSender = Substitute.For<IEmailSender>();
 
+    public AuthServiceTests()
+    {
+        _unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<CancellationToken, Task>>(), Arg.Any<CancellationToken>())
+            .Returns(ci => ci.Arg<Func<CancellationToken, Task>>()(ci.Arg<CancellationToken>()));
+    }
+
     private RegisterUserUseCase RegisterUseCase() => new(
         _userRepository, _passwordHasher, _verificationTokenService, _emailSender, _unitOfWork,
         NullLogger<RegisterUserUseCase>.Instance);
@@ -78,7 +84,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_EmailSendFails_StillReturnsGenericSuccess()
+    public async Task RegisterAsync_EmailSendFails_ReturnsServiceUnavailableAndDoesNotPersistUser()
     {
         var request = new RegisterRequest { Email = "new@example.com", Password = "Password1" };
         _userRepository.GetByEmailAsync(request.Email, Arg.Any<CancellationToken>()).Returns((User?)null);
@@ -89,8 +95,10 @@ public class AuthServiceTests
 
         var result = await RegisterUseCase().ExecuteAsync(request);
 
-        Assert.True(result.IsSuccess);
-        await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.ServiceUnavailable, result.Error!.ErrorType);
+        await _emailSender.Received(1).SendVerificationEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _unitOfWork.Received(1).ExecuteInTransactionAsync(Arg.Any<Func<CancellationToken, Task>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
