@@ -37,6 +37,35 @@ project: tripplanner
 
 last_updated: 2026-07-16
 
+# 2026-07-16: 7-3-google-smtp-email-provider code-reviewed (adversarial, 4 layers)
+# — 1 decision + 2 patch findings fixed, 2 low deferred, 10 dismissed. AC audit
+# clean (all 9 ACs faithful). Fixes: documented Gmail From-header override in
+# .env.example; empty/whitespace/padded EmailSettings:Provider now normalizes
+# (Trim + IsNullOrWhiteSpace) and defaults to Resend instead of crashing startup;
+# added tests for Google-mode startup tolerating blank Resend creds + padded
+# Provider. Deferred (low): SMTP auth-wiring unverified (needs fake SMTP server,
+# mirrors Resend), port 465/StartTls hardcoded (mirrors Resend). 184/184 BE tests
+# (+4 new), build green. Moved to done.
+
+# 2026-07-16: 7-3-google-smtp-email-provider implemented — all 5 tasks done.
+# Added GoogleEmailSender (IEmailSender, Gmail SMTP smtp.gmail.com + App Password)
+# + GoogleSmtpSettings (transport-only), reusing the shared
+# IVerificationEmailContentBuilder. New EmailSettings:Provider selector
+# (Resend default | Google) picks the transport at startup in
+# AddInfrastructureServices; only the active provider's settings are bound/
+# validated (blank unused-provider creds don't fail startup). Resend unchanged
+# and still default; switching to Gmail is a pure config change. appsettings/
+# .env.example/CLAUDE.md updated. 180/180 BE tests (+14 new), no regressions.
+# Moved to review.
+
+# 2026-07-16: added 7-3-google-smtp-email-provider — user wants Gmail SMTP as an
+# alternative verification-email transport. Config-selectable per user choice:
+# a new GoogleEmailSender (IEmailSender) + GoogleSmtpSettings (transport) reusing
+# the shared IVerificationEmailContentBuilder, selected at startup by a new
+# EmailSettings:Provider selector (Resend default | Google). Only the active
+# provider's transport settings are bound/validated. Exercises the 7-2 provider-
+# swap seam; Resend stays the default. Picked up immediately for dev-story.
+
 # 2026-07-16: 5-16-horizon-trips-boarding-pass-redesign implemented — all 4
 # tasks done. Trips list rebuilt as a boarding-pass grid (accent-gradient spine
 # + past desaturate, derived status pill upcoming/ongoing/past, departure→return
@@ -306,6 +335,7 @@ development_status:
   epic-7: in-progress
   7-1-resend-email-integration: review
   7-2-email-provider-strategy-pattern: review
+  7-3-google-smtp-email-provider: done
   5-8-trips-nav-and-auth-race-fix: review
   epic-8: in-progress
   8-1-destination-image-wikipedia-fallback: review
