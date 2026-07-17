@@ -1,6 +1,8 @@
 using DotNetEnv;
+using Microsoft.EntityFrameworkCore;
 using TripPlanner.API.Extensions;
 using TripPlanner.API.Middleware;
+using TripPlanner.Infrastructure.Data;
 
 var envFile = FindEnvFile();
 if (envFile is not null)
@@ -34,6 +36,13 @@ builder.Services
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+if (builder.Configuration.GetValue("RunMigrationsOnStartup", true))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<TripPlannerDbContext>();
+    dbContext.Database.Migrate();
+}
 
 app.UseExceptionHandler();
 
