@@ -1,0 +1,69 @@
+import { useQuery } from '@tanstack/react-query';
+import { getAttractions, getDestinationDetails, searchLocations } from './api';
+import type { LocationSearchResult } from '@/shared/api/types';
+
+const locationStaleTime = 5 * 60 * 1000;
+
+export function useLocationSearch(query: string) {
+  return useQuery({
+    queryKey: ['locationSearch', query],
+    queryFn: () => searchLocations(query),
+    enabled: query.length > 0,
+    retry: false,
+    staleTime: locationStaleTime,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useLocationSuggestions(query: string) {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: ['locationSearch', trimmed],
+    queryFn: () => searchLocations(trimmed),
+    enabled: trimmed.length >= 2,
+    retry: false,
+    staleTime: locationStaleTime,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useAttractions(location: LocationSearchResult | null) {
+  return useQuery({
+    queryKey: ['attractions', location?.latitude, location?.longitude],
+    queryFn: () => getAttractions(location!.latitude, location!.longitude),
+    enabled: location !== null && location.locationType === 'City',
+    retry: false,
+    staleTime: locationStaleTime,
+    refetchOnWindowFocus: false,
+  });
+}
+
+const nearbyCap = 8;
+
+export function useNearbyAttractions(
+  latitude: number | null,
+  longitude: number | null,
+  selfXid: string,
+) {
+  return useQuery({
+    queryKey: ['nearbyAttractions', latitude, longitude],
+    queryFn: () => getAttractions(latitude!, longitude!),
+    enabled: latitude !== null && longitude !== null,
+    retry: false,
+    staleTime: locationStaleTime,
+    refetchOnWindowFocus: false,
+    select: (attractions) =>
+      attractions.filter((attraction) => attraction.xid !== selfXid).slice(0, nearbyCap),
+  });
+}
+
+export function useDestinationDetails(xid: string) {
+  return useQuery({
+    queryKey: ['destinationDetails', xid],
+    queryFn: () => getDestinationDetails(xid),
+    enabled: xid.length > 0,
+    retry: false,
+    staleTime: locationStaleTime,
+    refetchOnWindowFocus: false,
+  });
+}

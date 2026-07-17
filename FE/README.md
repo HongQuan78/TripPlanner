@@ -26,12 +26,21 @@ The API base URL comes from `VITE_API_BASE_URL`, set in `.env.development` (defa
 
 For email verification links to open the SPA's `/verify-email` page, set `EmailSettings__VerificationUrlBase=http://localhost:5173/verify-email` in `BE/.env` (no backend code change required).
 
+In the Docker/production image (`FE/Dockerfile`), the app is built with `VITE_API_BASE_URL` **empty** on purpose: with no base URL the API client (`src/shared/api/client.ts`) issues relative, same-origin requests, which nginx reverse-proxies to the backend (see `FE/nginx.conf` and the Docker section in the root `CLAUDE.md`). Vite bakes this value at build time, so it is a build argument, not a runtime setting.
+
 ## Structure
 
-- `src/api/` — typed `fetch` wrapper (`client.ts`), auth endpoints (`auth.ts`), and backend DTO types (`types.ts`)
-- `src/auth/` — `AuthProvider`/`useAuth` session state (persisted in `localStorage`) and the `RequireAuth` route guard
-- `src/layout/` — app shell (header + routed content area)
-- `src/pages/` — route components
+The source is organized **by feature**. Imports that cross a folder boundary use the `@/` alias (resolving to `src/`, configured in `vite.config.ts` and `tsconfig.app.json`); imports between files in the same folder stay relative (`./`).
+
+- `src/app/` — application shell and wiring: entry point (`main.tsx`, `index.css`), route table (`routes.tsx`), the `AppLayout` header/content shell, and `NotFoundPage`
+- `src/shared/` — code used across features
+  - `shared/api/` — typed `fetch` wrapper (`client.ts`) and backend DTO types (`types.ts`)
+  - `shared/lib/` — framework-agnostic utilities (`dates.ts`, `useDebouncedValue.ts`)
+  - `shared/ui/` — generic presentational primitives (`Modal`, `ConfirmDialog`, `Dialog`/`Skeleton`/`PageState` styles)
+- `src/features/` — one folder per feature domain, each co-locating its pages, components, hooks (`hooks.ts`), API calls (`api.ts`), and styles/tests
+  - `features/auth/` — `AuthProvider`/`useAuth` session state (persisted in `localStorage`), the `RequireAuth` guard, `AuthShell`, and the Login/Register/Verify-Email pages
+  - `features/destinations/` — search and destination-detail pages plus their attraction components (cards, hero, map, nearby rail, suggestions)
+  - `features/trips/` — trips list, trip planner, the add-to-trip flow, and trip forms
 - `src/test/` — test setup
 
 Server state is managed with TanStack Query; routing with React Router; styling with CSS modules.
