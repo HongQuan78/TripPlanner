@@ -1,8 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { getAttractions, getDestinationDetails, searchLocations } from './api';
-import type { LocationSearchResult } from '@/shared/api/types';
+import type { AttractionFilters, LocationSearchResult } from '@/shared/api/types';
 
 const locationStaleTime = 5 * 60 * 1000;
+
+export const ATTRACTIONS_PAGE_SIZE = 20;
+export const ATTRACTIONS_MAX_OFFSET = 1000;
 
 export function useLocationSearch(query: string) {
   return useQuery({
@@ -27,10 +30,29 @@ export function useLocationSuggestions(query: string) {
   });
 }
 
-export function useAttractions(location: LocationSearchResult | null) {
-  return useQuery({
-    queryKey: ['attractions', location?.latitude, location?.longitude],
-    queryFn: () => getAttractions(location!.latitude, location!.longitude),
+export function useAttractions(
+  location: LocationSearchResult | null,
+  filters: AttractionFilters,
+) {
+  return useInfiniteQuery({
+    queryKey: [
+      'attractions',
+      location?.latitude,
+      location?.longitude,
+      filters.kinds.join(','),
+      filters.minRate,
+    ],
+    queryFn: ({ pageParam }) =>
+      pageParam > 0
+        ? getAttractions(location!.latitude, location!.longitude, filters, pageParam)
+        : getAttractions(location!.latitude, location!.longitude, filters),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      const nextOffset = lastPageParam + ATTRACTIONS_PAGE_SIZE;
+      return lastPage.length === ATTRACTIONS_PAGE_SIZE && nextOffset <= ATTRACTIONS_MAX_OFFSET
+        ? nextOffset
+        : undefined;
+    },
     enabled: location !== null && location.locationType === 'City',
     retry: false,
     staleTime: locationStaleTime,

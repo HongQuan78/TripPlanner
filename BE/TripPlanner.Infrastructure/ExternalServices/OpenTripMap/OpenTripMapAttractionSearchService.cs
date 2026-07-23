@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -9,26 +8,30 @@ using TripPlanner.Infrastructure.Settings;
 
 namespace TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
 
-public class OpenTripMapAttractionSearchService(
+internal class OpenTripMapAttractionSearchService(
     HttpClient httpClient,
     IOptions<OpenTripMapSettings> options,
-    IDestinationImageProvider imageProvider) : IAttractionSearchService
+    IDestinationImageProvider imageProvider,
+    IOpenTripMapPlaceClient placeClient) : IAttractionSearchService
 {
     private const string DefaultKinds = "interesting_places";
     private const string MinimumRate = "2";
     private const int MaxEnrichmentConcurrency = 5;
-    private const int RateLimitRetryCount = 2;
-    private static readonly TimeSpan RateLimitRetryDelay = TimeSpan.FromMilliseconds(600);
 
-    public async Task<List<AttractionResponse>> GetNearbyAsync(double latitude, double longitude, int radiusMeters, int limit, CancellationToken cancellationToken = default)
+    public async Task<List<AttractionResponse>> GetNearbyAsync(double latitude, double longitude, int radiusMeters, int limit, string? kinds = null, int? minRate = null, int offset = 0, CancellationToken cancellationToken = default)
     {
         var lat = latitude.ToString(CultureInfo.InvariantCulture);
         var lon = longitude.ToString(CultureInfo.InvariantCulture);
-        var url = $"radius?radius={radiusMeters}&lat={lat}&lon={lon}&kinds={DefaultKinds}&rate={MinimumRate}&format=json&limit={limit}&apikey={options.Value.ApiKey}";
+        var kindsValue = NormalizeKinds(kinds);
+        var rateValue = minRate?.ToString(CultureInfo.InvariantCulture) ?? MinimumRate;
+        var skip = Math.Max(offset, 0);
+        var providerLimit = skip + limit;
+        var url = $"radius?radius={radiusMeters}&lat={lat}&lon={lon}&kinds={kindsValue}&rate={rateValue}&format=json&limit={providerLimit}&apikey={options.Value.ApiKey}";
         var features = await httpClient.GetFromJsonAsync<List<OpenTripMapFeatureModel>>(url, cancellationToken) ?? [];
 
         var named = features
             .Where(feature => !string.IsNullOrWhiteSpace(feature.Xid) && !string.IsNullOrWhiteSpace(feature.Name))
+            .Skip(skip)
             .Take(limit)
             .ToList();
 
@@ -60,7 +63,7 @@ public class OpenTripMapAttractionSearchService(
 
         try
         {
-            var detail = await FetchDetailAsync(feature.Xid!, cancellationToken);
+            var detail = await placeClient.GetPlaceAsync(feature.Xid!, cancellationToken);
             if (detail is null)
             {
                 return attraction;
@@ -83,20 +86,20 @@ public class OpenTripMapAttractionSearchService(
         }
     }
 
-    private async Task<OpenTripMapPlaceModel?> FetchDetailAsync(string xid, CancellationToken cancellationToken)
+    private static string NormalizeKinds(string? kinds)
     {
-        var url = $"xid/{Uri.EscapeDataString(xid)}?apikey={options.Value.ApiKey}";
-        for (var attempt = 0; ; attempt++)
+        if (string.IsNullOrWhiteSpace(kinds))
         {
-            try
-            {
-                return await httpClient.GetFromJsonAsync<OpenTripMapPlaceModel>(url, cancellationToken);
-            }
-            catch (HttpRequestException exception) when (exception.StatusCode == HttpStatusCode.TooManyRequests && attempt < RateLimitRetryCount)
-            {
-                await Task.Delay(RateLimitRetryDelay, cancellationToken);
-            }
+            return DefaultKinds;
         }
+
+        var tokens = kinds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length == 0)
+        {
+            return DefaultKinds;
+        }
+
+        return string.Join(',', tokens.Select(Uri.EscapeDataString));
     }
 
     private static List<string> SplitKinds(string? kinds)

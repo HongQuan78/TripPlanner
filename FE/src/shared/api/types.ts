@@ -27,6 +27,11 @@ export interface Attraction {
   distanceMeters: number | null;
 }
 
+export interface AttractionFilters {
+  kinds: string[];
+  minRate: number | null;
+}
+
 export interface DestinationDetails {
   xid: string;
   name: string;
@@ -102,4 +107,8 @@ export interface ScheduleSavedPlaceRequest {
 
 export interface ReorderDayDestinationsRequest {
   destinationIds: number[];
+}
+
+export interface MoveDestinationRequest {
+  toDate: string;
 }

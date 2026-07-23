@@ -180,6 +180,43 @@ public class LocationServiceTests
     }
 
     [Fact]
+    public async Task SearchLocations_ExactMatch_IsRankedBeforePartialMatches()
+    {
+        var parameter = new LocationSearchParameter { Query = "Paris" };
+        var locations = new List<LocationSearchResultResponse>
+        {
+            new() { Name = "Parisot", CountryCode = "FR", IsPartialMatch = true },
+            new() { Name = "Paris-Est", CountryCode = "FR", IsPartialMatch = true },
+            new() { Name = "Paris", CountryCode = "FR", IsPartialMatch = false }
+        };
+        _geocodingService.SearchAsync("Paris", null, Arg.Any<CancellationToken>()).Returns(locations);
+
+        var result = await SearchUseCase().ExecuteAsync(parameter);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Paris", result.Data!.First().Name);
+    }
+
+    [Fact]
+    public async Task SearchLocations_ExactMatchBeyondTopFive_IsPromotedIntoResults()
+    {
+        var parameter = new LocationSearchParameter { Query = "Nice" };
+        var locations = new List<LocationSearchResultResponse>();
+        for (var i = 0; i < 5; i++)
+        {
+            locations.Add(new LocationSearchResultResponse { Name = $"Niceville {i}", CountryCode = "US", IsPartialMatch = true });
+        }
+        locations.Add(new LocationSearchResultResponse { Name = "Nice", CountryCode = "FR", IsPartialMatch = false });
+        _geocodingService.SearchAsync("Nice", null, Arg.Any<CancellationToken>()).Returns(locations);
+
+        var result = await SearchUseCase().ExecuteAsync(parameter);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(5, result.Data!.Count);
+        Assert.Equal("Nice", result.Data.First().Name);
+    }
+
+    [Fact]
     public async Task SearchLocations_TrimsQueryBeforeSearching()
     {
         var parameter = new LocationSearchParameter { Query = "  Paris  " };
@@ -234,36 +271,36 @@ public class LocationServiceTests
     public async Task GetAttractions_NoRadiusProvided_AppliesDefaultTwentyKilometers()
     {
         var parameter = new AttractionSearchParameter { Latitude = 48.85, Longitude = 2.35 };
-        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, Arg.Any<CancellationToken>()).Returns([]);
+        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>()).Returns([]);
 
         var result = await AttractionsUseCase().ExecuteAsync(parameter);
 
         Assert.True(result.IsSuccess);
-        await _attractionSearchService.Received(1).GetNearbyAsync(48.85, 2.35, 20000, 20, Arg.Any<CancellationToken>());
+        await _attractionSearchService.Received(1).GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task GetAttractions_LimitAboveMaximum_CapsAtTwenty()
     {
         var parameter = new AttractionSearchParameter { Latitude = 48.85, Longitude = 2.35, Limit = 50 };
-        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, Arg.Any<CancellationToken>()).Returns([]);
+        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>()).Returns([]);
 
         var result = await AttractionsUseCase().ExecuteAsync(parameter);
 
         Assert.True(result.IsSuccess);
-        await _attractionSearchService.Received(1).GetNearbyAsync(48.85, 2.35, 20000, 20, Arg.Any<CancellationToken>());
+        await _attractionSearchService.Received(1).GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task GetAttractions_CustomRadiusAndLimit_ArePassedThrough()
     {
         var parameter = new AttractionSearchParameter { Latitude = 48.85, Longitude = 2.35, Radius = 5000, Limit = 10 };
-        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 5000, 10, Arg.Any<CancellationToken>()).Returns([]);
+        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 5000, 10, null, null, 0, Arg.Any<CancellationToken>()).Returns([]);
 
         var result = await AttractionsUseCase().ExecuteAsync(parameter);
 
         Assert.True(result.IsSuccess);
-        await _attractionSearchService.Received(1).GetNearbyAsync(48.85, 2.35, 5000, 10, Arg.Any<CancellationToken>());
+        await _attractionSearchService.Received(1).GetNearbyAsync(48.85, 2.35, 5000, 10, null, null, 0, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -274,7 +311,7 @@ public class LocationServiceTests
         {
             new() { Xid = "W1", Name = "Eiffel Tower", Kinds = ["architecture"], Rating = "3h" }
         };
-        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, Arg.Any<CancellationToken>()).Returns(attractions);
+        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>()).Returns(attractions);
 
         var result = await AttractionsUseCase().ExecuteAsync(parameter);
 
@@ -286,7 +323,7 @@ public class LocationServiceTests
     public async Task GetAttractions_NoResults_ReturnsSuccessWithEmptyList()
     {
         var parameter = new AttractionSearchParameter { Latitude = 0, Longitude = 0 };
-        _attractionSearchService.GetNearbyAsync(0, 0, 20000, 20, Arg.Any<CancellationToken>()).Returns([]);
+        _attractionSearchService.GetNearbyAsync(0, 0, 20000, 20, null, null, 0, Arg.Any<CancellationToken>()).Returns([]);
 
         var result = await AttractionsUseCase().ExecuteAsync(parameter);
 
@@ -295,10 +332,76 @@ public class LocationServiceTests
     }
 
     [Fact]
+    public async Task GetAttractions_KindsAndMinRateProvided_AreForwardedToService()
+    {
+        var parameter = new AttractionSearchParameter
+        {
+            Latitude = 48.85,
+            Longitude = 2.35,
+            Kinds = "cultural,historic",
+            MinRate = 3
+        };
+        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, "cultural,historic", 3, 0, Arg.Any<CancellationToken>()).Returns([]);
+
+        var result = await AttractionsUseCase().ExecuteAsync(parameter);
+
+        Assert.True(result.IsSuccess);
+        await _attractionSearchService.Received(1).GetNearbyAsync(48.85, 2.35, 20000, 20, "cultural,historic", 3, 0, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetAttractions_KindsAndMinRateOmitted_ForwardsNullFilters()
+    {
+        var parameter = new AttractionSearchParameter { Latitude = 48.85, Longitude = 2.35 };
+        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>()).Returns([]);
+
+        var result = await AttractionsUseCase().ExecuteAsync(parameter);
+
+        Assert.True(result.IsSuccess);
+        await _attractionSearchService.Received(1).GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetAttractions_NoOffsetProvided_ForwardsZero()
+    {
+        var parameter = new AttractionSearchParameter { Latitude = 48.85, Longitude = 2.35 };
+        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>()).Returns([]);
+
+        var result = await AttractionsUseCase().ExecuteAsync(parameter);
+
+        Assert.True(result.IsSuccess);
+        await _attractionSearchService.Received(1).GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetAttractions_OffsetProvided_IsForwardedToService()
+    {
+        var parameter = new AttractionSearchParameter { Latitude = 48.85, Longitude = 2.35, Offset = 20 };
+        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 20, Arg.Any<CancellationToken>()).Returns([]);
+
+        var result = await AttractionsUseCase().ExecuteAsync(parameter);
+
+        Assert.True(result.IsSuccess);
+        await _attractionSearchService.Received(1).GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 20, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetAttractions_NegativeOffset_ClampedToZero()
+    {
+        var parameter = new AttractionSearchParameter { Latitude = 48.85, Longitude = 2.35, Offset = -5 };
+        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>()).Returns([]);
+
+        var result = await AttractionsUseCase().ExecuteAsync(parameter);
+
+        Assert.True(result.IsSuccess);
+        await _attractionSearchService.Received(1).GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task GetAttractions_ProviderUnavailable_ReturnsServiceUnavailableFailure()
     {
         var parameter = new AttractionSearchParameter { Latitude = 48.85, Longitude = 2.35 };
-        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, Arg.Any<CancellationToken>())
+        _attractionSearchService.GetNearbyAsync(48.85, 2.35, 20000, 20, null, null, 0, Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("boom"));
 
         var result = await AttractionsUseCase().ExecuteAsync(parameter);

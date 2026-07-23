@@ -1,5 +1,10 @@
 import { request } from '@/shared/api/client';
-import type { Attraction, DestinationDetails, LocationSearchResult } from '@/shared/api/types';
+import type {
+  Attraction,
+  AttractionFilters,
+  DestinationDetails,
+  LocationSearchResult,
+} from '@/shared/api/types';
 
 export function searchLocations(query: string): Promise<LocationSearchResult[]> {
   return request<LocationSearchResult[]>(
@@ -7,10 +12,23 @@ export function searchLocations(query: string): Promise<LocationSearchResult[]> 
   );
 }
 
-export function getAttractions(latitude: number, longitude: number): Promise<Attraction[]> {
-  return request<Attraction[]>(
-    `/api/locations/attractions?latitude=${latitude}&longitude=${longitude}`,
-  );
+export function getAttractions(
+  latitude: number,
+  longitude: number,
+  filters?: AttractionFilters,
+  offset?: number,
+): Promise<Attraction[]> {
+  let url = `/api/locations/attractions?latitude=${latitude}&longitude=${longitude}`;
+  if (filters && filters.kinds.length > 0) {
+    url += `&kinds=${encodeURIComponent(filters.kinds.join(','))}`;
+  }
+  if (filters && filters.minRate !== null) {
+    url += `&minRate=${filters.minRate}`;
+  }
+  if (offset && offset > 0) {
+    url += `&offset=${offset}`;
+  }
+  return request<Attraction[]>(url);
 }
 
 export function getDestinationDetails(xid: string): Promise<DestinationDetails> {

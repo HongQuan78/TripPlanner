@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent, KeyboardEvent } from 'react';
 import { ApiError } from '@/shared/api/client';
 import type { LocationSearchResult } from '@/shared/api/types';
 import AttractionCard from './AttractionCard';
+import AttractionControls from './AttractionControls';
+import { dedupeAttractions, sortAttractions } from './attractionFilters';
+import type { AttractionSort } from './attractionFilters';
 import LocationResultList from './LocationResultList';
 import skeletonStyles from '@/shared/ui/Skeleton.module.css';
 import SuggestionDropdown from './SuggestionDropdown';
@@ -34,13 +37,47 @@ export default function SearchPage() {
   );
   const [dismissedQuery, setDismissedQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [minRate, setMinRate] = useState<number | null>(null);
+  const [sort, setSort] = useState<AttractionSort>('recommended');
 
   useEffect(() => {
     saveSearchState({ input, submittedQuery, selected });
   }, [input, submittedQuery, selected]);
 
+  function resetFilters() {
+    setCategories([]);
+    setMinRate(null);
+    setSort('recommended');
+  }
+
+  function handleSelectLocation(location: LocationSearchResult | null) {
+    resetFilters();
+    setSelected(location);
+  }
+
   const search = useLocationSearch(submittedQuery);
-  const attractions = useAttractions(selected);
+  const attractions = useAttractions(selected, { kinds: categories, minRate });
+  const loadedAttractions = useMemo(
+    () => dedupeAttractions(attractions.data?.pages.flat() ?? []),
+    [attractions.data],
+  );
+  const sortedAttractions = sortAttractions(loadedAttractions, sort);
+
+  function handleToggleCategory(value: string) {
+    setCategories((current) =>
+      current.includes(value)
+        ? current.filter((category) => category !== value)
+        : [...current, value],
+    );
+  }
+
+  function handleClearFilters() {
+    setCategories([]);
+    setMinRate(null);
+  }
+
+  const hasActiveFilters = categories.length > 0 || minRate !== null;
 
   const debouncedInput = useDebouncedValue(input, 300);
   const trimmedDebounced = debouncedInput.trim();
@@ -64,7 +101,7 @@ export default function SearchPage() {
     setSuppressedQuery(suggestion.name);
     setDismissedQuery(trimmedDebounced);
     setSubmittedQuery(trimmedDebounced);
-    setSelected(suggestion);
+    handleSelectLocation(suggestion);
     setActiveIndex(-1);
   }
 
@@ -97,7 +134,7 @@ export default function SearchPage() {
     if (!query) {
       return;
     }
-    setSelected(null);
+    handleSelectLocation(null);
     setSubmittedQuery(query);
     setSuppressedQuery(query);
     setDismissedQuery(trimmedDebounced);
@@ -106,7 +143,7 @@ export default function SearchPage() {
 
   function handleChipSelect(city: string) {
     setInput(city);
-    setSelected(null);
+    handleSelectLocation(null);
     setSubmittedQuery(city);
     setSuppressedQuery(city);
     setDismissedQuery(trimmedDebounced);
@@ -116,7 +153,7 @@ export default function SearchPage() {
   function handleClear() {
     setInput('');
     setSubmittedQuery('');
-    setSelected(null);
+    handleSelectLocation(null);
     setSuppressedQuery('');
     setDismissedQuery('');
     setActiveIndex(-1);
@@ -210,7 +247,7 @@ export default function SearchPage() {
         )}
 
         {results.length > 0 && (
-          <LocationResultList results={results} selected={selected} onSelect={setSelected} />
+          <LocationResultList results={results} selected={selected} onSelect={handleSelectLocation} />
         )}
 
         {selected !== null && selected.locationType === 'Country' && (
@@ -227,7 +264,18 @@ export default function SearchPage() {
         {selected !== null && selected.locationType === 'City' && (
           <section className={styles.attractions}>
             <h2 className={styles.subtitle}>Attractions near {selected.name}</h2>
-            {attractions.isFetching && !attractions.isSuccess && (
+            {!(attractions.isError && loadedAttractions.length === 0) && (
+              <AttractionControls
+                categories={categories}
+                minRate={minRate}
+                sort={sort}
+                onToggleCategory={handleToggleCategory}
+                onMinRateChange={setMinRate}
+                onSortChange={setSort}
+                onClearFilters={handleClearFilters}
+              />
+            )}
+            {attractions.isLoading && (
               <>
                 <p className={skeletonStyles.visuallyHidden}>Loading attractions…</p>
                 <div className={styles.grid} aria-hidden="true">
@@ -240,7 +288,7 @@ export default function SearchPage() {
                 </div>
               </>
             )}
-            {attractions.isError && !attractions.isFetching && (
+            {attractions.isError && !attractions.isFetching && loadedAttractions.length === 0 && (
               <div className={stateStyles.state}>
                 <span className={stateStyles.emoji} aria-hidden="true">
                   ⛅
@@ -255,22 +303,58 @@ export default function SearchPage() {
                 </button>
               </div>
             )}
-            {attractions.isSuccess && attractions.data.length === 0 && (
+            {attractions.isSuccess && loadedAttractions.length === 0 && (
               <div className={stateStyles.state}>
                 <span className={stateStyles.emoji} aria-hidden="true">
                   🗺️
                 </span>
                 <p className={stateStyles.text}>
-                  No attractions in this area yet — try another city.
+                  {hasActiveFilters
+                    ? 'No attractions match these filters — try clearing them.'
+                    : 'No attractions in this area yet — try another city.'}
                 </p>
               </div>
             )}
-            {attractions.isSuccess && attractions.data.length > 0 && (
-              <div className={styles.grid}>
-                {attractions.data.map((attraction) => (
-                  <AttractionCard key={attraction.xid} attraction={attraction} />
-                ))}
-              </div>
+            {loadedAttractions.length > 0 && (
+              <>
+                <div className={styles.grid}>
+                  {sortedAttractions.map((attraction) => (
+                    <AttractionCard key={attraction.xid} attraction={attraction} />
+                  ))}
+                </div>
+                <p aria-live="polite" className={skeletonStyles.visuallyHidden}>
+                  Showing {loadedAttractions.length} attractions.
+                </p>
+                {attractions.hasNextPage && (
+                  <div className={styles.loadMore}>
+                    {(attractions.isFetchNextPageError || attractions.isError) &&
+                    !attractions.isFetchingNextPage ? (
+                      <>
+                        <p className={stateStyles.text} role="alert">
+                          Couldn't load more attractions — please try again.
+                        </p>
+                        <button
+                          type="button"
+                          className={styles.retry}
+                          onClick={() => void attractions.fetchNextPage()}
+                        >
+                          Try again
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.loadMoreButton}
+                        onClick={() => void attractions.fetchNextPage()}
+                        disabled={attractions.isFetchingNextPage}
+                        aria-busy={attractions.isFetchingNextPage}
+                      >
+                        {attractions.isFetchingNextPage ? 'Loading…' : 'Load more'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </section>
         )}

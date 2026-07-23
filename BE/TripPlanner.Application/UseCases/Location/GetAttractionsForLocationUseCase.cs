@@ -14,10 +14,11 @@ public class GetAttractionsForLocationUseCase(IAttractionSearchService attractio
     {
         var radius = parameter.Radius ?? DefaultRadiusMeters;
         var limit = Math.Min(parameter.Limit ?? MaxPageSize, MaxPageSize);
+        var offset = Math.Max(parameter.Offset ?? 0, 0);
 
         try
         {
-            var attractions = await attractionSearchService.GetNearbyAsync(parameter.Latitude, parameter.Longitude, radius, limit, cancellationToken);
+            var attractions = await attractionSearchService.GetNearbyAsync(parameter.Latitude, parameter.Longitude, radius, limit, parameter.Kinds, parameter.MinRate, offset, cancellationToken);
             return Result<List<AttractionResponse>>.Success(attractions);
         }
         catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)

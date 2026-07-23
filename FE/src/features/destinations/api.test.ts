@@ -58,6 +58,46 @@ describe('getAttractions', () => {
     );
   });
 
+  it('appends kinds and minRate query params when filters are provided', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, []));
+
+    await getAttractions(48.8566, 2.3522, { kinds: ['cultural', 'historic'], minRate: 3 });
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/locations/attractions?latitude=48.8566&longitude=2.3522&kinds=cultural%2Chistoric&minRate=3',
+    );
+  });
+
+  it('omits filter params when kinds are empty and minRate is null', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, []));
+
+    await getAttractions(48.8566, 2.3522, { kinds: [], minRate: null });
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/locations/attractions?latitude=48.8566&longitude=2.3522',
+    );
+  });
+
+  it('appends the offset param when a page beyond the first is requested', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, []));
+
+    await getAttractions(48.8566, 2.3522, { kinds: ['cultural'], minRate: 2 }, 20);
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/locations/attractions?latitude=48.8566&longitude=2.3522&kinds=cultural&minRate=2&offset=20',
+    );
+  });
+
+  it('omits the offset param for the first page', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, []));
+
+    await getAttractions(48.8566, 2.3522, { kinds: [], minRate: null }, 0);
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/locations/attractions?latitude=48.8566&longitude=2.3522',
+    );
+  });
+
   it('returns the parsed attraction list', async () => {
     const attractions = [
       {
