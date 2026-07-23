@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create Trip — Design Directions (Horizon)</title>
+<style>
+/* ---- Horizon tokens (from FE/src/app/index.css / Boarding Pass DESIGN.md) ----
+   primary #0058bc  on-primary #ffffff  primary-container #0070eb
+   secondary #405f91  secondary-container #a6c5fe  on-secondary-container #315182
+   tertiary #006577  error #ba1a1a  error-container #ffdad6
+   success #146c2e  success-container #d7f2dd
+   background #f8f9ff  surface-lowest #ffffff  surface-low #eff4ff
+   surface #e5eeff  surface-variant #d3e4fe
+   on-surface #0b1c30  on-surface-variant #414755  outline #717786  outline-variant #c1c6d7
+--------------------------------------------------------------------------------- */
+:root{
+  --primary:#0058bc; --on-primary:#fff; --primary-container:#0070eb;
+  --secondary:#405f91; --secondary-container:#a6c5fe; --on-sec-container:#315182;
+  --tertiary:#006577; --error:#ba1a1a; --error-container:#ffdad6;
+  --success:#146c2e; --success-container:#d7f2dd;
+  --bg:#f8f9ff; --s-lowest:#fff; --s-low:#eff4ff; --s:#e5eeff; --s-var:#d3e4fe;
+  --on-s:#0b1c30; --on-s-var:#414755; --outline:#717786; --outline-var:#c1c6d7;
+  --r-sm:.25rem; --r-md:.5rem; --r-lg:.75rem; --r-full:999px;
+  --font:'Plus Jakarta Sans','Segoe UI',system-ui,-apple-system,sans-serif;
+  --shadow-sm:0 1px 3px rgba(11,28,48,.12);
+  --shadow-lg:0 12px 32px -8px rgba(11,28,48,.28);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:#dbe4f3;color:var(--on-s);padding:32px 16px;line-height:1.5}
+.page-head{max-width:1180px;margin:0 auto 28px;text-align:center}
+.page-head h1{font-size:26px;font-weight:800;letter-spacing:-.01em}
+.page-head p{color:#44506a;margin-top:6px;font-size:14px}
+.grid{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:40px}
+.dir{background:transparent}
+.dir-tag{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.dir-tag .n{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--secondary);padding:4px 10px;border-radius:var(--r-full)}
+.dir-tag h2{font-size:19px;font-weight:800}
+.dir-why{color:#44506a;font-size:13.5px;max-width:760px;margin:0 0 14px}
+.dir-why b{color:var(--on-s)}
+
+/* browser chrome */
+.browser{background:var(--bg);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;border:1px solid #c7d3ea}
+.bar{background:#e9eefb;padding:9px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #d5deef}
+.dot{width:11px;height:11px;border-radius:var(--r-full)}
+.dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+.url{margin-left:10px;background:#fff;border:1px solid #d5deef;border-radius:var(--r-full);font-size:12px;color:#5a6577;padding:4px 14px;flex:1;max-width:280px}
+.viewport{padding:26px 26px 30px}
+
+/* app header row that hosts the form */
+.apphead{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.apphead h3{font-size:22px;font-weight:800}
+.newbtn{background:transparent;border:1.5px solid var(--outline-var);color:var(--primary);font-weight:700;font-size:14px;padding:9px 16px;border-radius:var(--r-full);cursor:default}
+
+/* faint pass behind, for context */
+.passghost{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;opacity:.5}
+.passghost .p{background:#fff;border:1px solid var(--outline-var);border-radius:var(--r-lg);height:96px;display:flex;overflow:hidden}
+.passghost .p::before{content:"";width:6px;background:var(--primary)}
+.passghost .p .pin{padding:14px 16px;flex:1}
+.passghost .p .pin b{display:block;font-size:15px;font-weight:800}
+.passghost .p .pin span{font-size:12px;color:var(--on-s-var)}
+.mini-pill{display:inline-block;font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:var(--r-full);background:var(--secondary-container);color:var(--on-sec-container);margin-top:8px}
+
+label.fld{display:block;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--on-s-var);margin-bottom:6px}
+.input{width:100%;border:1.5px solid var(--outline-var);background:var(--s-lowest);border-radius:var(--r-md);padding:12px 14px;font-family:inherit;font-size:16px;color:var(--on-s)}
+.input:focus{outline:2px solid var(--primary);outline-offset:1px}
+.hint{font-size:12px;color:var(--on-s-var);margin-top:6px}
+
+/* mini calendar */
+.cal{background:var(--s-lowest);border:1px solid var(--outline-var);border-radius:var(--r-md);padding:14px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-head b{font-size:13.5px;font-weight:800}
+.cal-nav{color:var(--on-s-var);font-size:15px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-grid .dow{font-size:9.5px;font-weight:800;color:var(--on-s-var);text-align:center;padding:2px 0;text-transform:uppercase}
+.cal-grid .d{text-align:center;font-size:12.5px;padding:6px 0;border-radius:var(--r-sm);color:var(--on-s)}
+.cal-grid .d.mut{color:var(--outline-var)}
+.cal-grid .d.inr{background:var(--secondary-container)}
+.cal-grid .d.start,.cal-grid .d.end{background:var(--primary);color:#fff;font-weight:800}
+.dualcal{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+.cta{width:100%;background:var(--primary);color:var(--on-primary);border:none;border-radius:var(--r-full);padding:14px;font-family:inherit;font-size:15px;font-weight:800;cursor:default;box-shadow:var(--shadow-sm)}
+.ghost{background:transparent;border:none;color:var(--on-s-var);font-weight:700;font-size:14px;padding:12px;cursor:default}
+.errline{color:var(--error);font-size:13px;font-weight:700;margin-top:10px;display:flex;gap:6px;align-items:center}
+
+@media(max-width:820px){.dualcal{grid-template-columns:1fr}.passghost{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="page-head">
+  <h1>Create Trip — three directions for the elevated inline form</h1>
+  <p>Same 3 honest fields (name · start · end) · same inline placement on <b>/trips</b> · Horizon tokens · differing on visual register and how you pick the date range.</p>
+</div>
+
+<div class="grid">
+
+<!-- ============ DIRECTION A ============ -->
+<section class="dir">
+  <div class="dir-tag"><span class="n">Direction A</span><h2>Boarding Pass Stub</h2></div>
+  <p class="dir-why">The form <b>is</b> a blank boarding pass you fill in — accent spine, a perforated stub, the trip name as the big route line. Dates are picked in <b>one always-open dual-month range calendar</b> (no popovers): tap depart, tap return, done. Most on-brand, most guided; tallest.</p>
+  <div class="browser">
+    <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tripplanner.app/trips</span></div>
+    <div class="viewport">
+      <div class="apphead"><h3>My trips</h3><button class="newbtn">✈ New trip</button></div>
+
+      <!-- pass-styled create form -->
+      <div style="display:flex;background:var(--s-lowest);border:1px solid var(--outline-var);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);overflow:hidden">
+        <div style="width:7px;background:linear-gradient(var(--primary),var(--primary-container))"></div>
+        <div style="flex:1;padding:22px 24px">
+          <div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--tertiary);margin-bottom:4px">New boarding pass — issuing</div>
+          <label class="fld" style="margin-top:8px">Trip name</label>
+          <input class="input" style="font-size:20px;font-weight:800" value="Đà Nẵng escape" >
+          <div style="margin-top:18px">
+            <label class="fld">Depart → Return</label>
+            <div style="display:flex;gap:10px;margin-bottom:12px">
+              <div class="input" style="flex:1;font-weight:700;display:flex;justify-content:space-between"><span>12 Aug 2026</span><span style="color:var(--primary)">✈</span></div>
+              <div class="input" style="flex:1;font-weight:700">16 Aug 2026</div>
+            </div>
+            <div class="dualcal">
+              <div class="cal">
+                <div class="cal-head"><span class="cal-nav">‹</span><b>August 2026</b><span class="cal-nav">›</span></div>
+                <div class="cal-grid">
+                  <span class="dow">S</span><span class="dow">M</span><span class="dow">T</span><span class="dow">W</span><span class="dow">T</span><span class="dow">F</span><span class="dow">S</span>
+                  <span class="d mut">27</span><span class="d mut">28</span><span class="d mut">29</span><span class="d mut">30</span><span class="d mut">31</span><span class="d">1</span><span class="d">2</span>
+                  <span class="d">3</span><span class="d">4</span><span class="d">5</span><span class="d">6</span><span class="d">7</span><span class="d">8</span><span class="d">9</span>
+                  <span class="d">10</span><span class="d">11</span><span class="d start">12</span><span class="d inr">13</span><span class="d inr">14</span><span class="d inr">15</span><span class="d end">16</span>
+                  <span class="d">17</span><span class="d">18</span><span class="d">19</span><span class="d">20</span><span class="d">21</span><span class="d">22</span><span class="d">23</span>
+                  <span class="d">24</span><span class="d">25</span><span class="d">26</span><span class="d">27</span><span class="d">28</span><span class="d">29</span><span class="d">30</span>
+                </div>
+              </div>
+              <div class="cal">
+                <div class="cal-head"><span class="cal-nav">‹</span><b>September 2026</b><span class="cal-nav">›</span></div>
+                <div class="cal-grid">
+                  <span class="dow">S</span><span class="dow">M</span><span class="dow">T</span><span class="dow">W</span><span class="dow">T</span><span class="dow">F</span><span class="dow">S</span>
+                  <span class="d mut">31</span><span class="d">1</span><span class="d">2</span><span class="d">3</span><span class="d">4</span><span class="d">5</span><span class="d">6</span>
+                  <span class="d">7</span><span class="d">8</span><span class="d">9</span><span class="d">10</span><span class="d">11</span><span class="d">12</span><span class="d">13</span>
+                  <span class="d">14</span><span class="d">15</span><span class="d">16</span><span class="d">17</span><span class="d">18</span><span class="d">19</span><span class="d">20</span>
+                  <span class="d">21</span><span class="d">22</span><span class="d">23</span><span class="d">24</span><span class="d">25</span><span class="d">26</span><span class="d">27</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- perforated stub -->
+        <div style="width:150px;border-left:2px dashed var(--outline-var);padding:22px 18px;display:flex;flex-direction:column;justify-content:space-between;background:var(--s-low)">
+          <div>
+            <div style="font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--on-s-var)">Duration</div>
+            <div style="font-size:26px;font-weight:800;line-height:1;margin-top:4px">5<span style="font-size:13px;font-weight:800"> days</span></div>
+          </div>
+          <button class="cta" style="border-radius:var(--r-md);padding:12px 8px;font-size:14px">Create trip</button>
+        </div>
+      </div>
+      <div class="passghost">
+        <div class="p"><div class="pin"><b>Kyoto in autumn</b><span>3 Nov ✈ 9 Nov</span><br><span class="mini-pill">In 108 days</span></div></div>
+        <div class="p"><div class="pin"><b>Weekend in Hội An</b><span>20 Jul ✈ 22 Jul</span><br><span class="mini-pill">Tomorrow</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DIRECTION B ============ -->
+<section class="dir">
+  <div class="dir-tag"><span class="n">Direction B</span><h2>Ticket Counter (compact)</h2></div>
+  <p class="dir-why">Restrained, quick, business-like. A tidy elevated card with a thin accent rule. The two dates share <b>one range field</b> that opens a <b>single popover</b> range calendar — closed by default, so the form stays short. Least thematic, fastest to scan; matches the calm of the pass grid without competing with it.</p>
+  <div class="browser">
+    <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tripplanner.app/trips</span></div>
+    <div class="viewport">
+      <div class="apphead"><h3>My trips</h3><button class="newbtn">✈ New trip</button></div>
+      <div style="background:var(--s-lowest);border:1px solid var(--outline-var);border-top:3px solid var(--primary);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);padding:22px 24px;max-width:560px">
+        <div style="font-size:17px;font-weight:800;margin-bottom:16px">New trip</div>
+        <label class="fld">Trip name</label>
+        <input class="input" value="Đà Nẵng escape">
+        <label class="fld" style="margin-top:16px">Dates</label>
+        <div class="input" style="display:flex;align-items:center;justify-content:space-between;cursor:default">
+          <span style="font-weight:700">12 Aug — 16 Aug 2026</span>
+          <span style="color:var(--primary)">📅</span>
+        </div>
+        <div class="hint">Pick your departure, then your return, in one calendar.</div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:20px">
+          <button class="cta" style="flex:1">Create trip</button>
+          <button class="ghost">Cancel</button>
+        </div>
+      </div>
+      <div class="passghost">
+        <div class="p"><div class="pin"><b>Kyoto in autumn</b><span>3 Nov ✈ 9 Nov</span><br><span class="mini-pill">In 108 days</span></div></div>
+        <div class="p"><div class="pin"><b>Weekend in Hội An</b><span>20 Jul ✈ 22 Jul</span><br><span class="mini-pill">Tomorrow</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DIRECTION C ============ -->
+<section class="dir">
+  <div class="dir-tag"><span class="n">Direction C</span><h2>Departure Board</h2></div>
+  <p class="dir-why">Leans into the airport departures aesthetic — uppercase mono-ish field labels, a segmented date summary that reads like a flight strip. One <b>inline single-month range calendar</b> (compromise between A and B). Shown here in its <b>validation-error state</b> so you can see how guidance reads.</p>
+  <div class="browser">
+    <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tripplanner.app/trips</span></div>
+    <div class="viewport">
+      <div class="apphead"><h3>My trips</h3><button class="newbtn">✈ New trip</button></div>
+      <div style="background:#0b1c30;color:#fff;border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:24px;max-width:620px">
+        <div style="font-family:ui-monospace,'Cascadia Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--secondary-container);margin-bottom:16px">◈ NEW DEPARTURE — ISSUING PASS</div>
+        <label class="fld" style="color:var(--secondary-container)">Trip name</label>
+        <input class="input" style="background:#12263f;border-color:#2a4straight;border:1.5px solid #35507a;color:#fff" value="Đà Nẵng escape">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+          <div>
+            <label class="fld" style="color:var(--secondary-container)">Depart</label>
+            <div class="input" style="background:#12263f;border:1.5px solid #35507a;color:#fff;font-family:ui-monospace,monospace;font-weight:700">16 AUG 2026</div>
+          </div>
+          <div>
+            <label class="fld" style="color:var(--secondary-container)">Return</label>
+            <div class="input" style="background:#12263f;border:1.5px solid var(--error);color:#fff;font-family:ui-monospace,monospace;font-weight:700">12 AUG 2026</div>
+          </div>
+        </div>
+        <div class="errline" style="color:#ffb4ab">⚠ Your return is before your departure — pick a return on or after 16 Aug.</div>
+        <div class="cal" style="background:#12263f;border-color:#35507a;margin-top:16px">
+          <div class="cal-head"><span class="cal-nav" style="color:#9fb4d6">‹</span><b style="color:#fff">August 2026</b><span class="cal-nav" style="color:#9fb4d6">›</span></div>
+          <div class="cal-grid">
+            <span class="dow" style="color:#9fb4d6">S</span><span class="dow" style="color:#9fb4d6">M</span><span class="dow" style="color:#9fb4d6">T</span><span class="dow" style="color:#9fb4d6">W</span><span class="dow" style="color:#9fb4d6">T</span><span class="dow" style="color:#9fb4d6">F</span><span class="dow" style="color:#9fb4d6">S</span>
+            <span class="d" style="color:#5f7396">27</span><span class="d" style="color:#5f7396">28</span><span class="d" style="color:#5f7396">29</span><span class="d" style="color:#5f7396">30</span><span class="d" style="color:#5f7396">31</span><span class="d" style="color:#cfe">1</span><span class="d" style="color:#cfe">2</span>
+            <span class="d" style="color:#cfe">3</span><span class="d" style="color:#cfe">4</span><span class="d" style="color:#cfe">5</span><span class="d" style="color:#cfe">6</span><span class="d" style="color:#cfe">7</span><span class="d" style="color:#cfe">8</span><span class="d" style="color:#cfe">9</span>
+            <span class="d" style="color:#cfe">10</span><span class="d" style="color:#cfe">11</span><span class="d start">12</span><span class="d" style="color:#cfe">13</span><span class="d" style="color:#cfe">14</span><span class="d" style="color:#cfe">15</span><span class="d start">16</span>
+            <span class="d" style="color:#cfe">17</span><span class="d" style="color:#cfe">18</span><span class="d" style="color:#cfe">19</span><span class="d" style="color:#cfe">20</span><span class="d" style="color:#cfe">21</span><span class="d" style="color:#cfe">22</span><span class="d" style="color:#cfe">23</span>
+          </div>
+        </div>
+        <button class="cta" style="margin-top:18px;background:var(--secondary-container);color:var(--on-sec-container)" >Create trip</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

@@ -35,7 +35,143 @@ project: tripplanner
 # (+2 net), lint clean (2 pre-existing warnings), production build green. Moved
 # to done.
 
-last_updated: 2026-07-18
+last_updated: 2026-07-23
+
+# 2026-07-22: 1-5-attraction-list-pagination code-reviewed (adversarial, 4 layers:
+# blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor; reviewed
+# alongside the intermingled uncommitted 1-4 filter/sort files per user request) —
+# 3 decisions + 3 patches resolved, 1 deferred, 5 dismissed. Decisions: (1) accept +
+# defer hardening of the Approach B short-page / cross-call-reorder gaps for optional
+# AC7; (2) restore default rate floor 2 (1-4 had silently lowered it to 1, contra its
+# own "byte-for-byte" note); (3) accept + document client "rating" sort ordering only
+# loaded pages + reflow-on-append. Patches: gated AttractionControls on
+# items-empty so they no longer vanish on a Load-more error (useInfiniteQuery flips
+# top-level isError); capped getNextPageParam at ATTRACTIONS_MAX_OFFSET=1000 so deep
+# paging stops instead of 400-looping at offset 1020; added a suggestion-dropdown
+# filter-reset test + a controls-persist assertion. Deferred: Approach B under-return
+# limitation + O(n²) deep-paging re-fetch cost. BE 259/259, FE 288/288 (+1), lint clean
+# (2 pre-existing warnings), both builds green. Live browser/Playwright QA still
+# deferred (no browser tooling). Moved to done.
+
+# 2026-07-22: 1-5-attraction-list-pagination picked up for dev-story
+# implementation. Task 0 provider check: the OpenTripMap docs site is parked/
+# JS-rendered and the swagger requires an API key, so live confirmation of a
+# /radius `offset` parameter could not be obtained. Per the story's Task 0
+# contingency, chose Approach B (expand-and-slice): request /radius with an
+# expanded limit (offset+pageSize) and slice the page window client-of-provider,
+# enriching ONLY the requested page's xids. Robust regardless of provider offset
+# support (relies only on the proven `limit` param) and keeps page-1 behavior
+# byte-for-byte identical (offset=0 → limit unchanged).
+
+# 2026-07-22: 1-5-attraction-list-pagination implemented — all 5 tasks done.
+# BE: AttractionSearchParameter.Offset (validated 0–1000) → clamped in
+# GetAttractionsForLocationUseCase → IAttractionSearchService.GetNearbyAsync
+# (new optional `offset` param) → OpenTripMapAttractionSearchService requests
+# /radius with limit=offset+pageSize and .Skip(offset).Take(limit), enriching
+# ONLY the page window (AC2/NFR2); offset=0 keeps the wire call byte-for-byte
+# identical to before. FE: getAttractions gained an optional offset arg (appended
+# only when >0); useAttractions is now useInfiniteQuery (pageParam=offset,
+# getNextPageParam returns next offset only when the last page had a full 20 →
+# hasNextPage drives control visibility), dedupe-by-xid over flattened pages,
+# auto-reset on new city/filter via query key. Accessible "Load more" control with
+# busy/disabled+aria-busy, a role=alert next-page-error retry that keeps loaded
+# items (works around v5 flipping top-level isError on a failed fetchNextPage), and
+# an aria-live running count. Page-1 calls getAttractions with 3 args so all
+# pre-existing assertions stayed green. Approach B chosen because live /radius
+# offset support was unconfirmable (see 2026-07-22 note above). BE 259/259 (+11),
+# FE 287/287 (+11), lint clean (2 pre-existing warnings), both builds green.
+# Live browser/Playwright QA deferred (no browser tooling). Moved to review.
+
+# 2026-07-21: 1-4-filter-and-sort-attractions implemented — all 6 tasks done.
+# BE: added Kinds/MinRate to AttractionSearchParameter, threaded through
+# GetAttractionsForLocationUseCase → IAttractionSearchService.GetNearbyAsync
+# (new optional kinds/minRate params) → OpenTripMap /radius query, preserving the
+# interesting_places/rate=2 defaults byte-for-byte when omitted. New
+# AttractionCategoryHelper curated allow-list (cultural/historic/architecture/
+# natural/amusements/foods — genuine OTM kinds codes forwarded verbatim) + rate
+# bounds; AttractionSearchParameterValidator rejects unknown categories / rate
+# outside 1–3 (400). FE: getAttractions/useAttractions thread an AttractionFilters
+# object (kinds+minRate in the query key so each combo caches independently);
+# new AttractionControls bar (category checkboxes + minimum-rating select + sort
+# select + Clear filters) on SearchPage; pure client-side sortAttractions for
+# "Highest rating" (unrated last, stable provider-order tiebreak, no refetch —
+# US5-AC4); filters reset on new city; filter-aware empty state. Server-side
+# filters / client-side sort per the story's scope decisions; filters+pagination
+# left to 1-5. BE 248/248 (+18), FE 276/276 (+16 net), lint clean (2 pre-existing
+# warnings), both builds green. Browser/Playwright QA deferred (no browser
+# tooling). Moved to review.
+
+# 2026-07-21: FE Feature-1 completeness check (ref requirement/Sheet1.html +
+# epic-1) — the committed in-scope stories US2 (search) + US3 (attractions list)
+# are fully implemented on the frontend; the audit's two US2 gaps (exact-match-
+# first ordering + AC6 "No attractions found." copy) are ALREADY fixed in the
+# working tree (SearchLocationsUseCase.cs:24, SearchPage.tsx:208) but uncommitted
+# and untested. Reopened epic-1 to in-progress and added the three deferred/
+# follow-up stories the user requested, logically separated: 1-4 (US4 filter +
+# US5 sort, combined — shared control surface), 1-5 (US3-AC7 optional pagination/
+# load-more), 1-6 (lock in + regression-test the already-shipped US2 ordering/copy
+# fix). All created via dev-story analysis; ready-for-dev. No implementation yet.
+
+# 2026-07-21: 6-4-attraction-detail-caching code-reviewed (adversarial, 4 layers:
+# blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor) — 1
+# decision + 2 patch findings all fixed, 1 low deferred, 9 dismissed. Fixes:
+# bounded MemoryCache SizeLimit=10000 + per-entry Size=1 (no eviction ceiling on
+# an anonymous endpoint); DetailCacheMinutes<=0 TTL guard falling back to 1440
+# (was a runtime ArgumentOutOfRangeException / 500 that also escaped the
+# EnrichAsync catch); new graceful-degradation test proving a throwing xid detail
+# fetch still returns a bare AttractionResponse. Deferred: non-injectable 600ms
+# retry delay in a test. BE 230/230, build 0/0. Moved to done.
+
+# 2026-07-21: added + implemented 6-4-attraction-detail-caching (epic-6 quality
+# work) — follow-up to the feature-1 verification report's carried-over NFR2
+# latency finding: the US3 attraction listing does 1 radius call + N per-xid
+# OpenTripMap detail calls. Introduced a shared IOpenTripMapPlaceClient (typed
+# HttpClient + IMemoryCache, key otm:place:{xid}, 24h absolute TTL, non-null-only,
+# 429 retry moved in) that both OpenTripMapAttractionSearchService (list
+# enrichment) and OpenTripMapDestinationDetailsService (detail page) delegate to,
+# so repeat xids are served from cache instead of re-hitting OpenTripMap. Details
+# service dropped its own HttpClient (now AddScoped). No API/schema change. The
+# other feature-1 follow-ups (US3-AC7 pagination optional/not-selected; US4
+# filter / US5 sort not-selected) are intentionally left absent — no story.
+
+# 2026-07-19: 3-6-move-destination-between-days code-reviewed — found + fixed the
+# reported "Destination already exists in this day." bug on cross-day drag. Root
+# cause: destinations are deduped globally by ExternalId (DestinationResolver
+# reuses the row), so the same place can sit in two days; a move onto a day that
+# already held it hit AC #2's 400 while the FE optimistic hook already deduped the
+# append — so the removal rolled back and the error flashed. Fix: made the move
+# idempotent — Trip.MoveDestinationBetweenDays appends to target only if absent,
+# use case drops the BadRequest guard (target-already-present now removes from
+# source + succeeds, matching the FE). Deliberate AC #2 deviation. BE 224 (+1),
+# FE 263 (+1), lint clean, build green. Still in review pending live drag QA.
+
+# 2026-07-19: 3-6-move-destination-between-days implemented — all 8 tasks done.
+# Added Trip.MoveDestinationBetweenDays (fromDay.RemoveDestination + toDay.AddDestination,
+# mirroring ScheduleFromSavedPlaces), a user-scoped MoveDestinationBetweenDaysUseCase
+# with same-day/source-day/target-day/dest-missing/dup-in-target guards, and PUT
+# /days/{date}/destinations/{destinationId}/move (body { toDate }) + DTO/parameter/2
+# validators. FE: resolveDragAction 'move' action (dest→other-day droppable or row,
+# incl. empty day), optimistic useMoveDestinationBetweenDays + rollback, cross-day
+# drag branch, and an accessible per-row "Move to day…" select (other days only) with
+# a move-error alert. NO migration/schema/mapper/Infrastructure change — purely
+# additive on 3-5's ordered join. BE 223 (+11), FE 262 (+20), lint clean (2 pre-existing
+# warnings), both builds green. Live cross-day drag QA deferred (no browser tooling) —
+# recommended at review. Moved to review.
+
+# 2026-07-19: added 3-6-move-destination-between-days (Feature 3 / US6, the
+# deferred day-to-day move). US4 (3-4) and US5 (3-5) have landed, so US6 now
+# "composes remove + add" exactly as the epic predicted. Approach: a new
+# Trip.MoveDestinationBetweenDays(destination, fromDay, toDay) aggregate mutator
+# = fromDay.RemoveDestination (renumbers) + toDay.AddDestination (appends),
+# mirroring ScheduleFromSavedPlaces. NO migration/schema/mapper change — 3-5's
+# TripDayDestination { Position } already carries ordering. BE: use case + PUT
+# /days/{date}/destinations/{destinationId}/move (body { toDate }) with guards
+# (source/target day NotFound, dest-not-in-source NotFound, dup-in-target
+# BadRequest, same-day BadRequest) + validators. FE: resolveDragAction gains a
+# 'move' action (dest→other-day droppable or row, incl. empty day), optimistic
+# useMoveDestinationBetweenDays + rollback, and an accessible "Move to day…"
+# select (other days only). Scope: append to target end; within-target ordering
+# stays US5. Created via create-story; ready-for-dev.
 
 # 2026-07-17: added 3-5-reorder-destinations-within-day (Feature 3 / US5, the
 # deferred within-day reorder story). Resolves the data-model prerequisite the
@@ -415,11 +551,15 @@ last_updated: 2026-07-18
 # review to ready-for-dev.
 
 development_status:
-  epic-1: done
+  epic-1: in-progress
+  1-4-filter-and-sort-attractions: done
+  1-5-attraction-list-pagination: done
+  1-6-location-relevance-ordering: ready-for-dev
   epic-2: done
   epic-3: in-progress
   3-4-schedule-destinations-into-day: done
   3-5-reorder-destinations-within-day: done
+  3-6-move-destination-between-days: review
   epic-4: done
   epic-5: in-progress
   5-1-frontend-scaffold-and-api-client: done
@@ -433,6 +573,7 @@ development_status:
   6-1-backend-requirements-verification: review
   6-2-backend-code-review-epics-1-4: review
   6-3-fix-xid-import-destination-mapping: review
+  6-4-attraction-detail-caching: done
   epic-7: in-progress
   7-1-resend-email-integration: review
   7-2-email-provider-strategy-pattern: review
@@ -455,3 +596,5 @@ development_status:
   epic-9: in-progress
   9-1-dockerize-for-production: review
   5-18-verify-email-page-rebuild: review
+  epic-10: in-progress
+  10-1-redis-response-caching: review
