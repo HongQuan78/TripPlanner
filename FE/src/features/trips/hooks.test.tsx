@@ -15,6 +15,7 @@ vi.mock('./api', () => ({
   removeFromSavedPlaces: vi.fn(),
   scheduleSavedPlace: vi.fn(),
   reorderDayDestinations: vi.fn(),
+  moveDestinationBetweenDays: vi.fn(),
 }));
 
 import {
@@ -23,6 +24,7 @@ import {
   createTrip,
   getTrip,
   getTrips,
+  moveDestinationBetweenDays,
   removeDestinationFromDay,
   removeFromSavedPlaces,
   reorderDayDestinations,
@@ -33,6 +35,7 @@ import {
   useAddDestinationToDay,
   useAddToSavedPlaces,
   useCreateTrip,
+  useMoveDestinationBetweenDays,
   useRemoveDestinationFromDay,
   useRemoveFromSavedPlaces,
   useReorderDayDestinations,
@@ -83,6 +86,7 @@ beforeEach(() => {
   vi.mocked(removeFromSavedPlaces).mockReset();
   vi.mocked(scheduleSavedPlace).mockReset();
   vi.mocked(reorderDayDestinations).mockReset();
+  vi.mocked(moveDestinationBetweenDays).mockReset();
 });
 
 const firstDest = {
@@ -340,5 +344,74 @@ describe('useReorderDayDestinations', () => {
     });
     const cached = queryClient.getQueryData<Trip>(['trip', 7]);
     expect(cached?.tripDays[0].destinations.map((d) => d.id)).toEqual([1, 2]);
+  });
+});
+
+describe('useMoveDestinationBetweenDays', () => {
+  it('optimistically moves the destination from the source day to the end of the target day', async () => {
+    vi.mocked(moveDestinationBetweenDays).mockImplementation(() => new Promise(() => {}));
+    const { queryClient, Wrapper } = createWrapper();
+    queryClient.setQueryData(['trip', 7], {
+      ...trip,
+      tripDays: [
+        { day: '2026-08-01', destinations: [firstDest] },
+        { day: '2026-08-02', destinations: [secondDest] },
+      ],
+    });
+
+    const { result } = renderHook(() => useMoveDestinationBetweenDays(), { wrapper: Wrapper });
+    result.current.mutate({ tripId: 7, fromDate: '2026-08-01', destinationId: 1, toDate: '2026-08-02' });
+
+    await waitFor(() => {
+      const cached = queryClient.getQueryData<Trip>(['trip', 7]);
+      expect(cached?.tripDays[0].destinations.map((d) => d.id)).toEqual([]);
+      expect(cached?.tripDays[1].destinations.map((d) => d.id)).toEqual([2, 1]);
+    });
+    expect(moveDestinationBetweenDays).toHaveBeenCalledWith(7, '2026-08-01', 1, {
+      toDate: '2026-08-02',
+    });
+  });
+
+  it('removes from the source without duplicating when the target day already has the destination', async () => {
+    vi.mocked(moveDestinationBetweenDays).mockImplementation(() => new Promise(() => {}));
+    const { queryClient, Wrapper } = createWrapper();
+    queryClient.setQueryData(['trip', 7], {
+      ...trip,
+      tripDays: [
+        { day: '2026-08-01', destinations: [firstDest] },
+        { day: '2026-08-02', destinations: [firstDest] },
+      ],
+    });
+
+    const { result } = renderHook(() => useMoveDestinationBetweenDays(), { wrapper: Wrapper });
+    result.current.mutate({ tripId: 7, fromDate: '2026-08-01', destinationId: 1, toDate: '2026-08-02' });
+
+    await waitFor(() => {
+      const cached = queryClient.getQueryData<Trip>(['trip', 7]);
+      expect(cached?.tripDays[0].destinations.map((d) => d.id)).toEqual([]);
+      expect(cached?.tripDays[1].destinations.map((d) => d.id)).toEqual([1]);
+    });
+  });
+
+  it('rolls back the optimistic move when the request fails', async () => {
+    vi.mocked(moveDestinationBetweenDays).mockRejectedValue(new Error('Move failed.'));
+    const { queryClient, Wrapper } = createWrapper();
+    queryClient.setQueryData(['trip', 7], {
+      ...trip,
+      tripDays: [
+        { day: '2026-08-01', destinations: [firstDest] },
+        { day: '2026-08-02', destinations: [secondDest] },
+      ],
+    });
+
+    const { result } = renderHook(() => useMoveDestinationBetweenDays(), { wrapper: Wrapper });
+    result.current.mutate({ tripId: 7, fromDate: '2026-08-01', destinationId: 1, toDate: '2026-08-02' });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+    const cached = queryClient.getQueryData<Trip>(['trip', 7]);
+    expect(cached?.tripDays[0].destinations.map((d) => d.id)).toEqual([1]);
+    expect(cached?.tripDays[1].destinations.map((d) => d.id)).toEqual([2]);
   });
 });

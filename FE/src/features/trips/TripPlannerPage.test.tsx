@@ -18,10 +18,12 @@ vi.mock('./api', () => ({
   removeFromSavedPlaces: vi.fn(),
   scheduleSavedPlace: vi.fn(),
   reorderDayDestinations: vi.fn(),
+  moveDestinationBetweenDays: vi.fn(),
 }));
 
 import {
   getTrip,
+  moveDestinationBetweenDays,
   removeDestinationFromDay,
   removeFromSavedPlaces,
   reorderDayDestinations,
@@ -34,6 +36,7 @@ const removeDestinationFromDayMock = vi.mocked(removeDestinationFromDay);
 const removeFromSavedPlacesMock = vi.mocked(removeFromSavedPlaces);
 const scheduleSavedPlaceMock = vi.mocked(scheduleSavedPlace);
 const reorderDayDestinationsMock = vi.mocked(reorderDayDestinations);
+const moveDestinationBetweenDaysMock = vi.mocked(moveDestinationBetweenDays);
 const updateTripMock = vi.mocked(updateTrip);
 
 const savedLouvre = {
@@ -116,6 +119,7 @@ beforeEach(() => {
   removeFromSavedPlacesMock.mockReset();
   scheduleSavedPlaceMock.mockReset();
   reorderDayDestinationsMock.mockReset();
+  moveDestinationBetweenDaysMock.mockReset();
   updateTripMock.mockReset();
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 6, 1, 9, 0));
@@ -614,6 +618,61 @@ describe('TripPlannerPage', () => {
     expect(screen.getByRole('button', { name: 'Move Louvre Museum up' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Move Eiffel Tower down' })).toBeDisabled();
   });
+
+  it('moves a destination to another day via the accessible Move-to-day select', async () => {
+    getTripMock.mockResolvedValue(tripTwoDests);
+    moveDestinationBetweenDaysMock.mockImplementation(() => new Promise(() => {}));
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText('Move Louvre Museum to another day'), {
+      target: { value: '2026-08-02' },
+    });
+
+    await waitFor(() => {
+      expect(moveDestinationBetweenDaysMock).toHaveBeenCalledWith(7, '2026-08-01', 42, {
+        toDate: '2026-08-02',
+      });
+    });
+  });
+
+  it('excludes the row own day from the Move-to-day options', async () => {
+    getTripMock.mockResolvedValue(tripTwoDests);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+    });
+
+    const select = screen.getByLabelText('Move Louvre Museum to another day');
+    const optionValues = within(select)
+      .getAllByRole('option')
+      .map((option) => (option as HTMLOptionElement).value);
+    expect(optionValues).toEqual(['', '2026-08-02']);
+  });
+
+  it('rolls back and shows an alert when a cross-day move fails', async () => {
+    getTripMock.mockResolvedValue(tripTwoDests);
+    moveDestinationBetweenDaysMock.mockRejectedValue(
+      new ApiError(400, 'Destination already exists in this day.'),
+    );
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText('Move Louvre Museum to another day'), {
+      target: { value: '2026-08-02' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Destination already exists in this day.');
+    });
+  });
 });
 
 describe('resolveDragAction', () => {
@@ -643,16 +702,34 @@ describe('resolveDragAction', () => {
     });
   });
 
-  it('is a no-op when a row is dragged onto a different day (US6 out of scope)', () => {
-    expect(resolveDragAction('dest-2026-08-01-42', 'dest-2026-08-02-43', days)).toBeNull();
+  it('moves a row dropped onto a destination row of a different day (US6)', () => {
+    expect(resolveDragAction('dest-2026-08-01-42', 'dest-2026-08-02-43', days)).toEqual({
+      kind: 'move',
+      destinationId: 42,
+      fromDate: '2026-08-01',
+      toDate: '2026-08-02',
+    });
+  });
+
+  it('moves a row dropped onto a different (empty) day droppable (US6)', () => {
+    expect(resolveDragAction('dest-2026-08-01-42', 'day-2026-08-02', days)).toEqual({
+      kind: 'move',
+      destinationId: 42,
+      fromDate: '2026-08-01',
+      toDate: '2026-08-02',
+    });
   });
 
   it('is a no-op when the row is dropped over itself', () => {
     expect(resolveDragAction('dest-2026-08-01-42', 'dest-2026-08-01-42', days)).toBeNull();
   });
 
+  it('is a no-op when a row is dropped over its own day droppable', () => {
+    expect(resolveDragAction('dest-2026-08-01-42', 'day-2026-08-01', days)).toBeNull();
+  });
+
   it('is a no-op when the active id matches no known handler', () => {
     expect(resolveDragAction('place-99', 'saved-list', days)).toBeNull();
-    expect(resolveDragAction('dest-2026-08-01-42', 'day-2026-08-02', days)).toBeNull();
+    expect(resolveDragAction('dest-2026-08-01-42', 'saved-list', days)).toBeNull();
   });
 });

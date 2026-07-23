@@ -30,6 +30,9 @@ public class TripDayServiceTests
     private ReorderDayDestinationsUseCase ReorderUseCase() =>
         new(_tripRepository, _unitOfWork, _mapper);
 
+    private MoveDestinationBetweenDaysUseCase MoveUseCase() =>
+        new(_tripRepository, _unitOfWork, _mapper);
+
     private static T SetId<T>(T destination, int id) where T : Destination
     {
         typeof(Destination)
@@ -424,6 +427,135 @@ public class TripDayServiceTests
         Assert.True(result.IsSuccess);
         Assert.Equal(expected, result.Data);
         Assert.Equal(new[] { 3, 1, 2 }, tripDay.Destinations.Select(x => x.Id));
+        await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task MoveDestinationBetweenDaysAsync_TripNotFound_ReturnsNotFoundFailure()
+    {
+        _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns((Trip?)null);
+
+        var result = await MoveUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), 1, new DateOnly(2024, 6, 2), 1);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.NotFound, result.Error!.ErrorType);
+        Assert.Equal("Trip Not Found", result.Error.Description);
+        await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task MoveDestinationBetweenDaysAsync_TripOwnedByAnotherUser_ReturnsNotFoundFailure()
+    {
+        _tripRepository.GetWithDaysAndDestinationsAsync(1, 2, Arg.Any<CancellationToken>()).Returns((Trip?)null);
+
+        var result = await MoveUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), 1, new DateOnly(2024, 6, 2), 2);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.NotFound, result.Error!.ErrorType);
+        Assert.Equal("Trip Not Found", result.Error.Description);
+    }
+
+    [Fact]
+    public async Task MoveDestinationBetweenDaysAsync_SameDay_ReturnsBadRequestAndDoesNotSave()
+    {
+        var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
+        var day = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 1));
+        day.AddDestination(SetId(new Landmark("First", 4.0, "9am-5pm"), 1));
+        _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
+
+        var result = await MoveUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), 1, new DateOnly(2024, 6, 1), 1);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.BadRequest, result.Error!.ErrorType);
+        Assert.Equal("Source and target day must be different.", result.Error.Description);
+        await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task MoveDestinationBetweenDaysAsync_SourceDayNotFound_ReturnsNotFoundFailure()
+    {
+        var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
+        _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
+
+        var result = await MoveUseCase().ExecuteAsync(1, new DateOnly(2024, 7, 1), 1, new DateOnly(2024, 6, 2), 1);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.NotFound, result.Error!.ErrorType);
+        Assert.Equal("Day Not Found", result.Error.Description);
+        await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task MoveDestinationBetweenDaysAsync_TargetDayNotFound_ReturnsNotFoundFailure()
+    {
+        var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
+        var fromDay = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 1));
+        fromDay.AddDestination(SetId(new Landmark("First", 4.0, "9am-5pm"), 1));
+        _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
+
+        var result = await MoveUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), 1, new DateOnly(2024, 7, 1), 1);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.NotFound, result.Error!.ErrorType);
+        Assert.Equal("Day Not Found", result.Error.Description);
+        await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task MoveDestinationBetweenDaysAsync_DestinationNotInSourceDay_ReturnsNotFoundFailure()
+    {
+        var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
+        _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
+
+        var result = await MoveUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), 99, new DateOnly(2024, 6, 2), 1);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.NotFound, result.Error!.ErrorType);
+        Assert.Equal("Destination is not in this day.", result.Error.Description);
+        await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task MoveDestinationBetweenDaysAsync_DestinationAlreadyInTargetDay_RemovesFromSourceWithoutDuplicating()
+    {
+        var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
+        var fromDay = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 1));
+        var toDay = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 2));
+        fromDay.AddDestination(SetId(new Landmark("Duplicate", 4.0, "9am-5pm"), 1));
+        toDay.AddDestination(SetId(new Landmark("Duplicate", 4.0, "9am-5pm"), 1));
+        var expected = new TripResponse { Id = 1, Name = "Test" };
+        _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
+        _mapper.MapToTripResponse(trip).Returns(expected);
+
+        var result = await MoveUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), 1, new DateOnly(2024, 6, 2), 1);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(expected, result.Data);
+        Assert.Empty(fromDay.Destinations);
+        Assert.Equal(new[] { 1 }, toDay.Destinations.Select(x => x.Id));
+        await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task MoveDestinationBetweenDaysAsync_ValidMove_MovesAppendsAndReturnsMappedTrip()
+    {
+        var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
+        var fromDay = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 1));
+        var toDay = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 2));
+        fromDay.AddDestination(SetId(new Landmark("Moving", 4.0, "9am-5pm"), 1));
+        fromDay.AddDestination(SetId(new Landmark("Staying", 4.1, "9am-5pm"), 2));
+        toDay.AddDestination(SetId(new Landmark("Existing", 4.2, "9am-5pm"), 3));
+        var expected = new TripResponse { Id = 1, Name = "Test" };
+
+        _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
+        _mapper.MapToTripResponse(trip).Returns(expected);
+
+        var result = await MoveUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), 1, new DateOnly(2024, 6, 2), 1);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(expected, result.Data);
+        Assert.Equal(new[] { 2 }, fromDay.Destinations.Select(x => x.Id));
+        Assert.Equal(new[] { 3, 1 }, toDay.Destinations.Select(x => x.Id));
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }

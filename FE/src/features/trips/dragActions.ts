@@ -12,7 +12,8 @@ export function parseDestId(id: string): { date: string; destinationId: number }
 
 export type DragAction =
   | { kind: 'schedule'; destinationId: number; date: string }
-  | { kind: 'reorder'; date: string; orderedIds: number[] };
+  | { kind: 'reorder'; date: string; orderedIds: number[] }
+  | { kind: 'move'; destinationId: number; fromDate: string; toDate: string };
 
 export function resolveDragAction(
   activeId: string,
@@ -30,12 +31,32 @@ export function resolveDragAction(
     return null;
   }
 
-  if (activeId.startsWith('dest-') && overId.startsWith('dest-')) {
+  if (activeId.startsWith('dest-')) {
     const activeDest = parseDestId(activeId);
-    const overDest = parseDestId(overId);
-    if (activeDest.date !== overDest.date) {
+    const toDate = overId.startsWith('dest-')
+      ? parseDestId(overId).date
+      : overId.startsWith('day-')
+        ? overId.slice('day-'.length)
+        : null;
+
+    if (toDate === null) {
       return null;
     }
+
+    if (toDate !== activeDest.date) {
+      return {
+        kind: 'move',
+        destinationId: activeDest.destinationId,
+        fromDate: activeDest.date,
+        toDate,
+      };
+    }
+
+    if (!overId.startsWith('dest-')) {
+      return null;
+    }
+
+    const overDest = parseDestId(overId);
     const day = tripDays.find((item) => item.day === activeDest.date);
     if (!day) {
       return null;

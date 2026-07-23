@@ -24,6 +24,7 @@ import EditTripForm from './EditTripForm';
 import { resolveDragAction } from './dragActions';
 import StarRating from '@/features/destinations/StarRating';
 import {
+  useMoveDestinationBetweenDays,
   useRemoveDestinationFromDay,
   useRemoveFromSavedPlaces,
   useReorderDayDestinations,
@@ -46,17 +47,21 @@ function DestinationRow({
   sortableId,
   isFirst,
   isLast,
+  otherDays,
   onRemove,
   onMoveUp,
   onMoveDown,
+  onMoveToDay,
 }: {
   destination: Destination;
   sortableId: string;
   isFirst: boolean;
   isLast: boolean;
+  otherDays: TripDay[];
   onRemove: (destination: Destination) => void;
   onMoveUp: (destination: Destination) => void;
   onMoveDown: (destination: Destination) => void;
+  onMoveToDay: (destination: Destination, toDate: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: sortableId,
@@ -83,7 +88,7 @@ function DestinationRow({
       <button
         type="button"
         className={styles.dragHandle}
-        aria-label={`Reorder ${destination.name}`}
+        aria-label={`Reorder or move ${destination.name}`}
         {...attributes}
         {...listeners}
       >
@@ -118,6 +123,26 @@ function DestinationRow({
           <span aria-hidden="true">↓</span>
         </button>
       </div>
+
+      {otherDays.length > 0 && (
+        <select
+          className={styles.assign}
+          aria-label={`Move ${destination.name} to another day`}
+          value=""
+          onChange={(event) => {
+            if (event.target.value !== '') {
+              onMoveToDay(destination, event.target.value);
+            }
+          }}
+        >
+          <option value="">Move to day…</option>
+          {otherDays.map((day) => (
+            <option key={day.day} value={day.day}>
+              {formatDate(day.day)}
+            </option>
+          ))}
+        </select>
+      )}
 
       <button
         type="button"
@@ -207,22 +232,27 @@ function SavedPlaceCard({
 
 function DaySegment({
   day,
+  allDays,
   isToday,
   onRemove,
   onReorder,
   onAddDestination,
+  onMoveToDay,
   headingRef,
 }: {
   day: TripDay;
+  allDays: TripDay[];
   isToday: boolean;
   onRemove: (day: TripDay, destination: Destination) => void;
   onReorder: (day: TripDay, orderedIds: number[]) => void;
   onAddDestination: (day: TripDay) => void;
+  onMoveToDay: (fromDate: string, destination: Destination, toDate: string) => void;
   headingRef: (element: HTMLHeadingElement | null) => void;
 }) {
   const placeCount = day.destinations.length;
   const { setNodeRef, isOver } = useDroppable({ id: `day-${day.day}` });
   const sortableIds = day.destinations.map((destination) => `dest-${day.day}-${destination.id}`);
+  const otherDays = allDays.filter((item) => item.day !== day.day);
 
   function move(destination: Destination, direction: -1 | 1) {
     const ids = day.destinations.map((item) => item.id);
@@ -269,9 +299,11 @@ function DaySegment({
                 sortableId={`dest-${day.day}-${destination.id}`}
                 isFirst={index === 0}
                 isLast={index === placeCount - 1}
+                otherDays={otherDays}
                 onRemove={(target) => onRemove(day, target)}
                 onMoveUp={(target) => move(target, -1)}
                 onMoveDown={(target) => move(target, 1)}
+                onMoveToDay={(target, toDate) => onMoveToDay(day.day, target, toDate)}
               />
             ))}
           </ul>
@@ -300,6 +332,7 @@ export default function TripPlannerPage() {
   const scheduleSavedPlace = useScheduleSavedPlace();
   const removeSavedPlace = useRemoveFromSavedPlaces();
   const reorderDay = useReorderDayDestinations();
+  const moveDestination = useMoveDestinationBetweenDays();
   const [editing, setEditing] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState<{
     day: TripDay;
@@ -402,12 +435,23 @@ export default function TripPlannerPage() {
         ? 'Something went wrong while reordering. Please try again.'
         : null;
 
+  const moveError =
+    moveDestination.error instanceof ApiError
+      ? moveDestination.error.message
+      : moveDestination.isError
+        ? 'Something went wrong while moving. Please try again.'
+        : null;
+
   function schedule(destinationId: number, date: string) {
     scheduleSavedPlace.mutate({ tripId, date, destinationId });
   }
 
   function reorder(day: TripDay, orderedIds: number[]) {
     reorderDay.mutate({ tripId, date: day.day, destinationIds: orderedIds });
+  }
+
+  function moveToDay(fromDate: string, destination: Destination, toDate: string) {
+    moveDestination.mutate({ tripId, fromDate, destinationId: destination.id, toDate });
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -421,6 +465,15 @@ export default function TripPlannerPage() {
     }
     if (action.kind === 'schedule') {
       schedule(action.destinationId, action.date);
+      return;
+    }
+    if (action.kind === 'move') {
+      moveDestination.mutate({
+        tripId,
+        fromDate: action.fromDate,
+        destinationId: action.destinationId,
+        toDate: action.toDate,
+      });
       return;
     }
     reorderDay.mutate({ tripId, date: action.date, destinationIds: action.orderedIds });
@@ -507,6 +560,12 @@ export default function TripPlannerPage() {
         </p>
       )}
 
+      {moveError && (
+        <p className={styles.error} role="alert">
+          {moveError}
+        </p>
+      )}
+
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <section className={styles.saved} aria-labelledby="saved-places-heading">
           <div className={styles.savedHead}>
@@ -544,12 +603,14 @@ export default function TripPlannerPage() {
             <DaySegment
               key={day.day}
               day={day}
+              allDays={data.tripDays}
               isToday={status.kind === 'ongoing' && day.day === today}
               onRemove={(targetDay, destination) =>
                 setPendingRemoval({ day: targetDay, destination })
               }
               onReorder={reorder}
               onAddDestination={() => navigate('/')}
+              onMoveToDay={moveToDay}
               headingRef={(element) => {
                 if (element) {
                   dayHeadingRefs.current.set(day.day, element);

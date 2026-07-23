@@ -22,6 +22,7 @@ public static class TripEndpoints
         group.MapDelete("/{id:int}/saved-places/{destinationId:int}", RemoveDestinationFromSavedPlaces);
         group.MapPost("/{id:int}/days/{date}/schedule", ScheduleSavedPlace);
         group.MapPut("/{id:int}/days/{date}/destinations/order", ReorderDayDestinations);
+        group.MapPut("/{id:int}/days/{date}/destinations/{destinationId:int}/move", MoveDestination);
         return group;
     }
 
@@ -110,6 +111,18 @@ public static class TripEndpoints
     {
         var date = DateOnly.ParseExact(parameter.Date!, DateHelper.DateFormat, null);
         var result = await useCase.ExecuteAsync(parameter.Id, date, parameter.ReorderDayDestinationsRequest!.DestinationIds!, httpContext.User.GetUserId(), cancellationToken);
+        return result.ToResponse(onSuccess => Results.Ok(result.Data));
+    }
+
+    private static async Task<IResult> MoveDestination(
+        [AsParameters] MoveDestinationParameter parameter,
+        HttpContext httpContext,
+        IMoveDestinationBetweenDaysUseCase useCase,
+        CancellationToken cancellationToken)
+    {
+        var fromDate = DateOnly.ParseExact(parameter.Date!, DateHelper.DateFormat, null);
+        var toDate = DateOnly.ParseExact(parameter.MoveDestinationRequest!.ToDate!, DateHelper.DateFormat, null);
+        var result = await useCase.ExecuteAsync(parameter.Id, fromDate, parameter.DestinationId, toDate, httpContext.User.GetUserId(), cancellationToken);
         return result.ToResponse(onSuccess => Results.Ok(result.Data));
     }
 }

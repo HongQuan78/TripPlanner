@@ -44,6 +44,16 @@ public class Trip
         tripDay.AddDestination(destination);
     }
 
+    public void MoveDestinationBetweenDays(Destination destination, TripDay fromDay, TripDay toDay)
+    {
+        fromDay.RemoveDestination(destination);
+
+        if (!toDay.Destinations.Any(existing => existing.Id == destination.Id))
+        {
+            toDay.AddDestination(destination);
+        }
+    }
+
     private void GenerateDays()
     {
         for (DateOnly date = StartDate; date <= EndDate; date = date.AddDays(1))

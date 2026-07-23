@@ -5,6 +5,7 @@ import {
   createTrip,
   getTrip,
   getTrips,
+  moveDestinationBetweenDays,
   removeDestinationFromDay,
   removeFromSavedPlaces,
   reorderDayDestinations,
@@ -147,6 +148,60 @@ export function useScheduleSavedPlace() {
                 ? { ...day, destinations: [...day.destinations, moving] }
                 : day,
             ),
+          });
+        }
+      }
+
+      return { previousTrip };
+    },
+    onError: (_error, { tripId }, context) => {
+      if (context?.previousTrip) {
+        queryClient.setQueryData(['trip', tripId], context.previousTrip);
+      }
+    },
+    onSettled: (_data, _error, { tripId }) => {
+      void queryClient.invalidateQueries({ queryKey: ['trips'] });
+      void queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+    },
+  });
+}
+
+export function useMoveDestinationBetweenDays() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      tripId,
+      fromDate,
+      destinationId,
+      toDate,
+    }: {
+      tripId: number;
+      fromDate: string;
+      destinationId: number;
+      toDate: string;
+    }) => moveDestinationBetweenDays(tripId, fromDate, destinationId, { toDate }),
+    onMutate: async ({ tripId, fromDate, destinationId, toDate }) => {
+      await queryClient.cancelQueries({ queryKey: ['trip', tripId] });
+      const previousTrip = queryClient.getQueryData<Trip>(['trip', tripId]);
+
+      if (previousTrip) {
+        const sourceDay = previousTrip.tripDays.find((day) => day.day === fromDate);
+        const moving = sourceDay?.destinations.find((destination) => destination.id === destinationId);
+        if (moving) {
+          queryClient.setQueryData<Trip>(['trip', tripId], {
+            ...previousTrip,
+            tripDays: previousTrip.tripDays.map((day) => {
+              if (day.day === fromDate) {
+                return {
+                  ...day,
+                  destinations: day.destinations.filter((destination) => destination.id !== destinationId),
+                };
+              }
+              if (day.day === toDate && !day.destinations.some((destination) => destination.id === destinationId)) {
+                return { ...day, destinations: [...day.destinations, moving] };
+              }
+              return day;
+            }),
           });
         }
       }

@@ -5,6 +5,7 @@ import {
   createTrip,
   getTrip,
   getTrips,
+  moveDestinationBetweenDays,
   removeDestinationFromDay,
   removeFromSavedPlaces,
   reorderDayDestinations,
@@ -178,6 +179,20 @@ describe('reorderDayDestinations', () => {
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect(init.method).toBe('PUT');
     expect(JSON.parse(init.body as string)).toEqual({ destinationIds: [3, 1, 2] });
+    expect(parsed).toEqual(trip);
+  });
+});
+
+describe('moveDestinationBetweenDays', () => {
+  it('puts the target date to the destination move endpoint', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, trip));
+
+    const parsed = await moveDestinationBetweenDays(7, '2026-08-01', 42, { toDate: '2026-08-02' });
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/trips/7/days/2026-08-01/destinations/42/move');
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(init.body as string)).toEqual({ toDate: '2026-08-02' });
     expect(parsed).toEqual(trip);
   });
 });

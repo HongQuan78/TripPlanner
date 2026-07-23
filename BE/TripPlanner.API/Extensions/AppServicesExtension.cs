@@ -37,6 +37,7 @@ public static class AppServicesExtension
         services.AddScoped<IAddDestinationToTripDayUseCase, AddDestinationToTripDayUseCase>();
         services.AddScoped<IRemoveDestinationFromTripDayUseCase, RemoveDestinationFromTripDayUseCase>();
         services.AddScoped<IReorderDayDestinationsUseCase, ReorderDayDestinationsUseCase>();
+        services.AddScoped<IMoveDestinationBetweenDaysUseCase, MoveDestinationBetweenDaysUseCase>();
         services.AddScoped<IDestinationResolver, DestinationResolver>();
         services.AddScoped<IAddDestinationToSavedPlacesUseCase, AddDestinationToSavedPlacesUseCase>();
         services.AddScoped<IRemoveDestinationFromSavedPlacesUseCase, RemoveDestinationFromSavedPlacesUseCase>();

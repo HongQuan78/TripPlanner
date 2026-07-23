@@ -3,6 +3,7 @@ import type {
   AddDestinationToDayRequest,
   AddSavedPlaceRequest,
   CreateTripRequest,
+  MoveDestinationRequest,
   ReorderDayDestinationsRequest,
   ScheduleSavedPlaceRequest,
   Trip,
@@ -83,6 +84,18 @@ export function reorderDayDestinations(
   body: ReorderDayDestinationsRequest,
 ): Promise<Trip> {
   return request<Trip>(`/api/trips/${tripId}/days/${date}/destinations/order`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+export function moveDestinationBetweenDays(
+  tripId: number,
+  fromDate: string,
+  destinationId: number,
+  body: MoveDestinationRequest,
+): Promise<Trip> {
+  return request<Trip>(`/api/trips/${tripId}/days/${fromDate}/destinations/${destinationId}/move`, {
     method: 'PUT',
     body: JSON.stringify(body),
   });

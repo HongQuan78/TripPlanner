@@ -185,6 +185,77 @@ public class TripTests
         Assert.Equal(new[] { third, first, second }, tripDay.Destinations);
     }
 
+    [Fact]
+    public void MoveDestinationBetweenDays_RemovesFromSourceAndAppendsToTarget()
+    {
+        var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
+        var fromDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 1));
+        var toDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 2));
+        var moving = SetId(new Landmark("Moving", 4.0, "9am-5pm"), 1);
+        var staying = SetId(new Landmark("Staying", 4.1, "9am-5pm"), 2);
+        var existing = SetId(new Landmark("Existing", 4.2, "9am-5pm"), 3);
+        fromDay.AddDestination(moving);
+        fromDay.AddDestination(staying);
+        toDay.AddDestination(existing);
+
+        trip.MoveDestinationBetweenDays(moving, fromDay, toDay);
+
+        Assert.DoesNotContain(moving, fromDay.Destinations);
+        Assert.Equal(new[] { staying }, fromDay.Destinations);
+        Assert.Equal(new[] { existing, moving }, toDay.Destinations);
+    }
+
+    [Fact]
+    public void MoveDestinationBetweenDays_RenumbersSourceDayWithoutGaps()
+    {
+        var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
+        var fromDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 1));
+        var toDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 2));
+        var first = SetId(new Landmark("First", 4.0, "9am-5pm"), 1);
+        var second = SetId(new Landmark("Second", 4.1, "9am-5pm"), 2);
+        var third = SetId(new Landmark("Third", 4.2, "9am-5pm"), 3);
+        fromDay.AddDestination(first);
+        fromDay.AddDestination(second);
+        fromDay.AddDestination(third);
+
+        trip.MoveDestinationBetweenDays(first, fromDay, toDay);
+        trip.MoveDestinationBetweenDays(third, fromDay, toDay);
+
+        Assert.Equal(new[] { second }, fromDay.Destinations);
+        Assert.Equal(new[] { first, third }, toDay.Destinations);
+    }
+
+    [Fact]
+    public void MoveDestinationBetweenDays_TargetAlreadyHasDestination_RemovesFromSourceWithoutDuplicating()
+    {
+        var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
+        var fromDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 1));
+        var toDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 2));
+        var shared = SetId(new Landmark("Shared", 4.0, "9am-5pm"), 1);
+        fromDay.AddDestination(shared);
+        toDay.AddDestination(shared);
+
+        trip.MoveDestinationBetweenDays(shared, fromDay, toDay);
+
+        Assert.Empty(fromDay.Destinations);
+        Assert.Equal(new[] { shared }, toDay.Destinations);
+    }
+
+    [Fact]
+    public void MoveDestinationBetweenDays_MovingOnlyDestination_LeavesSourceEmpty()
+    {
+        var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
+        var fromDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 1));
+        var toDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 2));
+        var moving = SetId(new Landmark("Moving", 4.0, "9am-5pm"), 1);
+        fromDay.AddDestination(moving);
+
+        trip.MoveDestinationBetweenDays(moving, fromDay, toDay);
+
+        Assert.Empty(fromDay.Destinations);
+        Assert.Equal(new[] { moving }, toDay.Destinations);
+    }
+
     private static T SetId<T>(T destination, int id) where T : Destination
     {
         typeof(Destination)
