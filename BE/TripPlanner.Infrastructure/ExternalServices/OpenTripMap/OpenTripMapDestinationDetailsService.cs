@@ -1,28 +1,15 @@
-using System.Net;
-using System.Net.Http.Json;
-using Microsoft.Extensions.Options;
 using TripPlanner.Application.DTOs.Responses;
 using TripPlanner.Application.Interfaces.Services;
-using TripPlanner.Infrastructure.Settings;
 
 namespace TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
 
-public class OpenTripMapDestinationDetailsService(
-    HttpClient httpClient,
-    IOptions<OpenTripMapSettings> options,
+internal class OpenTripMapDestinationDetailsService(
+    IOpenTripMapPlaceClient placeClient,
     IDestinationImageProvider imageProvider) : IDestinationDetailsService
 {
     public async Task<DestinationDetailsResponse?> GetDetailsAsync(string xid, CancellationToken cancellationToken = default)
     {
-        var url = $"xid/{Uri.EscapeDataString(xid)}?apikey={options.Value.ApiKey}";
-        using var response = await httpClient.GetAsync(url, cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound)
-        {
-            return null;
-        }
-
-        response.EnsureSuccessStatusCode();
-        var place = await response.Content.ReadFromJsonAsync<OpenTripMapPlaceModel>(cancellationToken);
+        var place = await placeClient.GetPlaceAsync(xid, cancellationToken);
         if (place is null || string.IsNullOrWhiteSpace(place.Xid) || string.IsNullOrWhiteSpace(place.Name))
         {
             return null;

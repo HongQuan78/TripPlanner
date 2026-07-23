@@ -1,15 +1,39 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using TripPlanner.Application.DTOs.Responses;
 using TripPlanner.Application.Interfaces.Services;
+using TripPlanner.Infrastructure.Caching;
+using TripPlanner.Infrastructure.Settings;
 
 namespace TripPlanner.Infrastructure.ExternalServices.Photon;
 
-public class PhotonGeocodingService(HttpClient httpClient) : IGeocodingService
+internal class PhotonGeocodingService(
+    HttpClient httpClient,
+    IResponseCache cache,
+    IOptions<PhotonSettings> options) : IGeocodingService
 {
     private const int Limit = 5;
+    private const int DefaultCacheMinutes = 1440;
 
     public async Task<List<LocationSearchResultResponse>> SearchAsync(string query, string? countryCode = null, CancellationToken cancellationToken = default)
+    {
+        var cacheKey = $"geo:search:{query.Trim().ToLowerInvariant()}:{(string.IsNullOrWhiteSpace(countryCode) ? "any" : countryCode.Trim().ToLowerInvariant())}";
+        var cached = await cache.GetAsync<List<LocationSearchResultResponse>>(cacheKey, cancellationToken);
+        if (cached is not null)
+        {
+            return cached;
+        }
+
+        var results = await FetchAsync(query, cancellationToken);
+
+        var minutes = options.Value.SearchCacheMinutes > 0 ? options.Value.SearchCacheMinutes : DefaultCacheMinutes;
+        await cache.SetAsync(cacheKey, results, TimeSpan.FromMinutes(minutes), cancellationToken);
+
+        return results;
+    }
+
+    private async Task<List<LocationSearchResultResponse>> FetchAsync(string query, CancellationToken cancellationToken)
     {
         var url = $"?q={Uri.EscapeDataString(query)}&limit={Limit}&lang=en&layer=city&layer=country";
         using var response = await httpClient.GetAsync(url, cancellationToken);

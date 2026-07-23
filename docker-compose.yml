@@ -14,6 +14,18 @@ services:
       retries: 5
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   api:
     build:
       context: ./BE
@@ -21,9 +33,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__Redis: "redis:6379"
       JwtSettings__SecretKey: ${JwtSettings__SecretKey}
       OpenTripMapSettings__ApiKey: ${OpenTripMapSettings__ApiKey}
       EmailSettings__Provider: ${EmailSettings__Provider}
@@ -50,3 +65,4 @@ services:
 
 volumes:
   pgdata:
+  redisdata:

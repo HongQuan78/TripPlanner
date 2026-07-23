@@ -40,7 +40,8 @@ public class OpenTripMapDestinationDetailsServiceTests
         {
             BaseAddress = new Uri("https://api.opentripmap.com/0.1/en/places/")
         };
-        return new OpenTripMapDestinationDetailsService(httpClient, Options.Create(new OpenTripMapSettings()), imageProvider);
+        var placeClient = new OpenTripMapPlaceClient(httpClient, Options.Create(new OpenTripMapSettings()), TestCache.Create());
+        return new OpenTripMapDestinationDetailsService(placeClient, imageProvider);
     }
 
     [Fact]

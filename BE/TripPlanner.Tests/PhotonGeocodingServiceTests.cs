@@ -1,6 +1,8 @@
 using System.Net;
+using Microsoft.Extensions.Options;
 using Xunit;
 using TripPlanner.Infrastructure.ExternalServices.Photon;
+using TripPlanner.Infrastructure.Settings;
 
 namespace TripPlanner.Tests;
 
@@ -9,10 +11,12 @@ public class PhotonGeocodingServiceTests
     private sealed class FakeHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {
         public HttpRequestMessage? LastRequest { get; private set; }
+        public int RequestCount { get; private set; }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             LastRequest = request;
+            RequestCount++;
             return Task.FromResult(respond(request));
         }
     }
@@ -23,7 +27,7 @@ public class PhotonGeocodingServiceTests
         {
             BaseAddress = new Uri("https://photon.komoot.io/api/")
         };
-        return new PhotonGeocodingService(httpClient);
+        return new PhotonGeocodingService(httpClient, TestCache.Create(), Options.Create(new PhotonSettings()));
     }
 
     private const string MultiResultPayload = """
@@ -67,6 +71,38 @@ public class PhotonGeocodingServiceTests
         Assert.Contains("q=Ho", handler.LastRequest!.RequestUri!.Query);
         Assert.Contains("layer=city", handler.LastRequest.RequestUri.Query);
         Assert.Contains("layer=country", handler.LastRequest.RequestUri.Query);
+    }
+
+    [Fact]
+    public async Task SearchAsync_CalledTwiceForSameQuery_FetchesOnceAndServesFromCache()
+    {
+        var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(MultiResultPayload)
+        });
+        var service = CreateService(handler);
+
+        var first = await service.SearchAsync("Ho");
+        var second = await service.SearchAsync("  ho  ");
+
+        Assert.Equal(3, first.Count);
+        Assert.Equal(3, second.Count);
+        Assert.Equal(1, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task SearchAsync_DifferentQuery_IssuesSeparateRequest()
+    {
+        var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(MultiResultPayload)
+        });
+        var service = CreateService(handler);
+
+        await service.SearchAsync("Ho");
+        await service.SearchAsync("Paris");
+
+        Assert.Equal(2, handler.RequestCount);
     }
 
     [Fact]

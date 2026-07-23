@@ -21,6 +21,7 @@ public class SearchLocationsUseCase(IGeocodingService geocodingService) : ISearc
             var results = locations
                 .Where(location => !string.IsNullOrWhiteSpace(location.Name))
                 .DistinctBy(location => (location.Name.ToLowerInvariant(), location.CountryCode))
+                .OrderBy(location => location.IsPartialMatch)
                 .Take(MaxResults)
                 .Select(Classify)
                 .ToList();

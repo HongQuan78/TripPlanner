@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using TripPlanner.Application.Interfaces.Mapping;
 using TripPlanner.Application.Interfaces.Repositories;
 using TripPlanner.Application.Interfaces.Services;
+using TripPlanner.Infrastructure.Caching;
 using TripPlanner.Infrastructure.Data;
 using TripPlanner.Infrastructure.ExternalServices.Email;
 using TripPlanner.Infrastructure.ExternalServices.Google;
@@ -110,10 +111,31 @@ public static class InfrastructureServicesExtension
             .Validate(settings => settings.TimeoutMilliseconds > 0, "PhotonSettings:TimeoutMilliseconds must be greater than zero.")
             .ValidateOnStart();
 
+        var redisSettings = new RedisSettings();
+        configuration.GetSection(RedisSettings.SectionName).Bind(redisSettings);
+        services.Configure<RedisSettings>(options => configuration.GetSection(RedisSettings.SectionName).Bind(options));
+
+        string? redisConnectionString = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrWhiteSpace(redisConnectionString))
+        {
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnectionString;
+                options.InstanceName = redisSettings.InstanceName;
+            });
+        }
+        else
+        {
+            services.AddDistributedMemoryCache();
+        }
+
+        services.AddScoped<IResponseCache, RedisResponseCache>();
+
         services.AddHttpClient<IGeocodingService, PhotonGeocodingService>(ConfigurePhotonClient);
         services.AddHttpClient<IDestinationImageProvider, WikipediaImageProvider>(ConfigureWikipediaClient);
+        services.AddHttpClient<IOpenTripMapPlaceClient, OpenTripMapPlaceClient>(ConfigureOpenTripMapClient);
         services.AddHttpClient<IAttractionSearchService, OpenTripMapAttractionSearchService>(ConfigureOpenTripMapClient);
-        services.AddHttpClient<IDestinationDetailsService, OpenTripMapDestinationDetailsService>(ConfigureOpenTripMapClient);
+        services.AddScoped<IDestinationDetailsService, OpenTripMapDestinationDetailsService>();
 
         return services;
     }

@@ -6,4 +6,5 @@ public sealed class OpenTripMapSettings
     public string BaseUrl { get; init; } = "https://api.opentripmap.com/0.1/en/places";
     public string ApiKey { get; init; } = string.Empty;
     public int TimeoutMilliseconds { get; init; } = 5000;
+    public int DetailCacheMinutes { get; init; } = 1440;
 }
