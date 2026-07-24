@@ -217,6 +217,48 @@ public class LocationServiceTests
     }
 
     [Fact]
+    public async Task SearchLocations_EqualRelevanceResults_PreserveProviderOrder()
+    {
+        var parameter = new LocationSearchParameter { Query = "San" };
+        var locations = new List<LocationSearchResultResponse>
+        {
+            new() { Name = "San Diego", CountryCode = "US", IsPartialMatch = true },
+            new() { Name = "San Jose", CountryCode = "US", IsPartialMatch = true },
+            new() { Name = "San Antonio", CountryCode = "US", IsPartialMatch = true }
+        };
+        _geocodingService.SearchAsync("San", null, Arg.Any<CancellationToken>()).Returns(locations);
+
+        var result = await SearchUseCase().ExecuteAsync(parameter);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(["San Diego", "San Jose", "San Antonio"], result.Data!.Select(location => location.Name));
+    }
+
+    [Fact]
+    public async Task SearchLocations_MixedRelevance_ExactFirstThenProviderOrderWithinEachGroup()
+    {
+        var parameter = new LocationSearchParameter { Query = "York" };
+        var locations = new List<LocationSearchResultResponse>
+        {
+            new() { Name = "Yorktown", CountryCode = "US", IsPartialMatch = true },
+            new() { Name = "York", CountryCode = "GB", IsPartialMatch = false },
+            new() { Name = "Yorkville", CountryCode = "US", IsPartialMatch = true },
+            new() { Name = "York", CountryCode = "US", IsPartialMatch = false }
+        };
+        _geocodingService.SearchAsync("York", null, Arg.Any<CancellationToken>()).Returns(locations);
+
+        var result = await SearchUseCase().ExecuteAsync(parameter);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(
+            ["York", "York", "Yorktown", "Yorkville"],
+            result.Data!.Select(location => location.Name));
+        Assert.Equal(
+            ["GB", "US", "US", "US"],
+            result.Data!.Select(location => location.CountryCode));
+    }
+
+    [Fact]
     public async Task SearchLocations_TrimsQueryBeforeSearching()
     {
         var parameter = new LocationSearchParameter { Query = "  Paris  " };

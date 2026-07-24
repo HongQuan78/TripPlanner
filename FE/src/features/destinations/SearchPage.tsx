@@ -242,7 +242,7 @@ export default function SearchPage() {
             <span className={stateStyles.emoji} aria-hidden="true">
               🔍
             </span>
-            <p className={stateStyles.text}>No matching places found.</p>
+            <p className={stateStyles.text}>No attractions found.</p>
           </div>
         )}
 

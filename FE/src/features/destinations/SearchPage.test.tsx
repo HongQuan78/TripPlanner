@@ -227,18 +227,18 @@ describe('SearchPage', () => {
     expect(within(card).getByTestId('image-placeholder')).toBeInTheDocument();
   });
 
-  it('shows the no-results message when the search returns nothing', async () => {
+  it('shows the exact "No attractions found." message when the search returns nothing', async () => {
     searchLocationsMock.mockResolvedValue([]);
     renderPage();
 
     submitSearch('xyzzy');
 
     await waitFor(() => {
-      expect(screen.getByText(/no matching places found/i)).toBeInTheDocument();
+      expect(screen.getByText('No attractions found.')).toBeInTheDocument();
     });
   });
 
-  it('shows an empty state when a city has no attractions', async () => {
+  it('keeps a distinct empty state when a city has no attractions', async () => {
     searchLocationsMock.mockResolvedValue([parisCity]);
     getAttractionsMock.mockResolvedValue([]);
     renderPage();

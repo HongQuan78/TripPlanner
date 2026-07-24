@@ -4,7 +4,7 @@ baseline_commit: 698215edd82bf9fe4c3a9acfad629b4acce3be5e
 
 # Story 1.6: Lock In Exact-Match-First Location Ordering & "No attractions found" Copy (US2)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -56,16 +56,16 @@ Both files appear as modified (`M`) in `git status` — the fix landed without a
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Verify the shipped implementation (AC: #1, #3, #4)**
-  - [ ] Read `SearchLocationsUseCase.cs` and confirm `.OrderBy(location => location.IsPartialMatch)` sits after `DistinctBy` and before `Take(5)`; confirm `.OrderBy` is a stable sort (LINQ `OrderBy` is documented stable).
-  - [ ] Read the two `SearchPage` empty-state branches and confirm "No attractions found." is on the zero-search-results branch; note any conflation.
-- [ ] **Task 2 — Backend regression tests (AC: #1, #2)**
-  - [ ] In `LocationServiceTests.cs`, add: mixed exact/partial input → exact first; equal-relevance input → provider order preserved (stability); ensure dedupe + cap-at-5 still hold with ordering applied.
-- [ ] **Task 3 — Frontend regression test (AC: #3, #4)**
-  - [ ] In `SearchPage.test.tsx`, add/adjust a test asserting the exact "No attractions found." string on the zero-results branch (and that the city-no-attractions branch keeps its own copy).
-- [ ] **Task 4 — Commit + full validation (AC: #5, #6)**
-  - [ ] Stage the working-tree edits to `SearchLocationsUseCase.cs` and `SearchPage.tsx` together with the new tests.
-  - [ ] Run `dotnet build BE`, `dotnet test BE`, `npm test`, `npm run lint`, `npm run build`; fix regressions.
+- [x] **Task 1 — Verify the shipped implementation (AC: #1, #3, #4)**
+  - [x] Read `SearchLocationsUseCase.cs` and confirm `.OrderBy(location => location.IsPartialMatch)` sits after `DistinctBy` and before `Take(5)`; confirm `.OrderBy` is a stable sort (LINQ `OrderBy` is documented stable). **Confirmed at line 24 — and it is already committed (working tree clean), not uncommitted as the story assumed.**
+  - [x] Read the two `SearchPage` empty-state branches and confirm "No attractions found." is on the zero-search-results branch; note any conflation. **Defect found: the zero-search-results branch (line 245) still rendered the OLD copy "No matching places found." — the AC6 fix was never applied (the file was restructured by 5-14/5-17 after the story was drafted). The city-no-attractions branch (line 306-317) is separate and correctly distinct. No conflation.**
+- [x] **Task 2 — Backend regression tests (AC: #1, #2)**
+  - [x] In `LocationServiceTests.cs`, add: mixed exact/partial input → exact first; equal-relevance input → provider order preserved (stability); ensure dedupe + cap-at-5 still hold with ordering applied. **AC #1 mixed-order + cap-at-5 was already covered by pre-existing `_ExactMatch_IsRankedBeforePartialMatches` / `_ExactMatchBeyondTopFive_IsPromotedIntoResults` / dedupe-cap tests; added `_EqualRelevanceResults_PreserveProviderOrder` (AC #2 stability) and `_MixedRelevance_ExactFirstThenProviderOrderWithinEachGroup` (order + within-group stability; fails if `.OrderBy` is removed).**
+- [x] **Task 3 — Frontend regression test (AC: #3, #4)**
+  - [x] In `SearchPage.test.tsx`, add/adjust a test asserting the exact "No attractions found." string on the zero-results branch (and that the city-no-attractions branch keeps its own copy). **Tightened the zero-results test to assert the exact string `'No attractions found.'`; the city-no-attractions test (asserting `/no attractions in this area/i`) keeps the branches distinct.**
+- [x] **Task 4 — Commit + full validation (AC: #5, #6)**
+  - [x] Stage the production copy fix to `SearchPage.tsx` together with the new/updated tests. (The `SearchLocationsUseCase.cs` ordering edit was already committed, so no working-tree edit remained for it.)
+  - [x] Run `dotnet build BE`, `dotnet test BE`, `npm test`, `npm run lint`, `npm run build`; fix regressions. **All green: BE 266/266, FE 288/288, lint clean (2 pre-existing warnings), both builds pass.**
 
 ## Dev Notes
 
@@ -98,14 +98,36 @@ Both files appear as modified (`M`) in `git status` — the fix landed without a
 
 ### Agent Model Used
 
+claude-opus-4-8[1m] (Claude Code, dev-story workflow)
+
 ### Debug Log References
+
+- `dotnet test BE --filter "FullyQualifiedName~LocationServiceTests"` → 28/28 passed (includes 2 new tests).
+- `dotnet test BE` → 266/266 passed.
+- `npm test -- --run SearchPage` → 47/47 passed; `npm test -- --run` → 288/288 (26 files).
+- `npm run lint` → clean except 2 pre-existing `react(only-export-components)` warnings.
+- `npm run build` → success (pre-existing >500 kB chunk-size advisory only).
 
 ### Completion Notes List
 
+- **Verification corrected the story's premise.** The story assumed both US2 fixes were uncommitted in the working tree. In reality the working tree was clean: the `.OrderBy(location => location.IsPartialMatch)` ordering fix was already committed AND already covered by tests, while the AC6 copy fix had **never been applied** — `SearchPage.tsx` still rendered the old `"No matching places found."` on the zero-search-results branch (the file had been restructured by stories 5-14/5-17 after this story was drafted, discarding the referenced line-208 edit).
+- **AC #1 (exact-first ordering):** already satisfied by the pre-existing `SearchLocations_ExactMatch_IsRankedBeforePartialMatches` and `SearchLocations_ExactMatchBeyondTopFive_IsPromotedIntoResults` tests (both fail if `.OrderBy` is removed), plus the existing dedupe/cap-at-5 tests. No production change needed.
+- **AC #2 (stability):** added `SearchLocations_EqualRelevanceResults_PreserveProviderOrder` (all-partial input keeps provider order) and `SearchLocations_MixedRelevance_ExactFirstThenProviderOrderWithinEachGroup` (exact-before-partial AND provider order preserved within each relevance group).
+- **AC #3 / #4 (AC6 copy):** changed the zero-search-results branch in `SearchPage.tsx` from `"No matching places found."` to the required literal `"No attractions found."`; tightened its test to assert the exact string. The distinct city-has-no-attractions branch (`"No attractions in this area yet — try another city."`) is unchanged, so the two empty states are not conflated.
+- **AC #5 (commit):** the copy fix + new/updated tests are committed in this story; the ordering edit was already committed (no working-tree remnant remained).
+- **AC #6 (green build):** all BE + FE tests, lint, and both builds pass with no regressions.
+
 ### File List
+
+- `FE/src/features/destinations/SearchPage.tsx` (modified — AC6 copy `No matching places found.` → `No attractions found.`)
+- `FE/src/features/destinations/SearchPage.test.tsx` (modified — assert exact AC6 string; distinct-branch test kept)
+- `BE/TripPlanner.Tests/LocationServiceTests.cs` (modified — added 2 ordering-stability regression tests)
+- `_bmad-output/implementation-artifacts/1-6-location-relevance-ordering.md` (modified — status/tasks/records)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — 1-6 status + last_updated)
 
 ### Change Log
 
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
 | 2026-07-21 | 0.1 | Story drafted to lock in + regression-test the already-shipped (uncommitted, untested) US2 fixes: exact-match-first ordering (`SearchLocationsUseCase.OrderBy(IsPartialMatch)`) and the AC6 literal "No attractions found." copy. Verify → test → commit; production code changes only if verification finds a defect. Created via dev-story analysis; ready-for-dev. | Quanhvo |
+| 2026-07-24 | 1.0 | Implemented. Verification found the ordering fix already committed + tested, but the AC6 copy fix had never landed (working tree clean; `SearchPage.tsx` still showed "No matching places found."). Applied the copy fix to `No attractions found.`, added 2 BE ordering-stability tests (AC #2) and tightened the FE zero-results test to the exact string (AC #3/#4). BE 266/266, FE 288/288, lint clean, both builds green. Status → review. | Quanhvo |

@@ -35,7 +35,21 @@ project: tripplanner
 # (+2 net), lint clean (2 pre-existing warnings), production build green. Moved
 # to done.
 
-last_updated: 2026-07-23
+last_updated: 2026-07-24
+
+# 2026-07-24: 1-6-location-relevance-ordering implemented — all 4 tasks done.
+# Verification corrected the story's premise: the working tree was clean, so the
+# exact-match-first ordering (SearchLocationsUseCase.OrderBy(IsPartialMatch)) was
+# ALREADY committed AND already covered by tests, but the AC6 copy fix had never
+# landed — SearchPage.tsx still rendered the old "No matching places found." on the
+# zero-search-results branch (the line-208 edit the story referenced was discarded
+# when 5-14/5-17 restructured the file). Applied the copy fix to the required literal
+# "No attractions found." (city-has-no-attractions branch kept distinct — no
+# conflation), added 2 BE ordering-stability regression tests (equal-relevance keeps
+# provider order; mixed relevance = exact-first + within-group stability, fails if
+# OrderBy is removed) for AC #2, and tightened the FE zero-results test to assert the
+# exact string for AC #3/#4. BE 266/266, FE 288/288, lint clean (2 pre-existing
+# warnings), both builds green. Moved to review.
 
 # 2026-07-22: 1-5-attraction-list-pagination code-reviewed (adversarial, 4 layers:
 # blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor; reviewed
@@ -554,7 +568,7 @@ development_status:
   epic-1: in-progress
   1-4-filter-and-sort-attractions: done
   1-5-attraction-list-pagination: done
-  1-6-location-relevance-ordering: ready-for-dev
+  1-6-location-relevance-ordering: review
   epic-2: done
   epic-3: in-progress
   3-4-schedule-destinations-into-day: done
