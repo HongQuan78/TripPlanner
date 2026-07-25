@@ -5,6 +5,9 @@
 
 # dotenv files
 .env
+.env.*
+!.env.example
+!.env.production.example
 
 # Local development settings containing secrets (connection strings, API keys)
 **/appsettings.Development.json
@@ -487,6 +490,10 @@ $RECYCLE.BIN/
 .claude
 .agents
 .github
-requirement
-epic
 example_design
+
+# requirement/ and epic/ are version-controlled: audit and verification stories
+# (e.g. 6-6) grade acceptance criteria against them, so their verdicts are only
+# reproducible if the source of truth is pinned to a commit alongside the code.
+# The exported spreadsheet stylesheet is a 3.9 MB generated asset — excluded.
+requirement/resources/
