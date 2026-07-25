@@ -37,6 +37,22 @@ project: tripplanner
 
 last_updated: 2026-07-25
 
+# 2026-07-25: Decision D1 executed — 6-5/6-7/6-8 committed as 8146a05 ("feat: source
+# real opening hours from Overpass & cut details latency", 19 files) and
+# 6-6-feature-2-requirements-verification RE-RUN against that real baseline. The audit
+# now pins baseline_commit 8146a05 with test claims measured in an ISOLATED worktree
+# checkout of that commit (BE 282/282, FE 288/288 across 26 files) — the dev working
+# tree reports 296/290, inflated by uncommitted Feature 3 tests not in this baseline.
+# Corrections vs the 2026-07-24 pass: US4-AC2 ⚠️→✅ (6-7's emptyLabel
+# "Opening hours not available" shipped at DestinationDetailsPage.tsx:196); NFR3
+# finding rewritten — image+hours already run concurrently so the old "parallelize"
+# fix was a no-op, the real exposure is Wikipedia/Overpass both defaulting to 5000 ms
+# per-leg timeouts vs a 2 s budget; "depends on unmerged 6-5" finding retired; ~1/3 of
+# file:line citations corrected. The 3 pre-existing deferred issues (openNow.ts parsing
+# gaps, Overpass 24h negative-cache poisoning, epic-2 US4 intent drift) are now carried
+# in the audit's own findings list with named owners. Remaining non-PASS in selected
+# scope: US2-AC2 multi-photo swipe (→ story 8-5). Status: in-progress → review.
+
 # 2026-07-25: 6-6-feature-2-requirements-verification code-reviewed (adversarial, 4
 # layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor). All
 # 4 layers converged on one High issue: the audit pins baseline_commit 1bbb89f +
@@ -679,7 +695,7 @@ development_status:
   6-3-fix-xid-import-destination-mapping: review
   6-4-attraction-detail-caching: done
   6-5-destination-opening-hours-source: review
-  6-6-feature-2-requirements-verification: in-progress
+  6-6-feature-2-requirements-verification: review
   6-7-opening-hours-not-available-copy: done
   6-8-destination-details-latency-nfr3: review
   epic-7: in-progress
