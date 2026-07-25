@@ -192,4 +192,26 @@ describe('request', () => {
 
     expect(fetchMock.mock.calls[0][0]).toBe('http://api.example.com/api/test');
   });
+
+  it('issues relative same-origin requests when the base URL is empty', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', '');
+    vi.resetModules();
+    const client = await import('./client');
+    fetchMock.mockResolvedValue(jsonResponse(200, {}));
+
+    await client.request('/api/test');
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/test');
+  });
+
+  it('issues relative same-origin requests when the base URL is undefined', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', undefined as unknown as string);
+    vi.resetModules();
+    const client = await import('./client');
+    fetchMock.mockResolvedValue(jsonResponse(200, {}));
+
+    await client.request('/api/test');
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/test');
+  });
 });

@@ -26,7 +26,7 @@ The API base URL comes from `VITE_API_BASE_URL`, set in `.env.development` (defa
 
 For email verification links to open the SPA's `/verify-email` page, set `EmailSettings__VerificationUrlBase=http://localhost:5173/verify-email` in `BE/.env` (no backend code change required).
 
-In the Docker/production image (`FE/Dockerfile`), the app is built with `VITE_API_BASE_URL` **empty** on purpose: with no base URL the API client (`src/shared/api/client.ts`) issues relative, same-origin requests, which nginx reverse-proxies to the backend (see `FE/nginx.conf` and the Docker section in the root `CLAUDE.md`). Vite bakes this value at build time, so it is a build argument, not a runtime setting.
+In the Docker/production image (`FE/Dockerfile`), the app is built with `VITE_API_BASE_URL` **empty** on purpose: with no base URL the API client (`src/shared/api/client.ts`) issues relative, same-origin requests, which nginx reverse-proxies to the backend (see `FE/nginx.conf` and the Docker section in the root `CLAUDE.md`). Vite bakes this value at build time, so it is a build argument, not a runtime setting. Two tests in `src/shared/api/client.test.ts` pin this contract by asserting that an empty or undefined `VITE_API_BASE_URL` produces a relative `fetch` path — without them, adding a fallback base URL would silently break the container's same-origin model while the suite stayed green. The runtime image is `nginxinc/nginx-unprivileged` listening on **8080** (non-root), published to the host as `8080:8080`.
 
 ## Structure
 

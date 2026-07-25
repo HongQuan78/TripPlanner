@@ -34,14 +34,48 @@ builder.Services
     .AddCustomSwagger();
 
 builder.Services.AddOpenApi();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-if (builder.Configuration.GetValue("RunMigrationsOnStartup", true))
+bool runMigrations =
+    !bool.TryParse(builder.Configuration["RunMigrationsOnStartup"], out bool configuredRunMigrations)
+    || configuredRunMigrations;
+
+if (runMigrations)
 {
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<TripPlannerDbContext>();
-    dbContext.Database.Migrate();
+    var migrationLogger = app.Services.GetRequiredService<ILogger<Program>>();
+    const int maxAttempts = 10;
+    var retryDelay = TimeSpan.FromSeconds(3);
+    for (int attempt = 1; ; attempt++)
+    {
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<TripPlannerDbContext>();
+            dbContext.Database.Migrate();
+            break;
+        }
+        catch (Exception exception)
+        {
+            if (attempt >= maxAttempts)
+            {
+                migrationLogger.LogCritical(
+                    exception,
+                    "Database migration failed after {MaxAttempts} attempts. The database at ConnectionStrings:DefaultConnection is unreachable or rejected the migration; the application will not start.",
+                    maxAttempts);
+                throw;
+            }
+
+            migrationLogger.LogWarning(
+                exception,
+                "Database migration attempt {Attempt} of {MaxAttempts} failed; retrying in {RetryDelaySeconds}s.",
+                attempt,
+                maxAttempts,
+                retryDelay.TotalSeconds);
+            Thread.Sleep(retryDelay);
+        }
+    }
 }
 
 app.UseExceptionHandler();
@@ -56,6 +90,7 @@ app.UseCors(PolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 app.AddRoute();
+app.MapHealthChecks("/health");
 app.UseResponseCompression();
 
 if (!app.Environment.IsDevelopment())
