@@ -1,0 +1,357 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="spine-sections" content="DESIGN.md: Brand &amp; Style (one bar, one dropdown; no modal), Colors (option names 17.17:1, pills on surface-variant 6.90:1), Typography (body-md typed value and option names, label-sm pills), Layout &amp; Spacing (dropdown anchored beneath the bar, matching its width, absolutely positioned so the tile rail never reflows), Elevation &amp; Depth (dropdown on shadows.lg; Horizon never dims the page — no scrim token), Shapes (panel rounded.lg, option rows rounded.md, pills rounded.full), Components (hero-search, suggestion-dropdown, suggestion-option); EXPERIENCE.md: Foundation (search mechanism is deliberately the simplest thing that works), Information Architecture (Suggestion dropdown is an anchored panel, not a route or a modal), Voice and Tone (No matching places found.), Component Patterns (Hero search bar, Suggestion dropdown, Suggestion option), State Patterns (Dropdown closed, under 2 characters, suggestions in flight, no matches), Interaction Primitives (Enter precedence, submitting opens the dropdown, dismissal is unconditional and complete, a choice carries the resolved location), Accessibility Floor (shipped combobox ARIA preserved, there are no modals, options are never tab stops), Required Defect Fixes 1-3">
+<title>Trip Planner — Landing suggestion dropdown key screen</title>
+<style>
+  /*
+    Governing spine sections:
+    - DESIGN.md › Brand & Style: the search object is ONE INLINE BAR and typing drops a dropdown beneath it.
+      That is the whole mechanism — no trigger, no modal, no summary row.
+    - DESIGN.md › Colors: option names on-surface on white 17.17:1 and on the surface-container-low hover/active
+      fill 15.5:1; country/type pills on-surface-variant on surface-variant 6.90:1
+    - DESIGN.md › Typography: body-md typed value, body-md at weight 600 for option names, label-sm pills
+    - DESIGN.md › Layout & Spacing: the dropdown anchors directly beneath the bar and MATCHES ITS WIDTH,
+      absolutely positioned above the page flow so the tile rail and how-it-works band never reflow while typing
+    - DESIGN.md › Elevation & Depth: dropdown on shadows.lg with an outline-variant hairline. Horizon NEVER dims
+      the page — there is no scrim token and no modal; the dropdown is a panel anchored to its input, not a
+      layer over the product.
+    - DESIGN.md › Shapes: panel rounded.lg, option rows rounded.md, country/type pills rounded.full
+    - DESIGN.md › Components: hero-search (inline clear appears only when there is a value, 44px hit area; the
+      right-edge primary submit is a real control), suggestion-dropdown, suggestion-option (keyboard-active
+      position is the primary INSET RING, distinct from pointer hover's fill)
+    - EXPERIENCE.md › Component Patterns: Suggestion dropdown (the shipped inline dropdown, kept — no scrim, no
+      focus trap, no scroll lock, page behind stays live; 300ms debounce, minimum 2 characters, at most 5
+      suggestions preserved wholesale), Suggestion option (the shipped ARIA listbox contract preserved exactly:
+      aria-autocomplete/aria-expanded/aria-controls/aria-activedescendant on the input, role=listbox with
+      role=option rows, ArrowUp/Down wraparound, Enter chooses, Escape dismisses, mousedown-to-choose so the
+      input never loses focus first)
+    - EXPERIENCE.md › State Patterns: under 2 characters (the dropdown does not open at all); suggestions in
+      flight (previous list stays, no flash to empty); no matches (one quiet line inside the dropdown, nothing
+      written into the page body)
+    - EXPERIENCE.md › Interaction Primitives: Enter chooses the keyboard-active option, otherwise submits;
+      submitting opens the dropdown on the query's matches and never fills the page body; a choice carries the
+      resolved LocationSearchResult and issues no second location-search request; DISMISSAL IS UNCONDITIONAL AND
+      COMPLETE — the dropdown closes on Escape, on choosing, on the input losing focus, and on any outside
+      click, and closing unmounts the option list rather than hiding it behind a suppression flag
+    - EXPERIENCE.md › Accessibility Floor: there are no modals; Esc closes only this dropdown; options are never
+      tab stops (driven by aria-activedescendant)
+    - EXPERIENCE.md › Required Defect Fixes 1–3: this surface is where all three land. Note especially that
+      blur-to-close must not fire before an option's mousedown is handled — the shipped mousedown-to-choose
+      behavior exists for exactly that reason.
+    Photographic areas are gradient stand-ins built from DESIGN.md token hexes.
+  */
+  :root {
+    --primary: #0058bc;
+    --primary-container: #0070eb;
+    --on-primary: #ffffff;
+    --secondary: #405f91;
+    --secondary-container: #a6c5fe;
+    --tertiary: #006577;
+    --tertiary-container: #008096;
+    --background: #f8f9ff;
+    --surface-container-lowest: #ffffff;
+    --surface-container-low: #eff4ff;
+    --surface-container: #e5eeff;
+    --surface-container-high: #dce9ff;
+    --surface-variant: #d3e4fe;
+    --on-surface: #0b1c30;
+    --on-surface-variant: #414755;
+    --outline: #717786;
+    --outline-variant: #c1c6d7;
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-full: 999px;
+    --shadow-sm: 0 1px 3px rgba(11, 28, 48, 0.08);
+    --shadow-lg: 0 10px 24px rgba(11, 28, 48, 0.12);
+    --shadow-xl: 0 14px 30px rgba(11, 28, 48, 0.16);
+    --fast: 150ms;
+    --font: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: var(--font); font-size: 16px; line-height: 1.5;
+    color: var(--on-surface); background: var(--background); -webkit-font-smoothing: antialiased;
+  }
+  .sheet { max-width: 78rem; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .sheet > h1 { font-size: 1.5rem; letter-spacing: -0.01em; margin: 0 0 0.25rem; }
+  .sheet > p.lede { color: var(--on-surface-variant); margin: 0 0 2rem; max-width: 54rem; }
+  .variant { margin: 0 0 3rem; }
+  .variant > h2 {
+    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em;
+    color: var(--on-surface-variant); margin: 0 0 0.625rem;
+  }
+  .browser {
+    border: 1px solid var(--outline-variant); border-radius: var(--radius-lg);
+    overflow: hidden; box-shadow: var(--shadow-sm); background: var(--surface-container-lowest);
+  }
+  .chrome {
+    height: 2rem; background: var(--surface-container-low);
+    border-bottom: 1px solid var(--outline-variant);
+    display: flex; align-items: center; gap: 0.375rem; padding: 0 0.75rem;
+  }
+  .chrome i { width: 0.5rem; height: 0.5rem; border-radius: var(--radius-full); background: var(--outline-variant); }
+  .chrome span {
+    margin-left: 0.5rem; font-size: 0.6875rem; color: var(--outline);
+    background: var(--surface-container-lowest); border-radius: var(--radius-sm); padding: 0.125rem 0.5rem;
+  }
+  .note { font-size: 0.75rem; color: var(--on-surface-variant); font-style: italic; margin: 0.5rem 0 0; }
+
+  .app { background: var(--background); }
+  .appbar {
+    background: var(--surface-container-lowest); border-bottom: 1px solid var(--outline-variant);
+    display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.5rem;
+  }
+  .wordmark { font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.01em; color: var(--primary); }
+  .appnav { display: flex; gap: 1.25rem; font-size: 0.875rem; font-weight: 600; color: var(--on-surface-variant); }
+  .appnav a { color: inherit; text-decoration: none; }
+  .column { max-width: 72rem; margin: 0 auto; padding: 1.5rem 1.5rem 2rem; }
+
+  .band {
+    position: relative; min-height: 22rem; border-radius: var(--radius-lg);
+    display: flex; align-items: flex-end; padding: 2.5rem;
+    background:
+      radial-gradient(100% 80% at 88% 12%, var(--surface-container-high) 0%, rgba(220, 233, 255, 0) 58%),
+      linear-gradient(152deg, var(--surface-variant) 0%, var(--secondary-container) 18%,
+        var(--secondary) 46%, var(--tertiary) 72%, var(--on-surface) 100%),
+      var(--surface-container);
+  }
+  /* the band does NOT clip here, so the dropdown can extend past its lower edge */
+  .band .scrim {
+    position: absolute; inset: 0; border-radius: var(--radius-lg);
+    background: linear-gradient(to top,
+      color-mix(in srgb, var(--on-surface) 80%, transparent) 0%,
+      color-mix(in srgb, var(--on-surface) 72%, transparent) 45%,
+      color-mix(in srgb, var(--on-surface) 65%, transparent) 78%,
+      color-mix(in srgb, var(--on-surface) 30%, transparent) 90%,
+      transparent 100%);
+  }
+  .band .inner {
+    position: relative; z-index: 2; max-width: 34rem; width: 100%;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.875rem;
+  }
+  .band h1 {
+    font-size: 2.75rem; line-height: 1.2; letter-spacing: -0.01em; font-weight: 700;
+    color: var(--on-primary); margin: 0;
+  }
+  .band .tagline { font-size: 1.125rem; color: var(--on-primary); margin: 0; }
+
+  /* --- the bar, and the dropdown anchored to it --- */
+  .searchform { position: relative; width: 100%; max-width: 34rem; margin: 0; }
+  .bar {
+    display: flex; align-items: center; gap: 0.5rem; height: 3.5rem;
+    background: var(--surface-container-lowest); border: 1px solid var(--outline-variant);
+    border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+    padding: 0 0.375rem 0 1rem; outline: 2px solid var(--primary); outline-offset: 2px;
+  }
+  .bar .glyph { flex: none; color: var(--outline); display: flex; }
+  .bar input {
+    flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+    font-family: var(--font); font-size: 1rem; color: var(--on-surface);
+  }
+  .clearbtn {
+    flex: none; width: 2.75rem; height: 2.75rem; border: 0; background: transparent;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+  }
+  .clearbtn span {
+    width: 1.75rem; height: 1.75rem; border-radius: var(--radius-full);
+    background: var(--surface-container-low); color: var(--on-surface-variant);
+    display: flex; align-items: center; justify-content: center; font-size: 0.8125rem;
+  }
+  .submitbtn {
+    flex: none; width: 2.75rem; height: 2.75rem; border: 0; border-radius: var(--radius-md);
+    background: var(--primary); color: var(--on-primary);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .dropdown {
+    position: absolute; z-index: 20; top: calc(100% + 0.5rem); left: 0; right: 0;
+    background: var(--surface-container-lowest); border: 1px solid var(--outline-variant);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden;
+  }
+  .options { list-style: none; margin: 0; padding: 0.375rem; }
+  .options li + li { margin-top: 0.125rem; }
+  .opt {
+    display: flex; align-items: center; gap: 0.625rem; width: 100%; border: 0;
+    background: transparent; border-radius: var(--radius-md); padding: 0.6875rem 0.75rem;
+    cursor: pointer; font-family: var(--font); text-align: left;
+  }
+  .opt:hover { background: var(--surface-container-low); }
+  .opt[aria-selected="true"] {
+    background: var(--surface-container-low); box-shadow: inset 0 0 0 2px var(--primary);
+  }
+  .opt .pin { flex: none; color: var(--outline); display: flex; }
+  .opt .oname { flex: 1; font-size: 1rem; font-weight: 600; color: var(--on-surface); }
+  .opt .pill {
+    flex: none; font-size: 0.6875rem; font-weight: 500; color: var(--on-surface-variant);
+    background: var(--surface-variant); border-radius: var(--radius-full); padding: 0.125rem 0.4375rem;
+  }
+  .empty { padding: 1rem 1.125rem; margin: 0; font-size: 1rem; color: var(--on-surface-variant); }
+
+  /* body content beneath, to show it does not reflow */
+  .sectionhead { margin: 0 0 0.75rem; }
+  .sectionhead p { font-size: 0.75rem; font-weight: 500; color: var(--on-surface-variant); margin: 0; }
+  .rail { display: flex; gap: 0.75rem; overflow-x: hidden; padding: 0.25rem 0.25rem 0.5rem; }
+  .tile {
+    position: relative; flex: none; width: 13rem; aspect-ratio: 16 / 10; border: 0; padding: 0;
+    overflow: hidden; border-radius: var(--radius-lg); font-family: var(--font);
+  }
+  .tile .tscrim {
+    position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(to top,
+      color-mix(in srgb, var(--on-surface) 78%, transparent) 0%,
+      color-mix(in srgb, var(--on-surface) 66%, transparent) 40%,
+      color-mix(in srgb, var(--on-surface) 18%, transparent) 72%, transparent 100%);
+  }
+  .tile .tname {
+    position: absolute; z-index: 2; left: 0.75rem; bottom: 0.625rem;
+    color: var(--on-primary); font-size: 1rem; font-weight: 600;
+  }
+  .g1 { background: linear-gradient(150deg, var(--secondary-container), var(--tertiary-container) 60%, var(--on-surface)); }
+  .g2 { background: linear-gradient(150deg, var(--surface-variant), var(--secondary) 58%, var(--on-surface)); }
+  .g3 { background: linear-gradient(150deg, var(--surface-container-high), var(--tertiary) 62%, var(--on-surface)); }
+  .sronly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="sheet">
+  <h1>Landing — suggestion dropdown</h1>
+  <p class="lede">One bar, one dropdown. No dimming, no dialog, no focus trap — the page behind stays live and the tile rail beneath never moves, because the panel is absolutely positioned. This is the shipped component kept in place; the work is the dismissal contract, not a rewrite.</p>
+
+  <!-- ============ STATE 1: OPTIONS, KEYBOARD-ACTIVE ============ -->
+  <section class="variant">
+    <h2>SUGGESTIONS OPEN — third option keyboard-active (inset ring), first option pointer-hovered (fill)</h2>
+    <div class="browser">
+      <div class="chrome"><i></i><i></i><i></i><span>localhost:8080/</span></div>
+      <div class="app">
+        <header class="appbar">
+          <span class="wordmark">Trip Planner</span>
+          <nav class="appnav"><a href="#">Trips</a><a href="#">Login</a></nav>
+        </header>
+        <div class="column">
+          <div class="band">
+            <div class="scrim"></div>
+            <div class="inner">
+              <h1>Where to next?</h1>
+              <p class="tagline">Search any city and start building the trip.</p>
+              <form class="searchform" role="search">
+                <div class="bar">
+                  <span class="glyph" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></span>
+                  <input type="search" aria-label="Search" autocomplete="off" aria-autocomplete="list"
+                         aria-expanded="true" aria-controls="sug-list" aria-activedescendant="sug-2"
+                         aria-describedby="kbdhint" value="Đà N" readonly>
+                  <button class="clearbtn" type="button" aria-label="Clear search"><span aria-hidden="true">✕</span></button>
+                  <button class="submitbtn" type="submit" aria-label="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></button>
+                </div>
+                <p class="sronly" id="kbdhint">Use the up and down arrow keys to move through suggestions, Enter to choose, Escape to dismiss.</p>
+                <div class="dropdown">
+                  <ul class="options" id="sug-list" role="listbox" aria-label="City suggestions">
+                    <li><button class="opt" id="sug-0" role="option" type="button" style="background: var(--surface-container-low);">
+                      <span class="pin" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 1 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+                      <span class="oname">Đà Nẵng</span><span class="pill">VN</span><span class="pill">City</span></button></li>
+                    <li><button class="opt" id="sug-1" role="option" type="button">
+                      <span class="pin" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 1 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+                      <span class="oname">Đà Nẵng Province</span><span class="pill">VN</span><span class="pill">Region</span></button></li>
+                    <li><button class="opt" id="sug-2" role="option" type="button" aria-selected="true">
+                      <span class="pin" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 1 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+                      <span class="oname">Da Nang Bay</span><span class="pill">VN</span><span class="pill">City</span></button></li>
+                  </ul>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div style="margin-top: 2rem;">
+            <div class="sectionhead"><p>Popular searches</p></div>
+            <div class="rail">
+              <button class="tile g1"><span class="tscrim"></span><span class="tname">Đà Nẵng</span></button>
+              <button class="tile g2"><span class="tscrim"></span><span class="tname">Paris</span></button>
+              <button class="tile g3"><span class="tscrim"></span><span class="tname">Tokyo</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Two different signals doing two different jobs: option 1 carries the hover <em>fill</em> because the pointer rests there; option 3 carries the primary <em>inset ring</em> because that is where the arrow keys are. A user driving with the keyboard while the mouse sits elsewhere is never lied to. No "Partial match" badge — everything in this list is a candidate by definition, so the badge carried no information; exact matches are ordered first instead. The tile rail below has not moved: the panel floats above the page flow.</p>
+  </section>
+
+  <!-- ============ STATE 2: NO MATCHES ============ -->
+  <section class="variant">
+    <h2>NO MATCHES — one quiet line inside the dropdown; nothing written into the page body</h2>
+    <div class="browser">
+      <div class="chrome"><i></i><i></i><i></i><span>localhost:8080/</span></div>
+      <div class="app">
+        <header class="appbar">
+          <span class="wordmark">Trip Planner</span>
+          <nav class="appnav"><a href="#">Trips</a><a href="#">Login</a></nav>
+        </header>
+        <div class="column">
+          <div class="band" style="min-height: 18rem;">
+            <div class="scrim"></div>
+            <div class="inner">
+              <h1>Where to next?</h1>
+              <form class="searchform" role="search">
+                <div class="bar">
+                  <span class="glyph" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></span>
+                  <input type="search" aria-label="Search" autocomplete="off" aria-autocomplete="list"
+                         aria-expanded="true" value="qqqqzz" readonly>
+                  <button class="clearbtn" type="button" aria-label="Clear search"><span aria-hidden="true">✕</span></button>
+                  <button class="submitbtn" type="submit" aria-label="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></button>
+                </div>
+                <div class="dropdown"><p class="empty">No matching places found.</p></div>
+              </form>
+            </div>
+          </div>
+          <div style="margin-top: 2rem;">
+            <div class="sectionhead"><p>Popular searches</p></div>
+            <div class="rail">
+              <button class="tile g1"><span class="tscrim"></span><span class="tname">Đà Nẵng</span></button>
+              <button class="tile g2"><span class="tscrim"></span><span class="tname">Paris</span></button>
+              <button class="tile g3"><span class="tscrim"></span><span class="tname">Tokyo</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Pass 2 wrote this message into the page body, fed by the result list. It now lives only here, next to the field that caused it — so a fruitless search never disturbs the landing content below.</p>
+  </section>
+
+  <!-- ============ STATE 3: UNDER 2 CHARACTERS ============ -->
+  <section class="variant">
+    <h2>UNDER 2 CHARACTERS — the dropdown does not open at all</h2>
+    <div class="browser">
+      <div class="chrome"><i></i><i></i><i></i><span>localhost:8080/</span></div>
+      <div class="app">
+        <header class="appbar">
+          <span class="wordmark">Trip Planner</span>
+          <nav class="appnav"><a href="#">Trips</a><a href="#">Login</a></nav>
+        </header>
+        <div class="column">
+          <div class="band" style="min-height: 18rem;">
+            <div class="scrim"></div>
+            <div class="inner">
+              <h1>Where to next?</h1>
+              <form class="searchform" role="search">
+                <div class="bar">
+                  <span class="glyph" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></span>
+                  <input type="search" aria-label="Search" autocomplete="off" aria-autocomplete="list"
+                         aria-expanded="false" value="Đ" readonly>
+                  <button class="clearbtn" type="button" aria-label="Clear search"><span aria-hidden="true">✕</span></button>
+                  <button class="submitbtn" type="submit" aria-label="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div style="margin-top: 2rem;">
+            <div class="sectionhead"><p>Popular searches</p></div>
+            <div class="rail">
+              <button class="tile g1"><span class="tscrim"></span><span class="tname">Đà Nẵng</span></button>
+              <button class="tile g2"><span class="tscrim"></span><span class="tname">Paris</span></button>
+              <button class="tile g3"><span class="tscrim"></span><span class="tname">Tokyo</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Below the typeahead's two-character minimum there is nothing honest to show, and an empty panel would flash on every first keystroke. So the panel simply does not exist yet — note <code>aria-expanded="false"</code>. The inline clear <em>is</em> present, because the field has a value.</p>
+  </section>
+</div>

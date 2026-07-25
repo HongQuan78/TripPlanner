@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trip Planner — Landing directions (pass 3)</title>
+<style>
+/* ============================================================
+   HORIZON TOKENS — verbatim from DESIGN.md frontmatter.
+   No new hex is introduced anywhere in this file.
+   primary            #0058bc      on-surface          #0b1c30
+   primary-container  #0070eb      on-surface-variant  #414755
+   secondary          #405f91      outline             #717786
+   secondary-container#a6c5fe      outline-variant     #c1c6d7
+   tertiary           #006577      success             #146c2e
+   tertiary-container #008096      success-container   #d7f2dd
+   background/surface #f8f9ff      s-c-lowest          #ffffff
+   s-c-low            #eff4ff      s-c                 #e5eeff
+   s-c-high           #dce9ff      s-c-highest         #d3e4fe
+   ============================================================ */
+:root{
+  --primary:#0058bc; --primary-container:#0070eb; --on-primary:#ffffff;
+  --secondary:#405f91; --secondary-container:#a6c5fe;
+  --tertiary:#006577; --tertiary-container:#008096;
+  --success:#146c2e; --success-container:#d7f2dd;
+  --background:#f8f9ff; --lowest:#ffffff; --low:#eff4ff;
+  --container:#e5eeff; --high:#dce9ff; --highest:#d3e4fe;
+  --ink:#0b1c30; --ink-var:#414755;
+  --outline:#717786; --outline-var:#c1c6d7;
+  --r-sm:.25rem; --r-md:.5rem; --r-lg:.75rem; --r-full:999px;
+  --sh-sm:0 1px 3px rgba(11,28,48,.08);
+  --sh-lg:0 10px 24px rgba(11,28,48,.12);
+  --fast:150ms; --slow:400ms; --spring:cubic-bezier(.34,1.56,.64,1);
+  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);background:var(--background);color:var(--ink);
+  font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+/* ---------- document chrome (not part of the design) ---------- */
+.doc{max-width:78rem;margin:0 auto;padding:2.5rem 1.5rem 5rem}
+.doc-head{border-bottom:1px solid var(--outline-var);padding-bottom:1.5rem;margin-bottom:2rem}
+.doc-head h1{font-size:2rem;line-height:1.3;letter-spacing:-.01em;margin:0 0 .5rem}
+.doc-head p{margin:0;color:var(--ink-var);max-width:56rem}
+.doc-note{background:var(--low);border-left:3px solid var(--primary);
+  padding:.875rem 1rem;border-radius:0 var(--r-md) var(--r-md) 0;margin:1.25rem 0;
+  font-size:.875rem;color:var(--ink-var)}
+.doc-note strong{color:var(--ink)}
+.dir{margin:3.5rem 0 0}
+.dir-head{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;margin-bottom:.5rem}
+.dir-tag{font-size:.75rem;font-weight:600;letter-spacing:.05em;color:var(--on-primary);
+  background:var(--primary);padding:.25rem .5rem;border-radius:var(--r-sm)}
+.dir-head h2{font-size:1.5rem;line-height:1.4;letter-spacing:-.01em;margin:0}
+.dir-why{color:var(--ink-var);max-width:52rem;margin:0 0 .375rem}
+.dir-meta{font-size:.75rem;color:var(--ink-var);margin:0 0 1.25rem}
+.dir-meta b{color:var(--ink);font-weight:600}
+.frame{border:1px solid var(--outline-var);border-radius:var(--r-lg);overflow:hidden;
+  box-shadow:var(--sh-sm);background:var(--lowest)}
+.frame-bar{height:2rem;background:var(--low);border-bottom:1px solid var(--outline-var);
+  display:flex;align-items:center;gap:.375rem;padding:0 .75rem}
+.dot{width:.5rem;height:.5rem;border-radius:var(--r-full);background:var(--outline-var)}
+.frame-url{margin-left:.5rem;font-size:.6875rem;color:var(--outline);
+  background:var(--lowest);border-radius:var(--r-sm);padding:.125rem .5rem}
+.caption{font-size:.75rem;color:var(--ink-var);margin:.5rem 0 1.5rem;font-style:italic}
+
+/* ---------- shared app chrome inside every mock ---------- */
+.app{background:var(--background)}
+.hdr{position:sticky;top:0;background:var(--lowest);border-bottom:1px solid var(--outline-var);
+  display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.5rem;z-index:5}
+.wordmark{font-size:1.0625rem;font-weight:700;letter-spacing:-.01em;color:var(--primary)}
+.nav{display:flex;gap:1.25rem;font-size:.875rem;font-weight:600;color:var(--ink-var)}
+.nav a{color:inherit;text-decoration:none}
+.nav .cta{color:var(--primary)}
+
+/* ---------- the designed gradient stand-in (per-direction recipes) ---------- */
+/* Because stand-ins may ship, each is a deliberate recipe, not a placeholder. */
+.sky-a{
+  background:
+    radial-gradient(120% 90% at 78% 8%, #d3e4fe 0%, rgba(211,228,254,0) 55%),
+    radial-gradient(90% 70% at 12% 22%, #a6c5fe 0%, rgba(166,197,254,0) 60%),
+    linear-gradient(168deg,#dce9ff 0%,#a6c5fe 22%,#008096 58%,#006577 76%,#0b1c30 100%),
+    #e5eeff;
+}
+.sky-b{
+  background:
+    radial-gradient(100% 80% at 88% 12%, #dce9ff 0%, rgba(220,233,255,0) 58%),
+    linear-gradient(152deg,#d3e4fe 0%,#a6c5fe 18%,#405f91 46%,#006577 72%,#0b1c30 100%),
+    #e5eeff;
+}
+.sky-c{
+  background:
+    radial-gradient(110% 85% at 30% 6%, #d3e4fe 0%, rgba(211,228,254,0) 52%),
+    linear-gradient(196deg,#a6c5fe 0%,#008096 40%,#006577 66%,#0b1c30 100%),
+    #e5eeff;
+}
+/* the ≥65% ink gradient that protects white text — DESIGN.md Elevation & Depth */
+.ink-scrim{position:absolute;inset:0;background:linear-gradient(to top,
+  rgba(11,28,48,.80) 0%, rgba(11,28,48,.72) 45%, rgba(11,28,48,.65) 78%,
+  rgba(11,28,48,.30) 90%, rgba(11,28,48,0) 100%)}
+.ink-scrim-side{position:absolute;inset:0;background:linear-gradient(75deg,
+  rgba(11,28,48,.80) 0%, rgba(11,28,48,.72) 40%, rgba(11,28,48,.65) 70%,
+  rgba(11,28,48,.25) 88%, rgba(11,28,48,0) 100%)}
+
+/* ---------- hero copy ---------- */
+.h1{font-size:3rem;line-height:1.2;letter-spacing:-.01em;font-weight:700;
+  color:var(--on-primary);margin:0}
+.h1-xl{font-size:3.75rem}
+.tag{font-size:1.125rem;line-height:1.6;color:var(--on-primary);margin:0;opacity:1}
+
+/* ---------- the search bar as a TRIGGER (overlay pattern) ---------- */
+.trigger{display:flex;align-items:center;gap:.625rem;width:100%;height:3.5rem;
+  background:var(--lowest);border:1px solid var(--outline-var);border-radius:var(--r-md);
+  box-shadow:var(--sh-lg);padding:0 .375rem 0 1rem;cursor:text;text-align:left;
+  font-family:var(--font);transition:box-shadow var(--fast),transform var(--fast)}
+.trigger:hover{box-shadow:0 14px 30px rgba(11,28,48,.16);transform:translateY(-1px)}
+.trigger .pin{flex:none;color:var(--outline);display:flex}
+.trigger .ph{flex:1;color:var(--ink-var);font-size:1rem}
+.trigger .kbd{flex:none;font-size:.6875rem;font-weight:600;color:var(--ink-var);
+  background:var(--low);border:1px solid var(--outline-var);border-radius:var(--r-sm);
+  padding:.1875rem .375rem;letter-spacing:.02em}
+.trigger .go{flex:none;height:2.75rem;padding:0 1.25rem;border:0;border-radius:var(--r-md);
+  background:var(--primary);color:var(--on-primary);font-family:var(--font);
+  font-size:.875rem;font-weight:600;letter-spacing:.05em;cursor:pointer}
+.trigger .go:hover{background:var(--primary-container)}
+
+/* ---------- tiles ---------- */
+.tiles-label{font-size:.75rem;font-weight:500;letter-spacing:.02em;color:var(--ink-var);
+  margin:0 0 .75rem;text-transform:none}
+.tile{position:relative;display:block;border:0;padding:0;cursor:pointer;overflow:hidden;
+  border-radius:var(--r-lg);font-family:var(--font);
+  transition:transform var(--fast),box-shadow var(--fast)}
+.tile:hover{transform:translateY(-4px);box-shadow:var(--sh-lg)}
+.tile .name{position:absolute;left:.75rem;bottom:.625rem;color:var(--on-primary);
+  font-size:1rem;font-weight:600;letter-spacing:-.01em;z-index:2}
+.tile .tscrim{position:absolute;inset:0;z-index:1;background:linear-gradient(to top,
+  rgba(11,28,48,.78) 0%, rgba(11,28,48,.66) 40%, rgba(11,28,48,.18) 72%, rgba(11,28,48,0) 100%)}
+.t1{background:linear-gradient(150deg,#a6c5fe,#008096 60%,#0b1c30)}
+.t2{background:linear-gradient(150deg,#d3e4fe,#405f91 58%,#0b1c30)}
+.t3{background:linear-gradient(150deg,#dce9ff,#006577 62%,#0b1c30)}
+.t4{background:linear-gradient(150deg,#a6c5fe,#405f91 55%,#0b1c30)}
+.t5{background:linear-gradient(150deg,#e5eeff,#008096 58%,#0b1c30)}
+.t6{background:linear-gradient(150deg,#d3e4fe,#006577 55%,#0b1c30)}
+
+/* recent-search pills */
+.recents{display:flex;flex-wrap:wrap;gap:.5rem}
+.recent{display:inline-flex;align-items:center;gap:.375rem;height:2rem;padding:0 .75rem;
+  border-radius:var(--r-full);background:var(--lowest);border:1px solid var(--outline-var);
+  font-family:var(--font);font-size:.75rem;font-weight:500;color:var(--ink);cursor:pointer}
+.recent:hover{background:var(--low)}
+.recent .ico{color:var(--outline);display:flex}
+
+/* ============================================================
+   DIRECTION A — Full-Bleed Immersion
+   ============================================================ */
+.a-hero{position:relative;min-height:30rem;display:flex;align-items:flex-end;
+  justify-content:center;padding:0 1.5rem 3rem}
+.a-inner{position:relative;z-index:2;width:100%;max-width:40rem;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:1rem}
+.a-below{max-width:72rem;margin:0 auto;padding:2rem 1.5rem 2.5rem}
+.a-tilegrid{display:grid;grid-template-columns:repeat(6,1fr);gap:.75rem}
+.a-tilegrid .tile{aspect-ratio:4/5}
+
+/* ============================================================
+   DIRECTION B — Framed Editorial
+   ============================================================ */
+.b-wrap{max-width:72rem;margin:0 auto;padding:1.5rem 1.5rem 2.5rem}
+.b-hero{position:relative;min-height:24rem;border-radius:var(--r-lg);overflow:hidden;
+  display:flex;align-items:flex-end;padding:2.5rem}
+.b-inner{position:relative;z-index:2;max-width:34rem;display:flex;flex-direction:column;
+  gap:.875rem;text-align:left}
+.b-rail{display:flex;gap:.75rem;overflow-x:auto;padding:.25rem .25rem .75rem;
+  scroll-snap-type:x mandatory}
+.b-rail .tile{flex:none;width:13rem;aspect-ratio:16/10;scroll-snap-align:start}
+.b-steps{border-top:1px solid var(--outline-var);margin-top:1.5rem}
+.b-step{display:grid;grid-template-columns:2.5rem 1fr;gap:1rem;padding:1.125rem 0;
+  border-bottom:1px solid var(--outline-var);align-items:start}
+.b-num{font-size:1.5rem;font-weight:700;letter-spacing:-.01em;color:var(--outline-var);
+  line-height:1.2}
+.b-step h4{margin:0 0 .1875rem;font-size:1.125rem;font-weight:600;letter-spacing:-.01em}
+.b-step p{margin:0;color:var(--ink-var);font-size:.9375rem}
+
+/* ============================================================
+   DIRECTION C — Split Arrival
+   ============================================================ */
+.c-wrap{max-width:72rem;margin:0 auto;padding:2rem 1.5rem 2.5rem;
+  display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:stretch}
+.c-left{display:flex;flex-direction:column;justify-content:center;gap:1.125rem;
+  padding:1.5rem 0}
+.c-left .h1{color:var(--ink)}
+.c-left .tag{color:var(--ink-var)}
+.c-right{position:relative;min-height:26rem;border-radius:var(--r-lg);overflow:hidden}
+.c-right .cap{position:absolute;z-index:2;left:1.5rem;bottom:1.25rem;
+  color:var(--on-primary);font-size:.875rem;font-weight:500;opacity:.92}
+.c-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:.625rem}
+.c-tiles .tile{aspect-ratio:16/11}
+.c-trigger-wrap .trigger{box-shadow:var(--sh-sm)}
+
+/* ============================================================
+   SETTLED MECHANICS (identical across directions)
+   ============================================================ */
+.mech{margin:4rem 0 0;padding-top:2rem;border-top:2px solid var(--ink)}
+.mech h2{font-size:1.5rem;letter-spacing:-.01em;margin:0 0 .375rem}
+.mech-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem}
+@media(max-width:900px){.mech-grid{grid-template-columns:1fr}}
+
+/* overlay */
+.ovl-stage{position:relative;min-height:26rem;overflow:hidden;background:var(--background)}
+.ovl-blur{filter:blur(2px)}
+.ovl-scrim{position:absolute;inset:0;background:rgba(11,28,48,.55);z-index:10}
+.ovl-panel{position:absolute;z-index:11;left:50%;transform:translateX(-50%);top:3.5rem;
+  width:min(30rem,calc(100% - 2rem));background:var(--lowest);border-radius:var(--r-lg);
+  box-shadow:var(--sh-lg);overflow:hidden;border:1px solid var(--outline-var)}
+.ovl-field{display:flex;align-items:center;gap:.625rem;height:3.5rem;padding:0 .75rem 0 1rem;
+  border-bottom:1px solid var(--outline-var)}
+.ovl-field input{flex:1;border:0;outline:0;font-family:var(--font);font-size:1.0625rem;
+  color:var(--ink);background:transparent}
+.ovl-x{flex:none;width:1.75rem;height:1.75rem;border-radius:var(--r-full);border:0;
+  background:var(--low);color:var(--ink-var);cursor:pointer;font-size:.8125rem;line-height:1}
+.ovl-list{list-style:none;margin:0;padding:.375rem}
+.ovl-list li+li{margin-top:.125rem}
+.opt{display:flex;align-items:center;gap:.625rem;width:100%;border:0;background:transparent;
+  border-radius:var(--r-md);padding:.625rem .75rem;cursor:pointer;font-family:var(--font);
+  text-align:left}
+.opt:hover{background:var(--low)}
+.opt[aria-selected=true]{background:var(--low);box-shadow:inset 0 0 0 2px var(--primary)}
+.opt .oname{flex:1;font-size:.9375rem;font-weight:600;color:var(--ink)}
+.opt .opin{color:var(--outline);display:flex;flex:none}
+.pill{font-size:.6875rem;font-weight:500;color:var(--ink-var);background:var(--highest);
+  border-radius:var(--r-full);padding:.125rem .4375rem;flex:none}
+.ovl-foot{display:flex;gap:1rem;padding:.5rem .875rem;border-top:1px solid var(--outline-var);
+  background:var(--low);font-size:.6875rem;color:var(--ink-var)}
+.ovl-foot b{background:var(--lowest);border:1px solid var(--outline-var);border-radius:var(--r-sm);
+  padding:0 .25rem;font-weight:600}
+
+/* chosen-destination bar */
+.chosen-stage{padding:1.25rem;background:var(--background)}
+.chosen{display:flex;align-items:center;gap:.625rem;max-width:34rem;margin:0 auto;
+  background:var(--lowest);border:1px solid var(--primary);border-radius:var(--r-md);
+  padding:.75rem 1rem;box-shadow:var(--sh-sm)}
+.chosen .tick{flex:none;width:1.25rem;height:1.25rem;border-radius:var(--r-full);
+  background:var(--success-container);color:var(--success);display:flex;align-items:center;
+  justify-content:center;font-size:.75rem;font-weight:700}
+.chosen .cname{font-size:1rem;font-weight:600;color:var(--ink)}
+.chosen .cmeta{font-size:.75rem;color:var(--ink-var);flex:1}
+.chosen .change{flex:none;border:0;background:transparent;color:var(--primary);
+  font-family:var(--font);font-size:.875rem;font-weight:600;letter-spacing:.05em;
+  cursor:pointer;padding:.25rem .5rem;border-radius:var(--r-sm)}
+.chosen .change:hover{background:var(--low)}
+.attr-h{max-width:34rem;margin:1.5rem auto .75rem;font-size:1.5rem;font-weight:600;
+  letter-spacing:-.01em}
+.cardrow{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;max-width:34rem;margin:0 auto}
+.acard{background:var(--lowest);border:1px solid rgba(193,198,215,.3);border-radius:var(--r-lg);
+  overflow:hidden}
+.acard .img{height:5rem;background:linear-gradient(150deg,#d3e4fe,#008096 70%,#0b1c30);
+  position:relative}
+.acard .badge{position:absolute;top:.375rem;right:.375rem;background:rgba(11,28,48,.8);
+  color:var(--on-primary);border-radius:var(--r-full);font-size:.625rem;font-weight:500;
+  padding:.125rem .375rem}
+.acard .bd{padding:.625rem .75rem}
+.acard .an{font-size:.875rem;font-weight:600;letter-spacing:-.01em}
+.acard .ad{font-size:.6875rem;color:var(--ink-var);margin-top:.125rem}
+
+/* before/after */
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem}
+@media(max-width:760px){.ba{grid-template-columns:1fr}}
+.ba-col h4{margin:0 0 .5rem;font-size:.75rem;font-weight:600;letter-spacing:.05em;
+  color:var(--ink-var)}
+.ba-bad h4{color:#ba1a1a}
+.ba-good h4{color:var(--success)}
+.ba-box{border:1px solid var(--outline-var);border-radius:var(--r-md);padding:.75rem;
+  background:var(--lowest)}
+.row-old{display:flex;align-items:center;gap:.5rem;border:1px solid var(--outline-var);
+  border-radius:var(--r-md);padding:.5rem .625rem;font-size:.8125rem;margin-bottom:.375rem}
+.row-old.sel{border-color:var(--primary);background:var(--low)}
+.partial{font-size:.625rem;font-style:italic;color:var(--ink-var)}
+.mech p{color:var(--ink-var);max-width:56rem}
+.mech h3{font-size:1.0625rem;margin:0 0 .375rem;letter-spacing:-.01em}
+.draft{font-size:.6875rem;font-weight:600;letter-spacing:.05em;color:var(--tertiary);
+  background:var(--low);border-radius:var(--r-sm);padding:.125rem .375rem}
+@media(max-width:900px){
+  .a-tilegrid{grid-template-columns:repeat(3,1fr)}
+  .c-wrap{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="doc">
+
+<div class="doc-head">
+  <h1>Trip Planner — Landing page directions</h1>
+  <p>Three landing compositions for <code>/</code> (SearchPage), rendered against the Horizon token layer. Ambition level: <b>elevate the landing page</b> — no new hex, no new typeface, new composition. Pick one; the mechanics below the directions are already settled and identical in all three.</p>
+</div>
+
+<div class="doc-note">
+  <strong>What varies between A, B and C:</strong> the hero's relationship to the page frame, where the eye lands first, how the destination tiles are shaped, and how the how-it-works band reads.<br>
+  <strong>What does not vary:</strong> the search-overlay mechanics, the chosen-destination collapse, and the a11y contract — you already decided those, and they're shown once at the bottom.<br>
+  <strong>Gradients here are the designed deliverable</strong>, not placeholders — you blessed stand-ins as shippable, so each direction carries its own layered recipe built only from Horizon tokens. Photography drops into the same slot later without touching layout.
+</div>
+
+<!-- ============ DIRECTION A ============ -->
+<section class="dir">
+  <div class="dir-head"><span class="dir-tag">A</span><h2>Full-Bleed Immersion</h2></div>
+  <p class="dir-why">The hero breaks out of AppLayout's 72rem frame and runs edge to edge, 30rem tall, with the headline stepped up to 60px and the search bar sitting large and centered near the bottom edge. It reads like a consumer travel marketplace: the page's first screen is one image and one question. Destination tiles are tall 4:5 portraits — six across, magazine-cover proportions.</p>
+  <p class="dir-meta"><b>Register:</b> confident, commercial, high-impact · <b>Eye lands:</b> headline, then the bar · <b>Conflict to note:</b> overturns DESIGN.md's "framed rounded band, not a viewport bleed" layout rule</p>
+
+  <div class="frame">
+    <div class="frame-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="frame-url">localhost:8080/</span></div>
+    <div class="app">
+      <div class="hdr"><span class="wordmark">Trip Planner</span>
+        <nav class="nav"><a href="#">Trips</a><a href="#">Login</a><a class="cta" href="#">Register</a></nav></div>
+
+      <div class="a-hero sky-a">
+        <div class="ink-scrim"></div>
+        <div class="a-inner">
+          <h1 class="h1 h1-xl">Where to next?</h1>
+          <p class="tag">Search any city and start building the trip.</p>
+          <button class="trigger" type="button">
+            <span class="pin"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></span>
+            <span class="ph">Search a city…</span>
+            <span class="kbd">/</span>
+            <span class="go">Search</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="a-below">
+        <p class="tiles-label">Popular searches</p>
+        <div class="a-tilegrid">
+          <button class="tile t1"><i class="tscrim"></i><span class="name">Đà Nẵng</span></button>
+          <button class="tile t2"><i class="tscrim"></i><span class="name">Paris</span></button>
+          <button class="tile t3"><i class="tscrim"></i><span class="name">Tokyo</span></button>
+          <button class="tile t4"><i class="tscrim"></i><span class="name">Rome</span></button>
+          <button class="tile t5"><i class="tscrim"></i><span class="name">Barcelona</span></button>
+          <button class="tile t6"><i class="tscrim"></i><span class="name">New York</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="caption">A — pre-search, first visit. Recent searches would replace the "Popular searches" label and tiles once the visitor has a history.</p>
+</section>
+
+<!-- ============ DIRECTION B ============ -->
+<section class="dir">
+  <div class="dir-head"><span class="dir-tag">B</span><h2>Framed Editorial</h2></div>
+  <p class="dir-why">Keeps the clipped rounded band that DESIGN.md already commits to — so nothing in the layout spine has to be rewritten — but grows it to 24rem and moves the copy to a bottom-left inset, mirroring the auth hero panel exactly. Tiles become a horizontal scroll rail of 16:10 landscapes, and how-it-works reads as numbered editorial rows separated by hairlines.</p>
+  <p class="dir-meta"><b>Register:</b> quiet premium, magazine-like · <b>Eye lands:</b> the image, then the copy block · <b>Conflict to note:</b> none — this is the only direction that honors every committed layout rule</p>
+
+  <div class="frame">
+    <div class="frame-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="frame-url">localhost:8080/</span></div>
+    <div class="app">
+      <div class="hdr"><span class="wordmark">Trip Planner</span>
+        <nav class="nav"><a href="#">Trips</a><a href="#">Login</a><a class="cta" href="#">Register</a></nav></div>
+
+      <div class="b-wrap">
+        <div class="b-hero sky-b">
+          <div class="ink-scrim"></div>
+          <div class="b-inner">
+            <h1 class="h1">Where to next?</h1>
+            <p class="tag">Search any city and start building the trip.</p>
+            <button class="trigger" type="button">
+              <span class="pin"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></span>
+              <span class="ph">Search a city…</span>
+              <span class="kbd">/</span>
+              <span class="go">Search</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="margin-top:1.75rem">
+          <p class="tiles-label">Popular searches</p>
+          <div class="b-rail">
+            <button class="tile t1"><i class="tscrim"></i><span class="name">Đà Nẵng</span></button>
+            <button class="tile t2"><i class="tscrim"></i><span class="name">Paris</span></button>
+            <button class="tile t3"><i class="tscrim"></i><span class="name">Tokyo</span></button>
+            <button class="tile t4"><i class="tscrim"></i><span class="name">Rome</span></button>
+            <button class="tile t5"><i class="tscrim"></i><span class="name">Barcelona</span></button>
+            <button class="tile t6"><i class="tscrim"></i><span class="name">New York</span></button>
+          </div>
+        </div>
+
+        <div class="b-steps">
+          <div class="b-step"><span class="b-num">1</span>
+            <div><h4>Search a city</h4><p>Anywhere in the world, by name.</p></div></div>
+          <div class="b-step"><span class="b-num">2</span>
+            <div><h4>See what's there</h4><p>Attractions with ratings, heritage marks, and distance from the centre.</p></div></div>
+          <div class="b-step"><span class="b-num">3</span>
+            <div><h4>Build the days</h4><p>Drop places into a day-by-day itinerary and move them as plans change.</p></div></div>
+        </div>
+        <p class="caption">↑ <span class="draft">DRAFT COPY</span> How-it-works wording needs your ratification — every claim is honest against what ships today (day-by-day itineraries and drag-to-move both exist).</p>
+      </div>
+    </div>
+  </div>
+  <p class="caption">B — pre-search, first visit, with the how-it-works band included.</p>
+</section>
+
+<!-- ============ DIRECTION C ============ -->
+<section class="dir">
+  <div class="dir-head"><span class="dir-tag">C</span><h2>Split Arrival</h2></div>
+  <p class="dir-why">Rotates the auth split layout onto home: copy and search live on the white canvas at left, the image is a tall clipped panel at right. The search bar therefore sits on white rather than on photography — so it needs no heavy shadow to read as an object, and no text-over-image contrast rule applies to it. Strongest system coherence with Login/Register; least brochure-like of the three.</p>
+  <p class="dir-meta"><b>Register:</b> product-first, systematic, restrained · <b>Eye lands:</b> the headline on white · <b>Conflict to note:</b> the hero is no longer a full-width band, and the headline moves off photography — both are DESIGN.md rewrites</p>
+
+  <div class="frame">
+    <div class="frame-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="frame-url">localhost:8080/</span></div>
+    <div class="app">
+      <div class="hdr"><span class="wordmark">Trip Planner</span>
+        <nav class="nav"><a href="#">Trips</a><a href="#">Login</a><a class="cta" href="#">Register</a></nav></div>
+
+      <div class="c-wrap">
+        <div class="c-left">
+          <h1 class="h1">Where to next?</h1>
+          <p class="tag">Search any city and start building the trip.</p>
+          <div class="c-trigger-wrap">
+            <button class="trigger" type="button">
+              <span class="pin"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></span>
+              <span class="ph">Search a city…</span>
+              <span class="kbd">/</span>
+              <span class="go">Search</span>
+            </button>
+          </div>
+          <div style="margin-top:.5rem">
+            <p class="tiles-label">Recent searches</p>
+            <div class="recents">
+              <button class="recent"><span class="ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></span>Đà Nẵng</button>
+              <button class="recent"><span class="ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></span>Hoi An</button>
+              <button class="recent"><span class="ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></span>Tokyo</button>
+            </div>
+          </div>
+          <div style="margin-top:1rem">
+            <p class="tiles-label">Popular searches</p>
+            <div class="c-tiles">
+              <button class="tile t1"><i class="tscrim"></i><span class="name">Paris</span></button>
+              <button class="tile t3"><i class="tscrim"></i><span class="name">Rome</span></button>
+              <button class="tile t5"><i class="tscrim"></i><span class="name">Barcelona</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="c-right sky-c">
+          <div class="ink-scrim-side"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="caption">C — pre-search, showing the recent-searches row above the curated tiles (the fallback order: recents when they exist, curated tiles always).</p>
+</section>
+
+<!-- ============ SETTLED MECHANICS ============ -->
+<section class="mech">
+  <h2>Settled mechanics — identical in A, B and C</h2>
+  <p>These are already decided. They are drawn once here so the directions above can be judged purely on composition.</p>
+
+  <div class="mech-grid">
+    <div>
+      <h3>1 · The search overlay</h3>
+      <p style="font-size:.875rem">Activating the bar opens the app's one modal: page dimmed, focus trapped, <code>Esc</code> closes, focus returns to the trigger, background scroll locked. The combobox ARIA contract carries over intact.</p>
+      <div class="frame">
+        <div class="ovl-stage">
+          <div class="ovl-blur">
+            <div class="hdr"><span class="wordmark">Trip Planner</span>
+              <nav class="nav"><a href="#">Trips</a><a href="#">Login</a></nav></div>
+            <div class="b-wrap" style="padding-bottom:1rem">
+              <div class="b-hero sky-b" style="min-height:14rem">
+                <div class="ink-scrim"></div>
+                <div class="b-inner"><h1 class="h1" style="font-size:2rem">Where to next?</h1></div>
+              </div>
+            </div>
+          </div>
+          <div class="ovl-scrim"></div>
+          <div class="ovl-panel" role="dialog" aria-modal="true" aria-label="Search destinations">
+            <div class="ovl-field">
+              <span class="pin" style="color:var(--outline)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></span>
+              <input value="Đà N" aria-label="Search" readonly>
+              <button class="ovl-x">✕</button>
+            </div>
+            <ul class="ovl-list" role="listbox">
+              <li><button class="opt" role="option" aria-selected="true">
+                <span class="opin"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 1 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+                <span class="oname">Đà Nẵng</span><span class="pill">VN</span><span class="pill">City</span></button></li>
+              <li><button class="opt" role="option">
+                <span class="opin"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 1 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+                <span class="oname">Đà Nẵng Province</span><span class="pill">VN</span><span class="pill">Region</span></button></li>
+              <li><button class="opt" role="option">
+                <span class="opin"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 1 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+                <span class="oname">Da Nang Bay</span><span class="pill">VN</span><span class="pill">City</span></button></li>
+            </ul>
+            <div class="ovl-foot"><span><b>↑</b><b>↓</b> navigate</span><span><b>↵</b> select</span><span><b>esc</b> close</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">The overlay makes dismissal self-evident: closing the overlay <em>is</em> closing the search. The reported bug becomes structurally hard to reproduce.</p>
+    </div>
+
+    <div>
+      <h3>2 · The chosen-destination collapse</h3>
+      <p style="font-size:.875rem">On commit, the dropdown closes and the whole result list collapses into one row naming the choice, with <em>Change</em> to reopen the overlay. Nothing partial survives on screen.</p>
+
+      <div class="ba">
+        <div class="ba-col ba-bad">
+          <h4>TODAY — after selecting Đà Nẵng</h4>
+          <div class="ba-box">
+            <div class="row-old sel"><b style="font-size:.8125rem">Đà Nẵng</b><span class="pill">VN</span><span class="pill">City</span></div>
+            <div class="row-old"><b style="font-size:.8125rem">Da Nang Bay</b><span class="pill">VN</span><span class="partial">Partial match</span></div>
+            <div class="row-old"><b style="font-size:.8125rem">Đà Nẵng Prov.</b><span class="pill">VN</span><span class="partial">Partial match</span></div>
+            <div class="row-old"><b style="font-size:.8125rem">Danang Intl</b><span class="pill">VN</span><span class="partial">Partial match</span></div>
+            <p style="font-size:.6875rem;color:#ba1a1a;margin:.5rem 0 0">Four rows of noise stay parked above the attractions.</p>
+          </div>
+        </div>
+        <div class="ba-col ba-good">
+          <h4>PROPOSED — one committed row</h4>
+          <div class="ba-box">
+            <div class="chosen" style="max-width:none">
+              <span class="tick">✓</span>
+              <span class="cname">Đà Nẵng</span>
+              <span class="cmeta">VN · City</span>
+              <button class="change">Change</button>
+            </div>
+            <p style="font-size:.6875rem;color:var(--success);margin:.5rem 0 0">One row. The other matches live behind <em>Change</em>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="chosen-stage" style="border:1px solid var(--outline-var);border-radius:var(--r-md);margin-top:1rem">
+        <div class="chosen"><span class="tick">✓</span><span class="cname">Đà Nẵng</span>
+          <span class="cmeta">VN · City</span><button class="change">Change</button></div>
+        <h3 class="attr-h">Attractions near Đà Nẵng</h3>
+        <div class="cardrow">
+          <div class="acard"><div class="img"><span class="badge">★★☆</span></div>
+            <div class="bd"><div class="an">Marble Mountains</div><div class="ad">2.3 km from center</div></div></div>
+          <div class="acard"><div class="img"><span class="badge">★★★</span></div>
+            <div class="bd"><div class="an">Dragon Bridge</div><div class="ad">650 m from center</div></div></div>
+        </div>
+      </div>
+      <p class="caption">In context: committed row, then straight into the grid.</p>
+    </div>
+  </div>
+</section>
+
+<div class="doc-note" style="margin-top:2.5rem">
+  <strong>Open question I could not answer for you:</strong> the "Search" affordance. In all three directions the bar is a <em>trigger</em>, so a separate Search button is arguably redundant — the overlay's Enter key does the submitting. Direction previews keep the button for continuity with the shipped form; say the word and it goes, leaving the bar as one clean field. The <code>/</code> keyboard hint shown on the trigger is also a proposal, not a decision.
+</div>
+
+</div>
+</body>
+</html>
