@@ -37,6 +37,70 @@ project: tripplanner
 
 last_updated: 2026-07-25
 
+# 2026-07-25: added 10-2-redis-connection-string-in-env — user wants the Redis
+# connection string supplied through the environment. 10-1 shipped it hard-coded at
+# docker-compose.yml:41 ("redis:6379") while every sibling setting on that same
+# environment: block is a ${...} substitution; .env.production.example describes Redis
+# in a comment but declares no variable; BE/.env.example omits Redis entirely. Scope:
+# compose becomes ${ConnectionStrings__Redis:-redis:6379} (the `:-` form matters — a
+# bare substitution would silently degrade every default `up` to a per-process cache),
+# both env examples gain documented variables, CLAUDE.md gains the Redis wiring 10-1
+# never added, and the newly-reachable empty-string config is pinned by tests. 10-1's
+# six open review patches deliberately excluded. Created + picked up for dev-story.
+
+# 2026-07-25: 10-2-redis-connection-string-in-env implemented — all 5 tasks done.
+# ZERO production C# changed: 10-1 already read the value via GetConnectionString("Redis"),
+# so only the supply of the value was hard-coded. docker-compose.yml now uses
+# "${ConnectionStrings__Redis:-redis:6379}" (quoted — a deviation from the story's own
+# Dev Notes, because the default embeds colons and DefaultConnection sets that precedent;
+# verified by js-yaml that both forms parse and the value reads back literally).
+# .env.production.example's comment-only block became a real declaration; BE/.env.example
+# gained a documented blank line for local dev; CLAUDE.md documents the redis service and
+# the variable for the FIRST time (10-1 never touched it). The newly-reachable empty/
+# whitespace config is pinned by 2 additive tests asserting a set/get ROUND-TRIP, not
+# NotNull — RED-verified by weakening the guard to `is not null`, which failed both with
+# ArgumentException "is empty" from inside SetStringAsync (proving a NotNull assertion
+# would not have caught it). Noted for review: `:-` defaults on empty as well as unset, so
+# an operator cannot disable Redis by blanking the .env value — deliberate, since the
+# alternative (`${VAR-default}`) reintroduces the silent per-process-cache downgrade the
+# story exists to prevent. 10-1's six open review patches left untouched, including the
+# --maxmemory ceiling in the same compose file and the Assert.NotNull weakness in the same
+# test file. BE 298/298 (+2), build 0/0. Live `docker compose config` deferred — Docker not
+# installed. Moved to review.
+
+# 2026-07-25: 6-6-feature-2-requirements-verification code-reviewed AGAIN (round 2,
+# adversarial, 4 layers) at the real re-run diff 8146a05..HEAD. The re-run's baseline
+# integrity HELD: AC5's BE 282/282 and FE 288/288 were independently reproduced at
+# 8146a05 (statically and by a live isolated-worktree run), and the AC1 enumeration is
+# faithful to requirement/Sheet1.html rows 9-12. But 16 defects in the ANALYSIS were
+# found and fixed. Headline: NFR3 downgraded ✅ → ⚠️ — the latency model was wrong for
+# the third pass running, omitting the mandatory OTM leg (OpenTripMapSettings.cs:8 =
+# 5000 ms plus two 429 retries at 600 ms => ~16.2 s alone) and treating the internally
+# serial Wikipedia summary→Wikidata leg as one 5 s call (it is 10 s); cold worst case
+# ~26 s, so the old "tighten the two enrichment timeouts to ~1200 ms" fix could never
+# reach 2 s. Also: WikipediaSettings.cs:16 does not exist (9-line file; :7) — a NEW
+# drift introduced by the drift-correcting re-run; Finding #3 extended to Wikipedia's
+# identical 24 h negative cache, which the audit had been praising as a virtue;
+# Finding #5's "no fix required" was based on a half-quote of epic-2:63, which also
+# requires greying the button (never built) — now an actionable FE fix; Finding #6
+# reframed as a sheet-vs-epic scope conflict (sheet: US4 Selected=Yes; epic-2:48-51:
+# out of scope); Finding #4's overnight-range claim corrected (openNow.ts:58-60 does
+# handle end < start) and its real modes added (viewer-timezone computation, dual
+# independent clocks); NearbyRail.tsx's second /api/locations/attractions request added
+# to the reviewed surface; the flat test-file list replaced by a PER-VERDICT coverage
+# table exposing 4 verdicts with no backing test (US1 field mapping, US1 identity BR,
+# NFR3 budget, NFR6); File List corrected 2 → 6 files. Decisions: D1(b) US4-AC1 keeps
+# ✅ but annotated with the 24 h silent-failure mode; D2(a) requirement/ and epic/ are
+# now VERSION-CONTROLLED (.gitignore + CLAUDE.md updated; generated 3.9 MB
+# requirement/resources/sheet.css still excluded) so the requirement side of every
+# verdict is pinned, closing the last reproducibility hole. Story 8-5 was hardened in
+# the same pass before any dev work started: it had reproduced the exact stale :19-22
+# citation this story records as fixed, instructed the developer to mirror the cache
+# pattern that IS Finding #3, proposed a host-less cache key colliding across language
+# wikis, and left 7 AC loopholes (ACs 8 → 11). 3 pre-existing issues deferred
+# (verification gaps, backend error-taxonomy/cache hygiene, FE robustness incl.
+# openNow timezone), 4 dismissed. All 16 patches applied. Status: review → done.
+
 # 2026-07-25: Decision D1 executed — 6-5/6-7/6-8 committed as 8146a05 ("feat: source
 # real opening hours from Overpass & cut details latency", 19 files) and
 # 6-6-feature-2-requirements-verification RE-RUN against that real baseline. The audit
@@ -695,7 +759,7 @@ development_status:
   6-3-fix-xid-import-destination-mapping: review
   6-4-attraction-detail-caching: done
   6-5-destination-opening-hours-source: review
-  6-6-feature-2-requirements-verification: review
+  6-6-feature-2-requirements-verification: done
   6-7-opening-hours-not-available-copy: done
   6-8-destination-details-latency-nfr3: review
   epic-7: in-progress
@@ -719,7 +783,8 @@ development_status:
   5-16-horizon-trips-boarding-pass-redesign: review
   5-17-frontend-feature-based-restructure: review
   epic-9: in-progress
-  9-1-dockerize-for-production: review
+  9-1-dockerize-for-production: done
   5-18-verify-email-page-rebuild: review
   epic-10: in-progress
   10-1-redis-response-caching: review
+  10-2-redis-connection-string-in-env: review

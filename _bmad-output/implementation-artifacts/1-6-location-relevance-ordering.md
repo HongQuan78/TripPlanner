@@ -4,7 +4,7 @@ baseline_commit: 698215edd82bf9fe4c3a9acfad629b4acce3be5e
 
 # Story 1.6: Lock In Exact-Match-First Location Ordering & "No attractions found" Copy (US2)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
