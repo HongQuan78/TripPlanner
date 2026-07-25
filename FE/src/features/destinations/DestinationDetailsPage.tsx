@@ -34,18 +34,20 @@ function InfoRow({
   value,
   href,
   badge,
+  emptyLabel = 'Not available',
 }: {
   label: string;
   value: string | null;
   href?: string;
   badge?: ReactNode;
+  emptyLabel?: string;
 }) {
   return (
     <div className={styles.infoRow}>
       <span className={styles.infoKey}>{label}</span>
       <span className={styles.infoVal}>
         {value === null ? (
-          <span className={styles.na}>Not available</span>
+          <span className={styles.na}>{emptyLabel}</span>
         ) : href ? (
           <a className={styles.website} href={href} target="_blank" rel="noopener noreferrer">
             {value}
@@ -191,6 +193,7 @@ export default function DestinationDetailsPage({
                 label="Opening hours"
                 value={destination.openingHours}
                 badge={<OpenNowBadge openingHours={destination.openingHours} />}
+                emptyLabel="Opening hours not available"
               />
               <InfoRow
                 label="Website"

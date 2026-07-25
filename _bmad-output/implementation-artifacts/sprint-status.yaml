@@ -35,7 +35,97 @@ project: tripplanner
 # (+2 net), lint clean (2 pre-existing warnings), production build green. Moved
 # to done.
 
-last_updated: 2026-07-24
+last_updated: 2026-07-25
+
+# 2026-07-25: 6-6-feature-2-requirements-verification code-reviewed (adversarial, 4
+# layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor). All
+# 4 layers converged on one High issue: the audit pins baseline_commit 1bbb89f +
+# "no production code changed," but grades the UNCOMMITTED working tree — US4-AC1's
+# evidence (Overpass provider/settings/port + opening-hours wiring in
+# OpenTripMapDestinationDetailsService) is untracked & absent from 1bbb89f, the
+# "BE 59/59 green" count includes 9 Overpass tests that don't exist at that commit,
+# and US4-AC2 is graded against the pre-6-7 copy the same tree already fixed
+# (DestinationDetailsPage.tsx:196 emptyLabel="Opening hours not available"). Violates
+# the audit's own AC5. 3 patches (stale US4-AC2 verdict; NFR3 Finding #5 recommends a
+# no-op since image+hours already run concurrently; ~1/3 file:line citations drifted,
+# 2 pointing at unrelated code). 3 deferred code issues (openNow.ts null-collapse on
+# comma/PH-off/overnight strings; Overpass 24h negative-cache poisoning; US4 epic-intent
+# deviation). 2 dismissed. Decision D1 resolved as RE-RUN at a merged baseline: 6-6 left
+# as-is, all 4 findings deferred pending 6-5/6-7/6-8 commit so the baseline/verdicts/
+# test-counts become reproducible. Status: review → in-progress.
+
+# 2026-07-24: 6-6-feature-2-requirements-verification created & executed — a
+# function-by-function audit of Feature 2 (Destination Details / epic-2) against
+# requirement/Sheet1.html US1-US4 + NFR3/NFR6, full stack. Verdicts: US1 PASS
+# (accepted redirect-to-login gating deviation vs literal "unclickable"); US2
+# PARTIAL (hero gallery supports swipe but OpenTripMapDestinationDetailsService
+# caps ImageUrls at 1 Wikipedia image, so AC2 multi-photo never activates); US3
+# not-selected/bonus-implemented (map+marker+address); US4 PASS pending 6-5 merge
+# (Overpass opening_hours sourcing) with minor AC2 copy deviation ("Not available"
+# vs "Opening hours not available"). NFR3 PASS w/ cold-cache latency watch, NFR6
+# PASS. 5 non-PASS/watch items, none High. Tests green at 1bbb89f: BE 59/59, FE
+# 48/48. Review-only, no production code changed. Status: review.
+# 2026-07-24: 8-5-destination-details-multiple-images drafted from 6-6 Finding #1
+# (US2-AC2 multi-photo swipe unreachable — details service caps ImageUrls at 1).
+# Backend-only fix: add IDestinationImageProvider.GetImageUrlsAsync (list) alongside
+# the single-image method, source multiple photos via keyless Wikipedia REST
+# page/media-list, populate DestinationDetailsResponse.ImageUrls; attraction-list
+# thumbnail path & FE untouched (AttractionHero already handles >1). ready-for-dev.
+# 2026-07-24: 6-7-opening-hours-not-available-copy drafted from 6-6 Finding #2
+# (US4-AC2 empty-state copy). FE-only: parameterize InfoRow's empty label so the
+# Opening hours row reads the required literal "Opening hours not available" while
+# Address/Website keep the generic "Not available". ready-for-dev.
+# 2026-07-24: 6-7-opening-hours-not-available-copy implemented — all 4 tasks done.
+# FE-only copy fix (US4-AC2): parameterized the local InfoRow component with an
+# optional emptyLabel prop (default "Not available") and passed "Opening hours not
+# available" on the Opening hours row only; Address/Website keep the generic label.
+# Test tightened from a loose /not available/i count of 3 to an exact hours-literal
+# assertion + exact count of 2 generic labels (the old count would have masked the
+# change since the new literal still matches /not available/i). FE 290/290, lint clean
+# (2 pre-existing warnings), production build green. Moved to review.
+# 2026-07-24: 6-8-destination-details-latency-nfr3 drafted from 6-6 Finding #5
+# (NFR3 cold-open latency). BE-only: parallelize the independent image + opening-
+# hours fetches in OpenTripMapDestinationDetailsService (currently sequential) and
+# add IResponseCache to the uncached Wikipedia image leg (found+not-found). Output
+# unchanged; coordinate image-path edit with 8-5. ready-for-dev.
+
+# 2026-07-24: audited Feature 2 (Destination Details / epic-2) against
+# requirement/Sheet1.html end-to-end (BE + FE). All ACs implemented & tested
+# EXCEPT F2-US4 AC1 (opening hours, Selected = Yes): DestinationDetailsResponse
+# .OpeningHours is a dead field — OpenTripMapDestinationDetailsService never sets
+# it and OpenTripMapPlaceModel has no source property; OpenTripMap doesn't supply
+# hours and no alt source was integrated (matches 6-1 report finding #4). FE
+# already renders the "Not available" fallback (US4 AC2) and parseOpenNow already
+# understands the OSM opening_hours grammar. Added 6-5-destination-opening-hours-
+# source (epic-6 quality-fix, mirroring 6-1→6-3): source raw OSM opening_hours via
+# the keyless Overpass API (OTM xids are OSM ids) behind a new IOpeningHoursProvider
+# port, populate the DTO + the DestinationResolver import knock-on. ready-for-dev.
+# 2026-07-24: 6-5-destination-opening-hours-source implemented — all 7 tasks done.
+# New IOpeningHoursProvider port + keyless OverpassOpeningHoursProvider (parses the
+# OSM element type from the OTM xid N/W/R → node/way/rel, POSTs Overpass QL, reads
+# the opening_hours tag), wired into OpenTripMapDestinationDetailsService (OpeningHours
+# was a dead always-null field) and the xid-import Landmark path. Graceful degradation
+# to null on any failure/non-OSM xid (details endpoint still 200), cached via the
+# existing IResponseCache seam (osm:hours:{xid}, found+not-found). Raw OSM strings pass
+# through so the FE's existing parseOpenNow/OpenNowBadge light up — ZERO FE changes.
+# BE 291/291 (+11: 9 Overpass + 2 details-service hours), build clean 0 warnings. Live
+# Overpass QA deferred (no outbound network in this session). Moved to review.
+
+# 2026-07-24: 3-6-move-destination-between-days code-reviewed (adversarial, 4 layers:
+# blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor). Acceptance
+# audit clean — all 8 ACs met, with the documented v1.1 AC #2 idempotency deviation
+# correctly/consistently implemented across mutator, use case, and tests. 0 decisions,
+# 3 patches all fixed, 2 deferred (pre-existing/systemic), 12 dismissed. Patches: added
+# BE MoveDestinationValidatorTests (14 cases — the move endpoint's two validators had
+# zero coverage, the only guard turning malformed dates/null body/DestinationId<=0 into
+# a 400 vs a 500); swapped the FE cross-day-move rollback test's dead error string
+# ("Destination already exists in this day." — no longer emitted post-v1.1) to
+# ApiError(404,"Day Not Found"); added TripPlannerPage.dnd.test.tsx exercising the
+# previously-untested handleDragEnd move branch (captures DndContext.onDragEnd, asserts
+# cross-day drag→move mapping + same-day drag→reorder, not move). Deferred: concurrent
+# optimistic-move rollback baseline pollution (systemic across all trip hooks) + endpoint
+# route/body→arg mapping unverified (no endpoint tests by convention). BE 280/280 (+14),
+# FE 290/290 (+2), lint clean (2 pre-existing warnings), FE build green. Moved to done.
 
 # 2026-07-24: 1-6-location-relevance-ordering implemented — all 4 tasks done.
 # Verification corrected the story's premise: the working tree was clean, so the
@@ -568,12 +658,12 @@ development_status:
   epic-1: in-progress
   1-4-filter-and-sort-attractions: done
   1-5-attraction-list-pagination: done
-  1-6-location-relevance-ordering: review
+  1-6-location-relevance-ordering: done
   epic-2: done
   epic-3: in-progress
   3-4-schedule-destinations-into-day: done
   3-5-reorder-destinations-within-day: done
-  3-6-move-destination-between-days: review
+  3-6-move-destination-between-days: done
   epic-4: done
   epic-5: in-progress
   5-1-frontend-scaffold-and-api-client: done
@@ -588,6 +678,10 @@ development_status:
   6-2-backend-code-review-epics-1-4: review
   6-3-fix-xid-import-destination-mapping: review
   6-4-attraction-detail-caching: done
+  6-5-destination-opening-hours-source: review
+  6-6-feature-2-requirements-verification: in-progress
+  6-7-opening-hours-not-available-copy: done
+  6-8-destination-details-latency-nfr3: review
   epic-7: in-progress
   7-1-resend-email-integration: review
   7-2-email-provider-strategy-pattern: review
@@ -602,6 +696,7 @@ development_status:
   5-12-frontend-redesign-horizon-design-system: review
   8-3-fix-missing-destination-images: review
   8-4-image-loading-state: review
+  8-5-destination-details-multiple-images: ready-for-dev
   5-13-horizon-auth-redesign: review
   5-14-horizon-home-redesign: done
   5-15-azure-attraction-detail-redesign: done

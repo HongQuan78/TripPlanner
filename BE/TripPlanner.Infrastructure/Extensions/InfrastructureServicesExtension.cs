@@ -10,6 +10,7 @@ using TripPlanner.Infrastructure.Data;
 using TripPlanner.Infrastructure.ExternalServices.Email;
 using TripPlanner.Infrastructure.ExternalServices.Google;
 using TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
+using TripPlanner.Infrastructure.ExternalServices.Overpass;
 using TripPlanner.Infrastructure.ExternalServices.Photon;
 using TripPlanner.Infrastructure.ExternalServices.Resend;
 using TripPlanner.Infrastructure.ExternalServices.Wikipedia;
@@ -111,6 +112,12 @@ public static class InfrastructureServicesExtension
             .Validate(settings => settings.TimeoutMilliseconds > 0, "PhotonSettings:TimeoutMilliseconds must be greater than zero.")
             .ValidateOnStart();
 
+        services.AddOptions<OverpassSettings>()
+            .Bind(configuration.GetSection(OverpassSettings.SectionName))
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.BaseUrl), "OverpassSettings:BaseUrl must be configured.")
+            .Validate(settings => settings.TimeoutMilliseconds > 0, "OverpassSettings:TimeoutMilliseconds must be greater than zero.")
+            .ValidateOnStart();
+
         var redisSettings = new RedisSettings();
         configuration.GetSection(RedisSettings.SectionName).Bind(redisSettings);
         services.Configure<RedisSettings>(options => configuration.GetSection(RedisSettings.SectionName).Bind(options));
@@ -133,6 +140,7 @@ public static class InfrastructureServicesExtension
 
         services.AddHttpClient<IGeocodingService, PhotonGeocodingService>(ConfigurePhotonClient);
         services.AddHttpClient<IDestinationImageProvider, WikipediaImageProvider>(ConfigureWikipediaClient);
+        services.AddHttpClient<IOpeningHoursProvider, OverpassOpeningHoursProvider>(ConfigureOverpassClient);
         services.AddHttpClient<IOpenTripMapPlaceClient, OpenTripMapPlaceClient>(ConfigureOpenTripMapClient);
         services.AddHttpClient<IAttractionSearchService, OpenTripMapAttractionSearchService>(ConfigureOpenTripMapClient);
         services.AddScoped<IDestinationDetailsService, OpenTripMapDestinationDetailsService>();
@@ -158,6 +166,14 @@ public static class InfrastructureServicesExtension
     private static void ConfigurePhotonClient(IServiceProvider serviceProvider, HttpClient client)
     {
         var settings = serviceProvider.GetRequiredService<IOptions<PhotonSettings>>().Value;
+        client.BaseAddress = new Uri(settings.BaseUrl.TrimEnd('/') + "/");
+        client.Timeout = TimeSpan.FromMilliseconds(settings.TimeoutMilliseconds);
+        client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("TripPlanner", "1.0"));
+    }
+
+    private static void ConfigureOverpassClient(IServiceProvider serviceProvider, HttpClient client)
+    {
+        var settings = serviceProvider.GetRequiredService<IOptions<OverpassSettings>>().Value;
         client.BaseAddress = new Uri(settings.BaseUrl.TrimEnd('/') + "/");
         client.Timeout = TimeSpan.FromMilliseconds(settings.TimeoutMilliseconds);
         client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("TripPlanner", "1.0"));

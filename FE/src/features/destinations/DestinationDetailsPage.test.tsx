@@ -143,7 +143,8 @@ describe('DestinationDetailsPage', () => {
       expect(screen.getByRole('heading', { level: 1, name: 'Hidden Garden' })).toBeInTheDocument();
     });
     expect(screen.getByText(/no description available/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/not available/i)).toHaveLength(3);
+    expect(screen.getByText('Opening hours not available')).toBeInTheDocument();
+    expect(screen.getAllByText('Not available')).toHaveLength(2);
     expect(screen.getByTestId('image-placeholder')).toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.queryByTestId('map')).not.toBeInTheDocument();

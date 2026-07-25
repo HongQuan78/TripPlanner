@@ -5,7 +5,8 @@ namespace TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
 
 internal class OpenTripMapDestinationDetailsService(
     IOpenTripMapPlaceClient placeClient,
-    IDestinationImageProvider imageProvider) : IDestinationDetailsService
+    IDestinationImageProvider imageProvider,
+    IOpeningHoursProvider openingHoursProvider) : IDestinationDetailsService
 {
     public async Task<DestinationDetailsResponse?> GetDetailsAsync(string xid, CancellationToken cancellationToken = default)
     {
@@ -15,10 +16,17 @@ internal class OpenTripMapDestinationDetailsService(
             return null;
         }
 
-        var imageUrl = await imageProvider.GetImageUrlAsync(
+        var imageTask = imageProvider.GetImageUrlAsync(
             new DestinationImageContext { Name = place.Name, WikipediaUrl = place.Wikipedia, WikidataId = place.Wikidata },
             cancellationToken);
+        var openingHoursTask = openingHoursProvider.GetOpeningHoursAsync(
+            new OpeningHoursContext { Xid = place.Xid },
+            cancellationToken);
+
+        var imageUrl = await AwaitOrNullAsync(imageTask);
         List<string> imageUrls = string.IsNullOrWhiteSpace(imageUrl) ? [] : [imageUrl];
+
+        var openingHours = await AwaitOrNullAsync(openingHoursTask);
 
         return new DestinationDetailsResponse
         {
@@ -29,10 +37,23 @@ internal class OpenTripMapDestinationDetailsService(
             Description = NormalizeOptional(place.WikipediaExtracts?.Text),
             ImageUrls = imageUrls,
             Address = ComposeAddress(place.Address),
+            OpeningHours = NormalizeOptional(openingHours),
             Website = NormalizeOptional(place.Url),
             Latitude = place.Point?.Lat,
             Longitude = place.Point?.Lon
         };
+    }
+
+    private static async Task<string?> AwaitOrNullAsync(Task<string?> task)
+    {
+        try
+        {
+            return await task;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static double? ParseRating(string? rate)

@@ -1,7 +1,9 @@
 using System.Net;
+using Microsoft.Extensions.Options;
 using Xunit;
 using TripPlanner.Application.Interfaces.Services;
 using TripPlanner.Infrastructure.ExternalServices.Wikipedia;
+using TripPlanner.Infrastructure.Settings;
 
 namespace TripPlanner.Tests;
 
@@ -27,7 +29,7 @@ public class WikipediaImageProviderTests
         {
             BaseAddress = new Uri("https://en.wikipedia.org/api/rest_v1/")
         };
-        return new WikipediaImageProvider(httpClient);
+        return new WikipediaImageProvider(httpClient, Options.Create(new WikipediaSettings()), TestCache.Create());
     }
 
     private static DestinationImageContext CreateContext(string? wikipediaUrl, string? wikidataId = null)
@@ -230,5 +232,41 @@ public class WikipediaImageProviderTests
         Assert.Equal("https://upload.wikimedia.org/eiffel.jpg", result);
         Assert.Single(handler.Requests);
         Assert.Equal("en.wikipedia.org", handler.LastRequest!.RequestUri!.Host);
+    }
+
+    [Fact]
+    public async Task GetImageUrlAsync_SecondCallSameContext_ReturnsCachedUrlWithoutSecondHttpCall()
+    {
+        var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"thumbnail":{"source":"https://upload.wikimedia.org/eiffel.jpg"}}""")
+        });
+        var provider = CreateProvider(handler);
+        var context = CreateContext("https://en.wikipedia.org/wiki/Eiffel_Tower");
+
+        var first = await provider.GetImageUrlAsync(context);
+        var second = await provider.GetImageUrlAsync(context);
+
+        Assert.Equal("https://upload.wikimedia.org/eiffel.jpg", first);
+        Assert.Equal(first, second);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task GetImageUrlAsync_SecondCallAfterNotFound_ReturnsCachedNullWithoutSecondHttpCall()
+    {
+        var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"title":"Eiffel Tower"}""")
+        });
+        var provider = CreateProvider(handler);
+        var context = CreateContext("https://en.wikipedia.org/wiki/Eiffel_Tower");
+
+        var first = await provider.GetImageUrlAsync(context);
+        var second = await provider.GetImageUrlAsync(context);
+
+        Assert.Null(first);
+        Assert.Null(second);
+        Assert.Single(handler.Requests);
     }
 }

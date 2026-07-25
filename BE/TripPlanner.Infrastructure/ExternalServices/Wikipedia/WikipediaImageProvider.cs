@@ -2,25 +2,59 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
 using TripPlanner.Application.Interfaces.Services;
+using TripPlanner.Infrastructure.Caching;
+using TripPlanner.Infrastructure.Settings;
 
 namespace TripPlanner.Infrastructure.ExternalServices.Wikipedia;
 
-public partial class WikipediaImageProvider(HttpClient httpClient) : IDestinationImageProvider
+internal partial class WikipediaImageProvider(
+    HttpClient httpClient,
+    IOptions<WikipediaSettings> options,
+    IResponseCache cache) : IDestinationImageProvider
 {
     private const string WikipediaHostSuffix = ".wikipedia.org";
     private const string WikidataClaimsUrlFormat = "https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&format=json&entity={0}";
     private const string CommonsFilePathUrlFormat = "https://commons.wikimedia.org/wiki/Special:FilePath/{0}?width=640";
+    private const int DefaultCacheMinutes = 1440;
 
     public async Task<string?> GetImageUrlAsync(DestinationImageContext context, CancellationToken cancellationToken = default)
     {
-        var thumbnail = await GetWikipediaThumbnailAsync(context.WikipediaUrl, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(thumbnail))
+        var cacheKey = BuildCacheKey(context);
+        if (cacheKey is not null)
         {
-            return thumbnail;
+            var cached = await cache.GetAsync<ImageCacheEntry>(cacheKey, cancellationToken);
+            if (cached is not null)
+            {
+                return cached.Value;
+            }
         }
 
-        return await GetWikidataImageAsync(context.WikidataId, cancellationToken);
+        var thumbnail = await GetWikipediaThumbnailAsync(context.WikipediaUrl, cancellationToken);
+        var imageUrl = string.IsNullOrWhiteSpace(thumbnail)
+            ? await GetWikidataImageAsync(context.WikidataId, cancellationToken)
+            : thumbnail;
+
+        if (cacheKey is not null)
+        {
+            var minutes = options.Value.CacheMinutes > 0 ? options.Value.CacheMinutes : DefaultCacheMinutes;
+            await cache.SetAsync(cacheKey, new ImageCacheEntry { Value = imageUrl }, TimeSpan.FromMinutes(minutes), cancellationToken);
+        }
+
+        return imageUrl;
+    }
+
+    private static string? BuildCacheKey(DestinationImageContext context)
+    {
+        var wikipedia = context.WikipediaUrl?.Trim();
+        var wikidata = context.WikidataId?.Trim();
+        if (string.IsNullOrWhiteSpace(wikipedia) && string.IsNullOrWhiteSpace(wikidata))
+        {
+            return null;
+        }
+
+        return $"wiki:image:{wikipedia}|{wikidata}";
     }
 
     private async Task<string?> GetWikipediaThumbnailAsync(string? wikipediaUrl, CancellationToken cancellationToken)
@@ -114,6 +148,11 @@ public partial class WikipediaImageProvider(HttpClient httpClient) : IDestinatio
 
     [GeneratedRegex(@"^Q\d+$")]
     private static partial Regex WikidataIdRegex();
+}
+
+internal sealed record ImageCacheEntry
+{
+    public string? Value { get; init; }
 }
 
 internal sealed record WikipediaSummaryModel

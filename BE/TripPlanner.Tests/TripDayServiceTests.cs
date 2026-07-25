@@ -188,6 +188,7 @@ public class TripDayServiceTests
         Assert.Equal("W123", landmark.ExternalId);
         Assert.Equal("Landmark", landmark.Category);
         Assert.Equal(3, landmark.Rating);
+        Assert.Equal("9am-11pm", landmark.OpeningHours);
         _destinationRepository.Received(1).Add(Arg.Is<Destination>(x => x.ExternalId == "W123"));
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
