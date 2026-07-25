@@ -656,9 +656,7 @@ describe('TripPlannerPage', () => {
 
   it('rolls back and shows an alert when a cross-day move fails', async () => {
     getTripMock.mockResolvedValue(tripTwoDests);
-    moveDestinationBetweenDaysMock.mockRejectedValue(
-      new ApiError(400, 'Destination already exists in this day.'),
-    );
+    moveDestinationBetweenDaysMock.mockRejectedValue(new ApiError(404, 'Day Not Found'));
     renderPage();
 
     await waitFor(() => {
@@ -670,7 +668,7 @@ describe('TripPlannerPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Destination already exists in this day.');
+      expect(screen.getByRole('alert')).toHaveTextContent('Day Not Found');
     });
   });
 });
