@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Layout
 
-The .NET solution lives entirely under `BE/` (`BE/TripPlanner.slnx`). The frontend web app (React + TypeScript + Vite) lives under `FE/`. The repo root also contains `epic/` and `requirement/` (feature docs and source requirements — both gitignored) and `docs/`.
+The .NET solution lives entirely under `BE/` (`BE/TripPlanner.slnx`). The frontend web app (React + TypeScript + Vite) lives under `FE/`. The repo root also contains `epic/` and `requirement/` (feature docs and source requirements — both version-controlled, so requirements-verification stories can cite them at a pinned commit; only the generated `requirement/resources/sheet.css` is ignored) and `docs/`.
 
 ## Commands
 
@@ -67,15 +67,21 @@ docker compose build
 docker compose up
 ```
 
-The app is served at `http://localhost:8080` (the `web`/nginx service is the only host-facing port). nginx serves the built SPA and reverse-proxies `/api/` and `/swagger` to the `api` container on port 8080, so the browser talks to a single same-origin — the backend's loopback-only CORS policy is never a factor and needs no widening.
+The app is served at `http://localhost:8080` (the `web`/nginx service is the only host-facing port, mapped `8080:8080`). nginx serves the built SPA and reverse-proxies `/api/` to the `api` container on port 8080, so the browser talks to a single same-origin — the backend's loopback-only CORS policy is never a factor and needs no widening.
 
 Key mechanics:
 
-- **Backend image** (`BE/Dockerfile`): multi-stage .NET 10 SDK build → ASP.NET runtime, publishes `TripPlanner.API` in Release, runs as a non-root user, listens on `http://+:8080`.
-- **Frontend image** (`FE/Dockerfile`): multi-stage Node build (`npm run build`) → nginx serving `dist/` with SPA history-fallback. It is built with `VITE_API_BASE_URL` **empty** so the SPA issues relative, same-origin requests (Vite bakes this at build time). See `FE/nginx.conf`.
+- **Backend image** (`BE/Dockerfile`): multi-stage .NET 10 SDK build → ASP.NET runtime, publishes `TripPlanner.API` in Release, runs as a non-root user, listens on `http://+:8080`. The runtime stage installs `curl` (for the compose healthcheck) and `libgssapi-krb5-2` (Npgsql probes for GSSAPI at startup; without it the boot log opens with a misleading `Cannot load library libgssapi_krb5.so.2` error that is harmless but misdirects debugging).
+- **Frontend image** (`FE/Dockerfile`): multi-stage Node build (`npm run build`) → `nginxinc/nginx-unprivileged` serving `dist/` with SPA history-fallback, as a non-root user on port 8080. It is built with `VITE_API_BASE_URL` **empty** so the SPA issues relative, same-origin requests (Vite bakes this at build time). See `FE/nginx.conf`.
+- **nginx routing.** The proxy prefixes are declared `location ^~ /api/` and `^~ /swagger`; the `^~` is load-bearing. Without it the regex static-asset location (`~* \.(js|css|svg|…)$`) takes precedence over a plain prefix location in nginx, and any proxied path ending in one of those extensions is served from disk (404) instead of being forwarded. `proxy_pass` goes through `resolver 127.0.0.11` and a variable (`$api_upstream$request_uri`) rather than a literal hostname, so nginx re-resolves the `api` address instead of caching it for the process lifetime — and `nginx -t` works without the `api` container being up.
+- **`/swagger` is proxied but inert in production.** The nginx block forwards correctly, and the API returns 404 for it: `Program.cs` maps Swagger only when `IsDevelopment()`, while the container runs `ASPNETCORE_ENVIRONMENT=Production`. The route only becomes live if you override the environment to Development.
 - **Config/secrets** are injected at run time as environment variables via the `Section__Key` convention (Compose auto-loads the host-side `.env` for `${...}` substitution); nothing is baked into an image. The compose Postgres connection string uses `Host=db;Port=5432;…` with **no** `SSL Mode=Require` (that fragment in `BE/.env.example` targets a managed cloud Postgres, not the in-network compose DB).
-- **Migrations** apply automatically on API startup: `Program.cs` runs `Database.Migrate()` before serving, gated by the `RunMigrationsOnStartup` config flag (default `true`), so a fresh Postgres volume is schema-ready on first boot. Set `RunMigrationsOnStartup=false` to disable.
-- **TLS** is expected to terminate at an upstream proxy/load balancer; the containers serve plain HTTP. `UseHttpsRedirection()` is a no-op with no configured HTTPS port.
+- **Redis is optional and env-sourced.** The `redis` service (`redis:7-alpine`, `redisdata` volume, `redis-cli ping` healthcheck) backs the cache of external-provider responses; it is in-network only and never published to the host. The API reads `ConnectionStrings:Redis` (env `ConnectionStrings__Redis`), which compose supplies as `${ConnectionStrings__Redis:-redis:6379}` — the `:-` form is load-bearing, since a bare `${...}` would expand to empty when unset and silently downgrade every default `up` to a per-process cache while the `redis` container still starts and reports healthy. An **empty** value is a supported configuration, not an error: `AddInfrastructureServices` falls back to `AddDistributedMemoryCache()` rather than failing startup (an empty string reaching `AddStackExchangeRedisCache` would throw `ArgumentException: is empty`), which is why `BE/.env.example` can ship the variable blank for local dev and no test needs a running Redis.
+- **Migrations** apply automatically on API startup: `Program.cs` runs `Database.Migrate()` before serving, gated by the `RunMigrationsOnStartup` config flag (default `true` when unset or unparseable; only the literal `false` disables it), so a fresh Postgres volume is schema-ready on first boot. The call is wrapped in a bounded retry (10 attempts, 3s apart) and logs a `Critical` message naming the connection string before rethrowing, so an unreachable DB fails fast with a clear reason instead of a bare stack trace in a crash loop. EF Core takes an `ACCESS EXCLUSIVE` lock on `__EFMigrationsHistory`, so concurrent instances serialize rather than collide. Note the default applies to plain `dotnet run` too — see `BE/.env.example`.
+- **Readiness.** `api` has a healthcheck against `/health` (`AddHealthChecks`/`MapHealthChecks`) and `web` waits on `condition: service_healthy`, so nginx does not accept traffic and return 502s while the API is still migrating or starting.
+- **Postgres credentials are init-only.** `POSTGRES_DB/USER/PASSWORD` are honored only when the `pgdata` volume is first initialized. Editing them later does not rotate anything — the role keeps its old password while the API connects with the new one (`28P01`). Rotate with `ALTER ROLE` inside the db container, or destroy the volume (which erases all data).
+- **DataProtection keys** are persisted to the `dpkeys` named volume; without it ASP.NET warns on every boot and any DataProtection-backed payload would break on redeploy. (JWTs are unaffected — they are signed with the configured HS256 key.)
+- **TLS** is expected to terminate at an upstream proxy/load balancer; the containers serve plain HTTP. `UseHttpsRedirection()` is a no-op with no configured HTTPS port. nginx forwards `X-Forwarded-*`, but the API does not call `UseForwardedHeaders`, so `Request.Scheme` stays `http` — do not configure an HTTPS port on the container without adding forwarded-headers handling, or the redirect will loop.
 
 ## Architecture
 
@@ -134,7 +140,7 @@ Application/UseCases/
 
 ## Feature Docs
 
-Requirements are tracked as epic documents in the `epic/` folder (`epic-1-destination-suggestion.md` through `epic-4-user-authentication.md`), each with user stories, acceptance criteria, and per-story status notes. The folder is gitignored, so it exists only locally. Consult these files before starting work on a feature to check its scope and status.
+Requirements are tracked as epic documents in the `epic/` folder (`epic-1-destination-suggestion.md` through `epic-5-frontend-web-app.md`), each with user stories, acceptance criteria, and per-story status notes; `requirement/Sheet1.html` is the authoritative source they derive from. Both are version-controlled. Consult these files before starting work on a feature to check its scope and status. Where an epic and the sheet disagree (e.g. epic-2 places US4 under "Out of scope" while the sheet marks it `Selected = Yes`), the sheet is authoritative and the divergence is worth recording.
 
 ## Code Style
 

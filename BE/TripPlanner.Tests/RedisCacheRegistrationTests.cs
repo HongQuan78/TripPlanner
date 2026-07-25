@@ -62,6 +62,36 @@ public class RedisCacheRegistrationTests
     }
 
     [Fact]
+    public async Task AddInfrastructureServices_WithEmptyRedisConnectionString_CacheIsUsable()
+    {
+        using var provider = BuildProvider(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:Redis"] = string.Empty
+        });
+
+        var cache = provider.GetRequiredService<IDistributedCache>();
+        await cache.SetStringAsync("probe", "value");
+        var stored = await cache.GetStringAsync("probe");
+
+        Assert.Equal("value", stored);
+    }
+
+    [Fact]
+    public async Task AddInfrastructureServices_WithWhitespaceRedisConnectionString_CacheIsUsable()
+    {
+        using var provider = BuildProvider(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:Redis"] = "   "
+        });
+
+        var cache = provider.GetRequiredService<IDistributedCache>();
+        await cache.SetStringAsync("probe", "value");
+        var stored = await cache.GetStringAsync("probe");
+
+        Assert.Equal("value", stored);
+    }
+
+    [Fact]
     public void AddInfrastructureServices_WithRedisConnectionString_ResolvesDistributedCache()
     {
         using var provider = BuildProvider(new Dictionary<string, string?>

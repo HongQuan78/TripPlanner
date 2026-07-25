@@ -38,7 +38,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
-      ConnectionStrings__Redis: "redis:6379"
+      ConnectionStrings__Redis: "${ConnectionStrings__Redis:-redis:6379}"
       JwtSettings__SecretKey: ${JwtSettings__SecretKey}
       OpenTripMapSettings__ApiKey: ${OpenTripMapSettings__ApiKey}
       EmailSettings__Provider: ${EmailSettings__Provider}
@@ -49,6 +49,14 @@ services:
       ResendSettings__ApiKey: ${ResendSettings__ApiKey:-}
       GoogleSmtpSettings__Username: ${GoogleSmtpSettings__Username:-}
       GoogleSmtpSettings__AppPassword: ${GoogleSmtpSettings__AppPassword:-}
+    volumes:
+      - dpkeys:/home/app/.aspnet/DataProtection-Keys
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
   web:
@@ -58,11 +66,18 @@ services:
       args:
         VITE_API_BASE_URL: ""
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
-      - "8080:80"
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
 volumes:
   pgdata:
   redisdata:
+  dpkeys:
