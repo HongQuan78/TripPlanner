@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { DayPicker } from 'react-day-picker';
 import type { Matcher } from 'react-day-picker';
 import 'react-day-picker/style.css';
@@ -46,6 +47,7 @@ export default function DateField({
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -80,8 +82,20 @@ export default function DateField({
     disabled.push({ after: maxDate });
   }
 
+  function closePopover() {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (open && event.key === 'Escape') {
+      event.stopPropagation();
+      closePopover();
+    }
+  }
+
   return (
-    <div className={styles.field} ref={containerRef}>
+    <div className={styles.field} ref={containerRef} onKeyDown={handleKeyDown}>
       <label className={styles.label} htmlFor={id}>
         {label}
       </label>
@@ -96,6 +110,7 @@ export default function DateField({
           onChange={(event) => onChange(event.target.value)}
         />
         <button
+          ref={triggerRef}
           type="button"
           className={styles.trigger}
           aria-label="Open calendar"
@@ -119,7 +134,7 @@ export default function DateField({
             onSelect={(date) => {
               if (date) {
                 onChange(dateToISO(date));
-                setOpen(false);
+                closePopover();
               }
             }}
           />

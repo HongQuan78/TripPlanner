@@ -29,6 +29,45 @@ describe('DateField', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('consumes Escape while the calendar is open so an enclosing dialog is not closed too', () => {
+    const outerKeyDown = vi.fn();
+    render(
+      <div onKeyDown={outerKeyDown}>
+        <DateField id="start" label="Start date" value="" onChange={() => {}} />
+      </div>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /open calendar/i }));
+    const popover = screen.getByRole('dialog', { name: /calendar/i });
+    fireEvent.keyDown(popover, { key: 'Escape' });
+
+    expect(screen.queryByRole('dialog', { name: /calendar/i })).toBeNull();
+    expect(outerKeyDown).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /open calendar/i })).toHaveFocus();
+  });
+
+  it('returns focus to the calendar trigger after a day is picked', () => {
+    render(<DateField id="start" label="Start date" value="2026-08-15" onChange={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /open calendar/i }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: /calendar/i })).getByText('20'));
+
+    expect(screen.getByRole('button', { name: /open calendar/i })).toHaveFocus();
+  });
+
+  it('lets Escape reach an enclosing dialog when the calendar is closed', () => {
+    const outerKeyDown = vi.fn();
+    render(
+      <div onKeyDown={outerKeyDown}>
+        <DateField id="start" label="Start date" value="" onChange={() => {}} />
+      </div>,
+    );
+
+    fireEvent.keyDown(screen.getByLabelText(/start date/i), { key: 'Escape' });
+
+    expect(outerKeyDown).toHaveBeenCalled();
+  });
+
   it('reports the ISO date when a day is picked from the calendar', () => {
     const onChange = vi.fn();
     render(<DateField id="start" label="Start date" value="2026-08-15" onChange={onChange} />);
