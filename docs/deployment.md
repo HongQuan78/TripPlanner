@@ -76,8 +76,29 @@ What it deliberately does **not** do: start the stack. That is the deploy workfl
 so the instance never builds images. It also cannot invent the two secrets only you hold
 — the OpenTripMap API key and the email provider credentials.
 
-Security group is not scriptable from inside the instance: set 22 from your IP only and
-80 from anywhere, and **never** open 5432 or 6379.
+### Security group
+
+Not scriptable from inside the instance. Required inbound rules:
+
+| Port | Source | Why |
+| --- | --- | --- |
+| 22 | `0.0.0.0/0` | The deploy job SSHes **from a GitHub-hosted runner**, whose public IP is dynamic |
+| 80 | `0.0.0.0/0` | Public traffic, and the workflow's smoke test |
+
+**Never** open 5432 or 6379 — Postgres and Redis are reachable only inside the Compose
+network.
+
+Restricting 22 to your own IP breaks every deploy: the `Deploy over SSH` step hangs and
+then fails. Whitelisting GitHub's ranges instead is not viable either — `api.github.com/meta`
+publishes **7297** CIDRs for `actions` against a default quota of 60 rules per security
+group.
+
+Leaving 22 world-open is acceptable here because the Ubuntu AMI disables SSH password
+authentication, so key-only auth is the sole path in. The production-grade alternative is
+**AWS SSM Session Manager**, which needs no inbound port at all: attach an instance profile
+with `AmazonSSMManagedInstanceCore` and replace the ssh step with `aws ssm send-command`
+authenticated by OIDC. That is a meaningful rework of `deploy.yml`, deliberately not done
+here.
 
 `git reset --hard` in both the bootstrap and the deploy step only touches tracked files,
 so `.env` survives every run.
@@ -113,6 +134,100 @@ docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --no-bui
 Every deploy tags images with the short SHA as well as `latest`, so rolling back is the
 same two commands with an earlier `IMAGE_TAG`. Database migrations are **not** rolled
 back — `Program.cs` applies them forward on startup and there is no down-migration path.
+
+## Troubleshooting the first deploy
+
+Work from the failing step name in the Actions log.
+
+### `Deploy over SSH` — connection times out
+
+Almost always the security group. Port 22 must accept `0.0.0.0/0`, not just your IP; see
+the security-group section above. Then check, in order:
+
+- `EC2_HOST` holds the **Elastic IP**, not the private `172.x` address
+- the Elastic IP is actually *associated* with a **running** instance
+- the instance is not stopped
+
+### `Deploy over SSH` — `Permission denied (publickey)`
+
+- `EC2_USER` is `ubuntu` for the Ubuntu AMI (`ec2-user` on Amazon Linux)
+- `EC2_SSH_KEY` is the **entire** `.pem`, including `-----BEGIN…` and `-----END…` and a
+  trailing newline. A truncated paste is the usual cause
+- the key matches the key pair the instance was launched with
+
+### `Deploy over SSH` — `Host key verification failed`
+
+`ssh-keyscan` runs with `2>/dev/null`, so when the host is unreachable it fails silently
+and leaves `known_hosts` empty; `BatchMode=yes` then refuses to connect. The real problem
+is reachability — treat it as the timeout case above.
+
+### GHCR `denied` / `403` when the instance pulls
+
+The `deploy` job declares `packages: read` and logs in with `GITHUB_TOKEN`, so this should
+not happen. If it does: repo → **Packages** → the package → *Package settings* → **Manage
+Actions access**, and confirm the repository is listed. Packages pushed for the first time
+occasionally need this link made explicitly.
+
+### `Services did not become healthy in time`
+
+The workflow prints `docker compose ps` and the last 80 lines of the `api` log before
+failing. Identify which service is not `healthy`:
+
+| Service | Likely cause |
+| --- | --- |
+| `db` | `POSTGRES_USER`/`POSTGRES_DB` empty in `.env`, degrading the healthcheck to `pg_isready -U -d`, which never reports healthy and blocks everything behind it |
+| `api` | See below — nearly always `.env` |
+| `web` | Waits on `api` being healthy; fix `api` first |
+
+For `api`, run `docker compose logs api` on the box and match the message:
+
+- **`28P01 password authentication failed`** — the `pgdata` volume was initialized with a
+  different `POSTGRES_PASSWORD` than the one now in `.env`. Postgres honours those
+  variables *only* on first initialization. Either `ALTER ROLE` inside the `db` container,
+  or `docker compose down -v` to destroy the volume (**erases all data**).
+- **A `Critical` log naming the connection string, repeating ~10 times 3s apart** — the
+  migration retry loop cannot reach Postgres. Check `db` is healthy first.
+- **Option binding failure at startup** — an empty `EmailSettings__TokenExpiryHours`.
+  Compose substitutes a missing variable as an empty string, which takes precedence over
+  the `24` in `appsettings.json` and then fails `int` binding. Any bare `${VAR}` in
+  `docker-compose.yml` behaves this way, so read the `variable is not set` warnings that
+  `docker compose up` prints.
+- **`Cannot load library libgssapi_krb5.so.2`** — harmless noise from Npgsql probing for
+  GSSAPI. Not your problem; keep reading the log.
+
+### Smoke test fails while every service is healthy
+
+Port 80 is not open to `0.0.0.0/0`. The smoke test runs from the GitHub runner, not from
+your machine.
+
+### The app works, but verification emails link to `localhost` or an old IP
+
+`EmailSettings__VerificationUrlBase` was written before the Elastic IP was associated, so
+the bootstrap script captured the instance's temporary address. Edit `~/TripPlanner/.env`,
+then `docker compose up -d` to restart with the new value. Links already mailed stay dead.
+
+### Diagnostics to run on the instance
+
+```bash
+cd ~/TripPlanner
+docker compose ps
+docker compose logs --tail 100 api
+docker compose config | head -40      # shows what the variables actually resolved to
+df -h /                               # image pulls filling the disk
+free -m                               # swap in use on a 2 GiB box
+```
+
+### Rolling back
+
+Every deploy tags images with the short SHA, so redeploy an earlier one:
+
+```bash
+export GHCR_OWNER=hongquan78 IMAGE_TAG=<earlier-short-sha>
+docker compose -f docker-compose.yml -f docker-compose.deploy.yml pull
+docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --no-build
+```
+
+Database migrations do **not** roll back — `Program.cs` only applies them forward.
 
 ## Known gaps
 
