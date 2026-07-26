@@ -48,27 +48,39 @@ run. Add a required reviewer there if you want an approval gate before each depl
 
 ## One-time server preparation
 
-The deploy workflow assumes the instance is already prepared:
-
-1. Docker + the Compose plugin installed, and the login user in the `docker` group.
-2. The repo cloned at `EC2_APP_DIR` with `origin` pointing at the GitHub remote.
-3. A `.env` file in that directory, created from `.env.production.example` and filled in.
-4. The deploy public key in `~/.ssh/authorized_keys`.
-5. Security group: 22 from your IP only, 80 from anywhere. **Never** open 5432 or 6379.
+Use `scripts/ec2-bootstrap.sh`. On a fresh Ubuntu 24.04 instance, as the default
+`ubuntu` user:
 
 ```bash
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker "$USER"
-sudo systemctl enable --now docker
-# log out and back in for the group to apply
-
-git clone https://github.com/HongQuan78/TripPlanner.git ~/TripPlanner
-cd ~/TripPlanner && git checkout quanhvo
-cp .env.production.example .env && nano .env
+curl -fsSL https://raw.githubusercontent.com/HongQuan78/TripPlanner/master/scripts/ec2-bootstrap.sh -o bootstrap.sh
+less bootstrap.sh      # read it before running anything as root
+bash bootstrap.sh
 ```
 
-`git reset --hard` in the deploy step only touches tracked files, so `.env` survives
-every deploy.
+It is idempotent — safe to re-run — and does the following:
+
+| Step | Behaviour |
+| --- | --- |
+| Docker | Installs via `get.docker.com` if absent, adds the user to the `docker` group, enables the service on boot |
+| Log rotation | Writes `/etc/docker/daemon.json` capping logs at 10m × 3 per container. **Skips** if the file already exists rather than clobbering it |
+| Swap | Creates 2 GiB only when RAM < ~4 GiB and no swap exists |
+| Repo | Clones, or fetches and hard-resets an existing checkout to `origin/$BRANCH` |
+| `.env` | Copies from `.env.production.example`, generates a 40-char `POSTGRES_PASSWORD` and 64-char `JwtSettings__SecretKey` (alphanumeric only, so nothing can break the connection string), and sets `EmailSettings__VerificationUrlBase` from the instance's public IP via IMDSv2. **Never overwrites an existing `.env`** |
+| Backups | Writes `~/backup-db.sh` and a nightly cron at 19:00 UTC keeping 7 days of `pg_dump` output |
+| Summary | Prints exactly which `.env` values still need a human, chosen according to `EmailSettings__Provider`, plus the GitHub secret values to paste |
+
+Tunable by environment variable: `BRANCH`, `APP_DIR`, `REPO_URL`, `BACKUP_DIR`,
+`BACKUP_KEEP_DAYS`, and `DEPLOY_PUBLIC_KEY` (appended to `authorized_keys` if given).
+
+What it deliberately does **not** do: start the stack. That is the deploy workflow's job,
+so the instance never builds images. It also cannot invent the two secrets only you hold
+— the OpenTripMap API key and the email provider credentials.
+
+Security group is not scriptable from inside the instance: set 22 from your IP only and
+80 from anywhere, and **never** open 5432 or 6379.
+
+`git reset --hard` in both the bootstrap and the deploy step only touches tracked files,
+so `.env` survives every run.
 
 ### `.env` values that must not be left at their defaults
 
