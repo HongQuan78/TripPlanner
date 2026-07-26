@@ -489,8 +489,11 @@ $RECYCLE.BIN/
 
 .claude
 .agents
-.github
 example_design
+
+# .github is version-controlled on purpose: GitHub Actions only runs workflows that
+# are committed, so ignoring this directory silently disabled CI for everyone but the
+# local maintainer (recorded in _bmad-output/implementation-artifacts/deferred-work.md).
 
 # requirement/ and epic/ are version-controlled: audit and verification stories
 # (e.g. 6-6) grade acceptance criteria against them, so their verdicts are only

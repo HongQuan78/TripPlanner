@@ -83,6 +83,15 @@ Key mechanics:
 - **DataProtection keys** are persisted to the `dpkeys` named volume; without it ASP.NET warns on every boot and any DataProtection-backed payload would break on redeploy. (JWTs are unaffected — they are signed with the configured HS256 key.)
 - **TLS** is expected to terminate at an upstream proxy/load balancer; the containers serve plain HTTP. `UseHttpsRedirection()` is a no-op with no configured HTTPS port. nginx forwards `X-Forwarded-*`, but the API does not call `UseForwardedHeaders`, so `Request.Scheme` stays `http` — do not configure an HTTPS port on the container without adding forwarded-headers handling, or the redirect will loop.
 
+## CI/CD
+
+Workflows live in `.github/workflows/` — **this directory is version-controlled on purpose**; root `.gitignore` used to ignore it, which silently disabled Actions for everyone but the local maintainer (GitHub only runs committed workflows). Do not re-add that ignore entry.
+
+- **`ci.yml`** (push to `master`/`quanhvo`, PR to `master`) — three parallel jobs: backend `dotnet build`/`test`, frontend `lint`/`test`/`build`, and a `containers` job that validates `docker compose config` (against `.env.production.example`) plus `nginx -t`, then builds both images without pushing.
+- **`deploy.yml`** (manual `workflow_dispatch`) — builds and pushes `tripplanner-api`/`tripplanner-web` to GHCR, then deploys over SSH to a single EC2 host: pins the checkout to the deployed SHA, `docker pull`s the two images, `docker compose … up -d --no-build`, waits for all four services to report healthy, and smoke-tests the public URL. `docker-compose.deploy.yml` is the overlay that swaps `build:` for registry `image:` refs and publishes host port 80.
+
+Images are built on the runner, never on the instance — `docker compose build` compiles the .NET solution and the Vite bundle, which OOMs a 2 GiB box. Deploy secrets (`EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, optional `EC2_APP_DIR`) and the one-time server preparation are documented in **`docs/deployment.md`**; GHCR auth uses the built-in `GITHUB_TOKEN`, so no PAT is required and packages can stay private.
+
 ## Architecture
 
 This is a **Clean Architecture** ASP.NET Core 10.0 solution with five projects:
