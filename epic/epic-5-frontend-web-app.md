@@ -35,7 +35,7 @@ Deferred backend stories stay deferred on the frontend too: no autocomplete-whil
 | Endpoint | Auth | Request | Response |
 |---|---|---|---|
 | `POST /api/auth/register` | — | `{email, password}` | 200 `{message}` (generic, also for duplicates) |
-| `POST /api/auth/login` | — | `{email, password}` | 200 `{id, email, role, token}`; 401 generic (also when unverified) |
+| `POST /api/auth/login` | — | `{email, password}` | 200 `{id, email, role, token}`; 401 ProblemDetails, message rendered verbatim — generic `Invalid email or password.` for a wrong password or unknown email, distinct `Your email address is not verified…` once the password verifies (amended 2026-07-26, story `4-5-unverified-login-message`) |
 | `POST /api/auth/logout` | Bearer | — | 200 |
 | `GET /api/auth/verify-email?token=` | — | — | 200 `{message}`; 400 ProblemDetails |
 | `POST /api/auth/resend-verification` | — | `{email}` | 200 `{message}` (always generic) |

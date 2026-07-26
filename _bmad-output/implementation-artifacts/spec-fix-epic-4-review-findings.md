@@ -32,7 +32,7 @@ warnings: [multiple-goals, oversized]
 
 | Scenario | Input / State | Expected Output / Behavior | Error Handling |
 |----------|--------------|---------------------------|----------------|
-| Login, correct password, unverified email | valid creds, `IsEmailVerified=false` | 401 with message exactly `Invalid email or password.` (D2b) | Unauthorized result |
+| Login, correct password, unverified email | valid creds, `IsEmailVerified=false` | ~~401 with message exactly `Invalid email or password.` (D2b)~~ — **D2b REVERSED 2026-07-26 by story `4-5-unverified-login-message`:** 401 with message exactly `Your email address is not verified. Please check your inbox.` The check must stay below the password guard. | Unauthorized result |
 | Resend inside cooldown | unverified user, `LastVerificationEmailSentAt` < 60s ago | Generic success; token NOT regenerated, email NOT sent (D3b) | None |
 | Resend after cooldown | unverified user, last send ≥ 60s ago (or null) | Token regenerated, email sent, `LastVerificationEmailSentAt` stamped | None |
 | Concurrent duplicate registration | unique-index violation on email during `SaveChangesAsync` | Generic success response, no email sent (P1) | Catch translated unique-violation exception |
@@ -49,7 +49,7 @@ warnings: [multiple-goals, oversized]
 - `_bmad-output/implementation-artifacts/code-review-epic-4-findings.md` -- source of truth; tick checkboxes as findings are fixed
 - `epic/epic-4-user-authentication.md` -- D1a risk note, D2b US3 text (gitignored, edit locally)
 - `BE/TripPlanner.Domain/Models/User.cs` -- add `LastVerificationEmailSentAt` + `RecordVerificationEmailSent` (D3b)
-- `BE/TripPlanner.Application/UseCases/Auth/LoginUserUseCase.cs` -- unverified message → generic (D2b)
+- `BE/TripPlanner.Application/UseCases/Auth/LoginUserUseCase.cs` -- unverified message → generic (D2b — **reversed 2026-07-26, story `4-5-unverified-login-message`**)
 - `BE/TripPlanner.Application/UseCases/Auth/RegisterUserUseCase.cs` -- P1 catch, P2 filter, D3b stamp
 - `BE/TripPlanner.Application/UseCases/Auth/ResendVerificationEmailUseCase.cs` -- D3b cooldown, P2 filter
 - `BE/TripPlanner.Application/Common/` -- Result pattern lives here; add `Exceptions/UniqueConstraintViolationException.cs` (P1)
@@ -71,6 +71,8 @@ warnings: [multiple-goals, oversized]
 **Execution (top-down per findings file):**
 - `epic/epic-4-user-authentication.md` -- D1a: append Known risk 6: `GET /verify-email` links may be auto-clicked by corporate mail scanners, silently verifying accounts — accepted MVP risk; a POST-confirm page is the future fix. D2b: amend US3 Status text so unverified login returns the generic `Invalid email or password.` (no distinct verify-first message; closes the password/account oracle).
 - `BE/TripPlanner.Application/UseCases/Auth/LoginUserUseCase.cs` -- D2b: unverified branch returns `Invalid email or password.` (keep the check after password verification).
+
+> **D2b was reversed on 2026-07-26 by story `4-5-unverified-login-message`.** The two D2b lines above (and the matrix row) describe the behavior as it was specified in this pass; they are no longer the target state. Current behavior: the unverified branch returns `Your email address is not verified. Please check your inbox.`, still *after* the password guard. If you are working from this spec, do not re-apply D2b.
 - `BE/TripPlanner.Domain/Models/User.cs` -- D3b: add `DateTime? LastVerificationEmailSentAt` (private setter) and `RecordVerificationEmailSent(DateTime sentAtUtc)`.
 - `BE/TripPlanner.Application/UseCases/Auth/ResendVerificationEmailUseCase.cs` -- D3b: private const 60-second cooldown; if `LastVerificationEmailSentAt` is within it, return generic success without regenerating or sending; otherwise stamp it (before `SaveChangesAsync`) alongside the new token. P2: change catch to `catch (Exception ex) when (ex is not OperationCanceledException)`.
 - `BE/TripPlanner.Application/UseCases/Auth/RegisterUserUseCase.cs` -- D3b: stamp `RecordVerificationEmailSent` on the new user before save. P1: wrap `SaveChangesAsync` to catch `UniqueConstraintViolationException` and return the generic success (no email send). P2: same `when` filter on the send catch.

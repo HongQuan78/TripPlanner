@@ -64,7 +64,11 @@ Like Epic 3, much of this feature already exists — register, login, and logout
 4. See a message when credentials are invalid.
 5. Stay signed in after refreshing the page.
 
-**Status:** Implemented — unverified accounts are blocked with the generic "Invalid email or password." (no distinct verify-first message, closing the password/account oracle), checked only **after** the password verifies, and all login failures now return 401 via `ErrorType.Unauthorized`. AC 5 is a frontend concern (persist the Bearer token; `JwtSettings.ExpirationMinutes` is 60).
+**Status:** Implemented — unverified accounts are blocked with the distinct "Your email address is not verified. Please check your inbox.", checked only **after** the password verifies; wrong-password and unknown-email failures keep the generic "Invalid email or password." All login failures return 401 via `ErrorType.Unauthorized`. AC 5 is a frontend concern (persist the Bearer token; `JwtSettings.ExpirationMinutes` is 60).
+
+> **Amended 2026-07-26 (story `4-5-unverified-login-message`):** this reverses review decision D2b, which had collapsed the unverified branch into the generic message to close a password/account oracle. Because the verification check sits *below* the password guard, the distinct message only ever reaches a caller who already holds correct credentials, so a *single* login attempt is not an enumeration oracle. The ordering is the invariant that makes this safe and is pinned by `AuthServiceTests.LoginAsync_UnverifiedEmailWithWrongPassword_ReturnsGenericMessage`.
+>
+> **Accepted residual risk (code review, 2026-07-26):** a register-then-login *pair* still distinguishes a registered address, because `RegisterUserUseCase` no-ops on a duplicate without changing the existing password — so a caller-chosen password succeeds to the not-verified message only when the address was free. The two properties are mutually exclusive under open registration, so this was accepted rather than closed: exploiting it mails the victim an unsolicited verification link and squats the address, and rate limiting (absent everywhere on the login endpoint) is the tracked mitigation. See `_bmad-output/implementation-artifacts/deferred-work.md`.
 
 ### US4 — Log out (Medium)
 

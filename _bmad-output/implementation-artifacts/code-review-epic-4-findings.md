@@ -9,7 +9,7 @@
 ## Resolved decisions
 
 - [x] [Review][Decision→Patch] **D1a — Keep `GET /verify-email`; document mail-scanner auto-verification as an accepted MVP risk** in the epic's Known risks section.
-- [x] [Review][Decision→Patch] **D2b — Unverified login returns the generic "Invalid email or password."** instead of the distinct verify-first message, closing the password/account oracle. Update epic US3 text and tests.
+- [x] [Review][Decision→Patch] ~~**D2b — Unverified login returns the generic "Invalid email or password."**~~ **REVERSED 2026-07-26 by story `4-5-unverified-login-message`** (user decision, on a UX complaint that the generic copy made unverified users retype a password that was never wrong). Login now returns the distinct `Your email address is not verified. Please check your inbox.` once the password verifies; the check stays *below* the password guard, so wrong-password and unknown-email failures keep the generic copy and a single attempt discloses nothing. The residual register-then-login pair oracle was reviewed on 2026-07-26 and accepted — see `deferred-work.md`. Original rationale kept above as the record of what was decided in this pass; do not re-apply it.
 - [x] [Review][Decision→Patch] **D3b — Per-address cooldown (min 60s) between verification emails**, stored on the user and enforced in the resend flow; new column + migration.
 - [x] [Review][Decision→Patch] **D4a — Allow `Tests → Infrastructure/API` references**; add unit tests for the real `VerificationTokenService` round-trip and the `ErrorType.Unauthorized` → 401 mapping in `ResultExtension`; amend CLAUDE.md dependency direction.
 

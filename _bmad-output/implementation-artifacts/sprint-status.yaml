@@ -835,6 +835,15 @@ last_updated: 2026-07-26
 # HTTP API to Resend SMTP relay (smtp.resend.com) at user request; reset from
 # review to ready-for-dev.
 
+# 2026-07-26: added 4-5-unverified-login-message and reopened epic-4 (was done) —
+# user-reported UX issue: an unverified account's login failure showed the generic
+# "Invalid email or password." Deliberately reverses code-review decision D2b;
+# the verification check stays AFTER password verification, so the distinct message
+# only reaches a caller with correct credentials, so no single-attempt oracle returns.
+# The story key is listed under epic-4 (not appended at the tail) so the reopen has a
+# visible closing condition. Code review 2026-07-26 accepted one residual leak: a
+# register-then-login pair can still distinguish a registered address — see deferred-work.md.
+
 development_status:
   epic-1: in-progress
   1-4-filter-and-sort-attractions: done
@@ -845,7 +854,8 @@ development_status:
   3-4-schedule-destinations-into-day: done
   3-5-reorder-destinations-within-day: done
   3-6-move-destination-between-days: done
-  epic-4: done
+  epic-4: in-progress
+  4-5-unverified-login-message: done
   epic-5: in-progress
   5-1-frontend-scaffold-and-api-client: done
   5-2-authentication-ui: review
