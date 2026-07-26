@@ -1,7 +1,8 @@
 # Deployment
 
 Target: a single EC2 instance running the Compose stack, images built in CI and pulled
-from GHCR. HTTP only (no domain/TLS yet).
+from GHCR. Serves plain HTTP by default, or HTTPS via Caddy once a `DOMAIN` variable is
+set — see [HTTP or HTTPS](#http-or-https).
 
 ## Why images are built in CI, not on the server
 
@@ -83,7 +84,8 @@ Not scriptable from inside the instance. Required inbound rules:
 | Port | Source | Why |
 | --- | --- | --- |
 | 22 | `0.0.0.0/0` | The deploy job SSHes **from a GitHub-hosted runner**, whose public IP is dynamic |
-| 80 | `0.0.0.0/0` | Public traffic, and the workflow's smoke test |
+| 80 | `0.0.0.0/0` | Public traffic; in TLS mode still required, for the ACME HTTP-01 challenge and the HTTP→HTTPS redirect |
+| 443 | `0.0.0.0/0` | Only in TLS mode |
 
 **Never** open 5432 or 6379 — Postgres and Redis are reachable only inside the Compose
 network.
@@ -114,11 +116,52 @@ so `.env` survives every run.
 initialized. Changing them later yields `28P01` and an API crash loop — rotate with
 `ALTER ROLE` inside the `db` container instead.
 
-## Port mapping
+## HTTP or HTTPS
 
-`docker-compose.deploy.yml` adds `80:8080` for the `web` service. Compose merges port
-lists by appending, so the base `8080:8080` stays published too; both host ports serve
-the same nginx. Only 80 is reachable if the security group is set as above.
+The deploy picks its edge from a single repository **variable** (Settings → Secrets and
+variables → Actions → *Variables*):
+
+| `DOMAIN` | Overlay used | Edge |
+| --- | --- | --- |
+| unset | `docker-compose.http.yml` | nginx published directly on host port 80 |
+| set | `docker-compose.tls.yml` | Caddy on 80/443, terminating TLS and proxying to `web:8080` |
+
+Nothing else changes — same images, same `.env`, same workflow. Clearing the variable
+reverts to plain HTTP on the next run.
+
+### Enabling HTTPS
+
+1. **Point a domain at the Elastic IP.** An `A` record for the apex (and `www` if wanted).
+   Wait for it to resolve — `dig +short yourdomain.com` from anywhere must return the
+   Elastic IP *before* the first TLS deploy, or the ACME challenge fails.
+2. **Open 443** in the security group. Leave 80 open too; Caddy needs it for the HTTP-01
+   challenge and to redirect.
+3. **Add the repository variables:** `DOMAIN=yourdomain.com`, and optionally
+   `ACME_EMAIL=you@example.com` (Let's Encrypt uses it for expiry warnings).
+4. **Update `.env` on the instance** — `EmailSettings__VerificationUrlBase` must become
+   `https://yourdomain.com/verify-email`, otherwise verification links keep pointing at
+   the bare IP over HTTP.
+5. Run the Deploy workflow. Caddy requests the certificate on startup and renews it
+   automatically thereafter.
+
+Certificates live in the `caddydata` named volume. **Do not destroy that volume
+casually** — Let's Encrypt enforces a limit of 5 duplicate certificates per week, and
+repeatedly recreating it will lock you out until the window rolls over.
+
+### Why TLS terminates at Caddy and not in the API
+
+`Program.cs` never calls `UseForwardedHeaders`, so `Request.Scheme` stays `http` no matter
+what `X-Forwarded-Proto` says. `UseHttpsRedirection()` is a harmless no-op today only
+because no HTTPS port is configured on the container. Configure one and the app will
+redirect to a scheme it cannot see itself serving — an infinite loop. Keep the containers
+plain HTTP and let the edge do TLS.
+
+### Port mapping detail
+
+In HTTP mode `web` publishes `80:8080` on top of the base `8080:8080`; both host ports
+serve the same nginx and only 80 is reachable through the security group. In TLS mode the
+`80:8080` binding is absent — Caddy owns host port 80 — while the base `8080:8080` stays
+published but unreachable from outside, since the security group never opens 8080.
 
 ## Manual deploy / rollback
 
@@ -200,6 +243,27 @@ For `api`, run `docker compose logs api` on the box and match the message:
 Port 80 is not open to `0.0.0.0/0`. The smoke test runs from the GitHub runner, not from
 your machine.
 
+### TLS mode: `caddy` never becomes healthy, or HTTPS returns a certificate error
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.deploy.yml -f docker-compose.tls.yml \
+  logs --tail 60 caddy
+```
+
+- **`no server name` / challenge failures** — DNS is not resolving to this instance yet.
+  Verify with `dig +short yourdomain.com`; it must return the Elastic IP. Caddy retries
+  with backoff, so fixing DNS eventually resolves it without a redeploy.
+- **Timeout on the HTTP-01 challenge** — port 80 is closed in the security group. Caddy
+  needs 80 open even though the site is served on 443.
+- **`too many certificates already issued`** — the Let's Encrypt duplicate-certificate
+  limit (5 per week) was hit, usually by destroying the `caddydata` volume repeatedly.
+  Wait out the window, or add `acme_ca https://acme-staging-v02.api.letsencrypt.org/directory`
+  to the global block in `Caddyfile` while debugging — staging certificates are untrusted
+  by browsers but have far looser limits.
+- **`DOMAIN` variable empty inside the container** — it is a repository *variable*, not a
+  secret; a value put in the wrong place arrives empty and Caddy fails to parse the site
+  block.
+
 ### The app works, but verification emails link to `localhost` or an old IP
 
 `EmailSettings__VerificationUrlBase` was written before the Elastic IP was associated, so
@@ -231,10 +295,13 @@ Database migrations do **not** roll back — `Program.cs` only applies them forw
 
 ## Known gaps
 
-- **HTTP only.** JWTs and passwords travel in clear. Fine for a demo, not for real use.
-  Adding TLS means terminating at a proxy in front (Caddy or an ALB) — and *never*
-  configuring an HTTPS port on the container, because the API does not call
-  `UseForwardedHeaders`, so `Request.Scheme` stays `http` and the redirect would loop.
+- **Plain HTTP unless `DOMAIN` is set.** With no domain configured, JWTs and passwords
+  travel in clear — fine for a demo, not for real use. See [HTTP or HTTPS](#http-or-https)
+  to turn on Caddy.
+- **The TLS path has never been executed.** The Caddy overlay, the Caddyfile, and the
+  workflow's mode switch are all new and unrun; no domain has been pointed at the instance
+  yet. Expect the first TLS deploy to need a round of debugging, most likely around DNS
+  propagation or the ACME challenge.
 - **Single point of failure.** One instance, no autoscaling, no multi-AZ.
 - **No automated database backup.** Add a `pg_dump` cron and ship the dumps off-instance;
   the `pgdata` volume dies with the instance.

@@ -104,10 +104,14 @@ jobs:
           DEPLOY_SHA: ${{ needs.build-push.outputs.sha }}
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOMAIN: ${{ vars.DOMAIN }}
+          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
         run: |
           ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$EC2_USER@$EC2_HOST" \
             "GHCR_OWNER='$GHCR_OWNER' IMAGE_TAG='$IMAGE_TAG' DEPLOY_SHA='$DEPLOY_SHA' \
-             GHCR_USER='$GHCR_USER' GHCR_TOKEN='$GHCR_TOKEN' APP_DIR='${APP_DIR:-~/TripPlanner}' bash -s" <<'REMOTE'
+             GHCR_USER='$GHCR_USER' GHCR_TOKEN='$GHCR_TOKEN' \
+             DOMAIN='$DOMAIN' ACME_EMAIL='$ACME_EMAIL' \
+             APP_DIR='${APP_DIR:-~/TripPlanner}' bash -s" <<'REMOTE'
           set -euo pipefail
 
           cd "${APP_DIR/#\~/$HOME}"
@@ -122,25 +126,51 @@ jobs:
           docker pull "$API_IMAGE"
           docker pull "$WEB_IMAGE"
 
-          export GHCR_OWNER IMAGE_TAG
+          export GHCR_OWNER IMAGE_TAG DOMAIN ACME_EMAIL
+
           COMPOSE="docker compose -f docker-compose.yml -f docker-compose.deploy.yml"
+          if [ -n "$DOMAIN" ]; then
+            echo "TLS mode: serving https://$DOMAIN via Caddy"
+            COMPOSE="$COMPOSE -f docker-compose.tls.yml"
+          else
+            echo "Plain HTTP mode: no DOMAIN variable set"
+            COMPOSE="$COMPOSE -f docker-compose.http.yml"
+          fi
 
           $COMPOSE up -d --no-build --remove-orphans
 
           echo "Waiting for services to report healthy..."
-          for i in $(seq 1 30); do
-            unhealthy=0
-            for svc in db redis api web; do
-              cid=$($COMPOSE ps -q "$svc")
-              if [ -z "$cid" ]; then unhealthy=1; continue; fi
+          for attempt in $(seq 1 30); do
+            pending=""
+            for svc in $($COMPOSE ps --services); do
+              cid=$($COMPOSE ps -q "$svc" 2>/dev/null || true)
+              if [ -z "$cid" ]; then
+                pending="$pending $svc(missing)"
+                continue
+              fi
               status=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid")
-              if [ "$status" != "healthy" ]; then unhealthy=1; fi
+              case "$status" in
+                healthy) ;;
+                none)
+                  running=$(docker inspect -f '{{.State.Running}}' "$cid")
+                  [ "$running" = "true" ] || pending="$pending $svc(stopped)"
+                  ;;
+                *) pending="$pending $svc($status)" ;;
+              esac
             done
-            if [ "$unhealthy" -eq 0 ]; then echo "All services healthy."; break; fi
-            if [ "$i" -eq 30 ]; then
-              echo "Services did not become healthy in time." >&2
+
+            if [ -z "$pending" ]; then
+              echo "All services healthy."
+              break
+            fi
+
+            if [ "$attempt" -eq 30 ]; then
+              echo "Still not ready:$pending" >&2
               $COMPOSE ps
               $COMPOSE logs --tail 80 api
+              if [ -n "$DOMAIN" ]; then
+                $COMPOSE logs --tail 40 caddy
+              fi
               exit 1
             fi
             sleep 10
@@ -154,7 +184,22 @@ jobs:
       - name: Smoke test the public endpoint
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
+          DOMAIN: ${{ vars.DOMAIN }}
         run: |
-          code=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "http://$EC2_HOST/")
-          echo "GET http://$EC2_HOST/ -> $code"
-          test "$code" = "200"
+          if [ -n "$DOMAIN" ]; then
+            url="https://$DOMAIN/"
+          else
+            url="http://$EC2_HOST/"
+          fi
+
+          for attempt in $(seq 1 6); do
+            code=$(curl -s -o /dev/null -m 30 -w '%{http_code}' "$url" || true)
+            echo "attempt $attempt: GET $url -> $code"
+            if [ "$code" = "200" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "Endpoint did not return 200." >&2
+          exit 1
