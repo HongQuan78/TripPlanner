@@ -95,6 +95,28 @@ describe('LoginPage', () => {
     );
   });
 
+  it('shows the distinct not-verified message when the account is unverified', async () => {
+    loginMock.mockRejectedValue(
+      new ApiError(401, 'Your email address is not verified. Please check your inbox.'),
+    );
+    renderPage('/login');
+
+    fillAndSubmit('user@example.com', 'password123');
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Your email address is not verified. Please check your inbox.',
+      );
+    });
+    expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument();
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
+    expect(screen.getByLabelText('Password')).toHaveValue('password123');
+    expect(screen.getByRole('button', { name: /sign in/i })).not.toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+
   it('swaps the label to the pending phrase, sets aria-disabled, and ignores re-submits while pending', async () => {
     let resolveLogin: (value: typeof session) => void = () => {};
     loginMock.mockImplementation(

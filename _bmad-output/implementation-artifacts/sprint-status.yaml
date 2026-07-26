@@ -81,6 +81,28 @@ last_updated: 2026-07-26
 # viewport-aware positioning in DateField. FE 331/331 across 28 files (+10), lint at the 2
 # pre-existing warnings, build green. Moved to review.
 
+# 2026-07-26: 5-21-create-trip-dialog REOPENED from review — the user hit the exact defect the
+# story had deferred: on a small screen the calendar popover is cut off / hidden, so a date
+# cannot be picked and the trip cannot be created. Promoted from "pre-existing, its own story"
+# to AC 14 + Task 7 of 5-21, because the popup is the surface that surfaces it and the story is
+# not shippable while its primary flow is broken on a phone. Fix is viewport-aware positioning
+# in DateField (fixed-position popover measured against the viewport, clamped with flip-above,
+# recomputed on resize/scroll) — which repairs EditTripForm on the planner page for free.
+
+# 2026-07-26: 5-21-create-trip-dialog Task 7 done, back to review. DateField's popover no longer
+# positions itself against its own field; it measures the control and itself and writes a clamped
+# fixed top/left, flipping above the control when there is no room below and re-measuring on
+# resize and capture-phase scroll. Dialog.module.css also gained overlay scrolling + dialog
+# margin:auto so a dialog taller than a short viewport cannot hide Cancel/Create. For the SECOND
+# time in this story the live browser caught what jsdom could not: the popover was measured while
+# popIn was animating, and getBoundingClientRect reports the TRANSFORMED box, so scale(0.98) ate
+# 7 of the 8px gutter (end-date right edge 389 of 390). Size now comes from offsetWidth/
+# offsetHeight, with a unit test reproducing the animated-vs-layout split. Live-verified at
+# 390x844, 320x568, 844x390 and 1440x900: every popover fully inside the viewport, Create button
+# always on screen, zero console errors; the worst case (end-date at 390px, previously 216px
+# off-screen) now stops exactly on the gutter. FE 335/335 across 28 files (+4), lint at the 2
+# pre-existing warnings, build green. The deferred item this story carried is now closed.
+
 # 2026-07-26: added 5-20-popular-search-tile-images — user wants the six "Popular
 # searches" tiles on the landing page to show a real city photograph instead of the
 # bare CSS gradient 5-19 shipped, falling back to that gradient when no image is
@@ -835,6 +857,15 @@ last_updated: 2026-07-26
 # HTTP API to Resend SMTP relay (smtp.resend.com) at user request; reset from
 # review to ready-for-dev.
 
+# 2026-07-26: added 4-5-unverified-login-message and reopened epic-4 (was done) —
+# user-reported UX issue: an unverified account's login failure showed the generic
+# "Invalid email or password." Deliberately reverses code-review decision D2b;
+# the verification check stays AFTER password verification, so the distinct message
+# only reaches a caller with correct credentials, so no single-attempt oracle returns.
+# The story key is listed under epic-4 (not appended at the tail) so the reopen has a
+# visible closing condition. Code review 2026-07-26 accepted one residual leak: a
+# register-then-login pair can still distinguish a registered address — see deferred-work.md.
+
 development_status:
   epic-1: in-progress
   1-4-filter-and-sort-attractions: done
@@ -845,7 +876,8 @@ development_status:
   3-4-schedule-destinations-into-day: done
   3-5-reorder-destinations-within-day: done
   3-6-move-destination-between-days: done
-  epic-4: done
+  epic-4: in-progress
+  4-5-unverified-login-message: done
   epic-5: in-progress
   5-1-frontend-scaffold-and-api-client: done
   5-2-authentication-ui: review

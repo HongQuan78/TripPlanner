@@ -117,12 +117,32 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_UnverifiedEmail_ReturnsUnauthorized()
+    public async Task LoginAsync_UnverifiedEmail_ReturnsUnauthorizedWithNotVerifiedMessage()
     {
         var user = new User("user@example.com", "hash");
         var request = new LoginRequest { Email = "user@example.com", Password = "Password1" };
         _userRepository.GetByEmailAsync(request.Email, Arg.Any<CancellationToken>()).Returns(user);
         _passwordHasher.Verify(request.Password, user.PasswordHash).Returns(true);
+
+        Assert.False(user.IsEmailVerified);
+
+        var result = await LoginUseCase().ExecuteAsync(request);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.Unauthorized, result.Error!.ErrorType);
+        Assert.Equal("Your email address is not verified. Please check your inbox.", result.Error.Description);
+        _tokenService.DidNotReceive().GenerateToken(Arg.Any<User>());
+    }
+
+    [Fact]
+    public async Task LoginAsync_UnverifiedEmailWithWrongPassword_ReturnsGenericMessage()
+    {
+        var user = new User("user@example.com", "hash");
+        var request = new LoginRequest { Email = "user@example.com", Password = "wrong" };
+        _userRepository.GetByEmailAsync(request.Email, Arg.Any<CancellationToken>()).Returns(user);
+        _passwordHasher.Verify(request.Password, user.PasswordHash).Returns(false);
+
+        Assert.False(user.IsEmailVerified);
 
         var result = await LoginUseCase().ExecuteAsync(request);
 
@@ -143,6 +163,7 @@ public class AuthServiceTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal(ErrorType.Unauthorized, result.Error!.ErrorType);
+        Assert.Equal("Invalid email or password.", result.Error.Description);
     }
 
     [Fact]
@@ -155,6 +176,7 @@ public class AuthServiceTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal(ErrorType.Unauthorized, result.Error!.ErrorType);
+        Assert.Equal("Invalid email or password.", result.Error.Description);
     }
 
     [Fact]
