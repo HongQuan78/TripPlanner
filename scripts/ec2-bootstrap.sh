@@ -20,8 +20,15 @@ randstr() { LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$1"; }
 preflight() {
   [ "$(uname -s)" = "Linux" ] || die "this script targets a Linux EC2 instance"
   command -v curl >/dev/null 2>&1 || die "curl is required"
-  command -v git >/dev/null 2>&1 || sudo apt-get update -qq && sudo apt-get install -y -qq git
   sudo -n true 2>/dev/null || die "passwordless sudo is required (run as the instance's default user)"
+
+  if ! command -v git >/dev/null 2>&1; then
+    say "git"
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq git
+    command -v git >/dev/null 2>&1 || die "git installation failed"
+    ok "installed"
+  fi
 }
 
 resolve_public_ip() {
