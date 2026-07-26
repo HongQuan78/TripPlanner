@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { KeyboardEvent, ReactNode } from 'react';
 import styles from './Dialog.module.css';
 
@@ -55,7 +56,7 @@ export default function Modal({
     }
   }
 
-  return (
+  return createPortal(
     <div className={styles.overlay}>
       <div
         ref={dialogRef}
@@ -68,6 +69,7 @@ export default function Modal({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
