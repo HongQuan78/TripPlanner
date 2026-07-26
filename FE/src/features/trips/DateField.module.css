@@ -89,10 +89,13 @@
 }
 
 .popover {
-  position: absolute;
-  top: calc(100% + 0.5rem);
+  position: fixed;
+  top: 0;
   left: 0;
   z-index: 30;
+  max-width: calc(100vw - 1rem);
+  max-height: calc(100vh - 1rem);
+  overflow-y: auto;
   background: var(--color-surface-container-lowest);
   border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-lg);
@@ -166,9 +169,9 @@
   border-radius: var(--radius-full);
 }
 
-@media (max-width: 32rem) {
-  .popover {
-    left: 50%;
-    transform: translateX(-50%);
+@media (max-width: 22.5rem) {
+  .popover :global(.rdp-root) {
+    --rdp-day-width: 2.1rem;
+    --rdp-day-height: 2.1rem;
   }
 }

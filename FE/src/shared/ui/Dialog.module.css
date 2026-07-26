@@ -7,6 +7,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  overflow-y: auto;
   z-index: 20;
 }
 
@@ -16,6 +17,7 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: 1.5rem;
+  margin: auto;
   width: 100%;
   max-width: 26rem;
   display: flex;
