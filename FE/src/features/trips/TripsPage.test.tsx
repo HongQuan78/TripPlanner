@@ -208,6 +208,145 @@ describe('TripsPage', () => {
     });
   });
 
+  it('opens the create form as a modal dialog from the New trip button', async () => {
+    getTripsMock.mockResolvedValue(trips);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Paris getaway')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /new trip/i }));
+
+    const dialog = screen.getByRole('dialog', { name: /create a trip/i });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(dialog.parentElement?.parentElement).toBe(document.body);
+    expect(within(dialog).getByLabelText(/trip name/i)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/start date/i)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/end date/i)).toBeInTheDocument();
+  });
+
+  it('keeps the trips grid visible behind the open dialog', async () => {
+    getTripsMock.mockResolvedValue(trips);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Paris getaway')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /new trip/i }));
+
+    expect(screen.getByRole('dialog', { name: /create a trip/i })).toBeInTheDocument();
+    expect(screen.getByText('Paris getaway')).toBeInTheDocument();
+    expect(screen.getByText('Tokyo weekend')).toBeInTheDocument();
+  });
+
+  it('offers New trip even when I have no trips yet', async () => {
+    getTripsMock.mockResolvedValue([]);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText(/no trips yet/i)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /new trip/i }));
+
+    expect(screen.getByRole('dialog', { name: /create a trip/i })).toBeInTheDocument();
+    expect(screen.getByText(/no trips yet/i)).toBeInTheDocument();
+  });
+
+  it('closes the dialog from Cancel without creating a trip and restores focus', async () => {
+    getTripsMock.mockResolvedValue(trips);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Paris getaway')).toBeInTheDocument();
+    });
+    const opener = screen.getByRole('button', { name: /new trip/i });
+    opener.focus();
+    fireEvent.click(opener);
+
+    const dialog = screen.getByRole('dialog', { name: /create a trip/i });
+    expect(document.body.style.overflow).toBe('hidden');
+    fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }));
+
+    expect(screen.queryByRole('dialog', { name: /create a trip/i })).toBeNull();
+    expect(document.body.style.overflow).not.toBe('hidden');
+    expect(opener).toHaveFocus();
+    expect(screen.getByText('Paris getaway')).toBeInTheDocument();
+    expect(createTripMock).not.toHaveBeenCalled();
+  });
+
+  it('closes the dialog on Escape without creating a trip', async () => {
+    getTripsMock.mockResolvedValue(trips);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Paris getaway')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /new trip/i }));
+    fireEvent.keyDown(screen.getByRole('dialog', { name: /create a trip/i }), { key: 'Escape' });
+
+    expect(screen.queryByRole('dialog', { name: /create a trip/i })).toBeNull();
+    expect(screen.getByText('Paris getaway')).toBeInTheDocument();
+    expect(createTripMock).not.toHaveBeenCalled();
+  });
+
+  it('cannot be dismissed while the create request is in flight', async () => {
+    getTripsMock.mockResolvedValue(trips);
+    createTripMock.mockReturnValue(new Promise(() => {}));
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Paris getaway')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /new trip/i }));
+    const dialog = screen.getByRole('dialog', { name: /create a trip/i });
+    fireEvent.change(within(dialog).getByLabelText(/trip name/i), {
+      target: { value: 'Paris getaway' },
+    });
+    fireEvent.change(within(dialog).getByLabelText(/start date/i), {
+      target: { value: '2026-08-01' },
+    });
+    fireEvent.change(within(dialog).getByLabelText(/end date/i), {
+      target: { value: '2026-08-03' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: /^create trip$/i }));
+
+    await waitFor(() => {
+      expect(within(dialog).getByRole('button', { name: /^create trip$/i })).toBeDisabled();
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }));
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+
+    expect(screen.getByRole('dialog', { name: /create a trip/i })).toBeInTheDocument();
+    expect(createTripMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets Escape close only the date calendar while the dialog stays open', async () => {
+    getTripsMock.mockResolvedValue(trips);
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Paris getaway')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /new trip/i }));
+    const dialog = screen.getByRole('dialog', { name: /create a trip/i });
+    fireEvent.change(within(dialog).getByLabelText(/trip name/i), {
+      target: { value: 'Paris getaway' },
+    });
+    fireEvent.click(within(dialog).getAllByRole('button', { name: /open calendar/i })[0]);
+
+    const calendar = screen.getByRole('dialog', { name: /calendar/i });
+    fireEvent.keyDown(calendar, { key: 'Escape' });
+
+    expect(screen.queryByRole('dialog', { name: /calendar/i })).toBeNull();
+    expect(screen.getByRole('dialog', { name: /create a trip/i })).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/trip name/i)).toHaveValue('Paris getaway');
+
+    expect(document.activeElement).not.toBe(document.body);
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: /create a trip/i })).toBeNull();
+  });
+
   it('shows an error state with a retry when the trip list fails to load', async () => {
     getTripsMock.mockRejectedValueOnce(new ApiError(503, 'Service unavailable.'));
     getTripsMock.mockResolvedValueOnce(trips);

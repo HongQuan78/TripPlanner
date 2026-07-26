@@ -37,6 +37,50 @@ project: tripplanner
 
 last_updated: 2026-07-26
 
+# 2026-07-26: added 5-21-create-trip-dialog — user wants create-trip to be a popup
+# "instead of a page". Verified at ff0beb1 that there IS no create-trip route: it is an
+# inline panel on TripsPage (creating state at TripsPage.tsx:60, form rendered at :112).
+# It merely READS as a page because the surrounding UI hides itself around it — the
+# New trip button is gated on `hasTrips && !creating` and the whole empty state on
+# `!creating`. Scope: a new CreateTripDialog composing the shared Modal (which already
+# carries focus-restore + scroll-lock + focus-trap + Escape) plus Dialog.module.css
+# chrome, CreateTripForm.tsx deleted (single consumer), and both `!creating` gates
+# removed so the grid/empty state stay visible behind the overlay. Two design calls:
+# (1) replace rather than wrap the form — TripForm.module.css `.form` and
+# Dialog.module.css `.dialog` both paint a card, so nesting would double-frame;
+# (2) a real defect found while reading the code — Modal's React Escape handler calls
+# stopPropagation(), which halts the native event before DateField's document listener
+# sees it, so one Escape with the calendar open would destroy the half-filled form.
+# Fixed locally in DateField, sequenced FIRST. EditTripForm out of scope. Created +
+# picked up for dev-story.
+
+# 2026-07-26: 5-21-create-trip-dialog implemented — all 6 tasks done. Create-trip is now a
+# modal popup: CreateTripDialog on the shared Modal, CreateTripForm.tsx DELETED (single
+# consumer), and both of TripsPage's self-hiding gates removed so the boarding-pass grid /
+# empty state stay rendered behind the overlay and the New trip button survives (it is also
+# Modal's own focus-restore target). Form logic is a pure relocation — same validateTripForm,
+# same mutate payload, same error derivation, same field ids/labels; ZERO backend/DTO/hook
+# change. TWO defects fixed that the request did not ask for but that would have made the
+# popup wrong: (1) DateField's Escape reached Modal (whose React handler stopPropagation()s
+# before the native document listener), so one Escape destroyed a half-filled form — and once
+# consumed locally, focus fell to document.body when the popover unmounted, leaving the dialog
+# mouse-only closeable. Both fixed via closePopover() returning focus to the trigger. (2)
+# PRE-EXISTING: AppLayout's route-fade-in animates transform with fill-mode both, so the
+# sticky computed transform made the route container a containing block for Modal's fixed
+# overlay — measured 1120x240 in a 1440x900 viewport, with elementFromPoint returning the app
+# header (Logout!) and the page body through an aria-modal dialog. Fixed with
+# createPortal(document.body); this also repairs the shipped AddToTripDialog on Search and
+# Destination Details, so a reviewer should eyeball those two live. The second defect was
+# found ONLY by the live browser — four green unit tests had missed it, because jsdom fired
+# Escape on a dialog node the real browser never focuses; the test was strengthened to fire on
+# document.activeElement. Live-verified at 1440x900 and 390x844 against a stubbed /api/trips
+# with a seeded session (no Postgres/Docker here, so the real API cannot serve /trips): zero
+# console errors, all assertions green on both. Deferred, pre-existing and NOT a regression:
+# the calendar popover overflows the viewport at 390px (start +57px, end +216px) — identical
+# box math to the old inline form and it affects EditTripForm the same way; a real fix is
+# viewport-aware positioning in DateField. FE 331/331 across 28 files (+10), lint at the 2
+# pre-existing warnings, build green. Moved to review.
+
 # 2026-07-26: added 5-20-popular-search-tile-images — user wants the six "Popular
 # searches" tiles on the landing page to show a real city photograph instead of the
 # bare CSS gradient 5-19 shipped, falling back to that gradient when no image is
@@ -844,6 +888,7 @@ development_status:
   5-18-verify-email-page-rebuild: review
   5-19-landing-page-framed-editorial: review
   5-20-popular-search-tile-images: review
+  5-21-create-trip-dialog: review
   epic-10: in-progress
   10-1-redis-response-caching: review
   10-2-redis-connection-string-in-env: review

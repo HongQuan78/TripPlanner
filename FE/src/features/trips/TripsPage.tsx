@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Trip } from '@/shared/api/types';
-import CreateTripForm from './CreateTripForm';
+import CreateTripDialog from './CreateTripDialog';
 import skeletonStyles from '@/shared/ui/Skeleton.module.css';
 import { useTrips } from './hooks';
 import { formatShortDate, todayISO, tripStatus } from '@/shared/lib/dates';
@@ -102,16 +102,10 @@ export default function TripsPage() {
     <section className={styles.page}>
       <div className={styles.headerRow}>
         <h1 className={styles.title}>My trips</h1>
-        {hasTrips && !creating && (
-          <button type="button" className={styles.newTrip} onClick={() => setCreating(true)}>
-            New trip
-          </button>
-        )}
+        <button type="button" className={styles.newTrip} onClick={() => setCreating(true)}>
+          New trip
+        </button>
       </div>
-
-      {creating && (
-        <CreateTripForm onCreated={handleCreated} onCancel={() => setCreating(false)} />
-      )}
 
       {hasTrips ? (
         <div className={styles.grid}>
@@ -120,24 +114,22 @@ export default function TripsPage() {
           ))}
         </div>
       ) : (
-        !creating && (
-          <div className={stateStyles.state}>
-            <span className={stateStyles.emoji} aria-hidden="true">
-              🧳
-            </span>
-            <h2 className={stateStyles.heading}>No trips yet</h2>
-            <p className={stateStyles.text}>
-              Plan your next adventure — create a trip and start adding destinations.
-            </p>
-            <button
-              type="button"
-              className={styles.emptyAction}
-              onClick={() => setCreating(true)}
-            >
-              Create your first trip
-            </button>
-          </div>
-        )
+        <div className={stateStyles.state}>
+          <span className={stateStyles.emoji} aria-hidden="true">
+            🧳
+          </span>
+          <h2 className={stateStyles.heading}>No trips yet</h2>
+          <p className={stateStyles.text}>
+            Plan your next adventure — create a trip and start adding destinations.
+          </p>
+          <button type="button" className={styles.emptyAction} onClick={() => setCreating(true)}>
+            Create your first trip
+          </button>
+        </div>
+      )}
+
+      {creating && (
+        <CreateTripDialog onCreated={handleCreated} onClose={() => setCreating(false)} />
       )}
     </section>
   );
