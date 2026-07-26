@@ -35,7 +35,64 @@ project: tripplanner
 # (+2 net), lint clean (2 pre-existing warnings), production build green. Moved
 # to done.
 
-last_updated: 2026-07-25
+last_updated: 2026-07-26
+
+# 2026-07-26: added 5-20-popular-search-tile-images — user wants the six "Popular
+# searches" tiles on the landing page to show a real city photograph instead of the
+# bare CSS gradient 5-19 shipped, falling back to that gradient when no image is
+# available. Image source decided by the user: hardcoded URLs in the frontend. The
+# API alternative was costed and rejected — IDestinationImageProvider cannot resolve
+# by name (it needs a WikipediaUrl or WikidataId), so a hardcoded city→wiki table
+# would merely move to the backend behind a new port/use case/endpoint/DTO/hook.
+# Key design call: the gradient stays an UNCONDITIONAL underlay and the <img> paints
+# over it, so a null URL, a 404, a 429, or a still-downloading image all look correct
+# with no error branch. Image is decorative (alt="") so the tile's accessible name
+# stays the bare city name, which three existing tests select by. All six Commons
+# Special:FilePath?width=640 URLs verified 200 image/jpeg at authoring time. Created
+# + picked up for dev-story.
+
+# 2026-07-26: 5-20-popular-search-tile-images implemented — all 5 tasks done. The six
+# landing tiles now render a Wikimedia city photograph at z-index 0, beneath the
+# existing scrim, with the gradient class left UNCONDITIONALLY on the button so the
+# downloading / failed / no-URL states all fall back to exactly the pre-story tile with
+# no error-handling code. Image is decorative (alt="" + aria-hidden) — load-bearing, not
+# cosmetic, since three existing tests select tiles by accessible name and a descriptive
+# alt would announce "Tokyo Tokyo". Carried over AttractionCard's imgRef.complete
+# cache-hit guard (without it an opacity-0 image strands invisible on every repeat visit
+# — the exact defect 5-14's review caught). TWO deviations recorded: (1) the 640px-
+# thumb URL form returns 400 for arbitrary widths, so the shipped URLs use Commons
+# Special:FilePath?width=640 — already the WikipediaImageProvider convention — which
+# Commons serves as 960px renders; (2) POPULAR_CITIES + PopularTile were split into
+# popularCities.ts + PopularTile.tsx instead of living in SearchPage.tsx as the story
+# said, because exporting a constant from a component file added a THIRD oxlint warning
+# over the 2-warning baseline. SearchPage.tsx now has no named exports. Live-verified
+# with the installed Chromium at 1440x900 and 390x844: all six data-loaded=true,
+# naturalWidth 960, opacity 1, z-index 0, zero console errors; a second pass with the
+# wikimedia hosts aborted at the network layer gave imgCount 0 on every tile with
+# gradients and accessible names intact. FE 320/320 across 28 files (+7), lint at the 2
+# pre-existing warnings, build green. No backend/DTO/API-type change. Noted for review:
+# the six URLs are unversioned third-party hotlinks with no CI guard against rot. Moved
+# to review.
+
+# 2026-07-26: 5-19-landing-page-framed-editorial implemented and added to
+# tracking (it was spec-driven and had no sprint entry). The first, unattended
+# run had blocked on an intent gap — EXPERIENCE.md contradicts itself about what
+# a "Popular searches" tile does — and left its work as a reverted patch file.
+# This attended run put the question to the user, who chose option (a): a tile
+# pre-fills and submits the existing text search and the matches open in the
+# dropdown (two gestures), honoring the doc's hard constraint at line 34 and
+# shipping no frontend-authored coordinates. EXPERIENCE.md was left unamended by
+# user choice; the surviving contradiction is recorded in deferred-work.md.
+# Shipped: Framed Editorial hero band, pre-search body (recent chips → tile rail
+# → how-it-works), LocationResultList deleted with no successor, and all three
+# reported dropdown defects fixed (no dismissal; string-equality re-open;
+# choosing searched the unfinished fragment). Also fixed the 8 real review
+# findings carried forward from the reverted attempt, plus one defect no earlier
+# pass could see: the hero band's overflow:hidden clipped the dropdown, now
+# clipped on an inner .heroSurface layer instead. 313/313 FE tests across 28
+# files (+15), lint clean (2 pre-existing warnings), build green. The spec's
+# manual visual checks were finally performed at 1440×900 and 390×844 with an
+# already-installed Chromium. Moved to review.
 
 # 2026-07-25: added 10-2-redis-connection-string-in-env — user wants the Redis
 # connection string supplied through the environment. 10-1 shipped it hard-coded at
@@ -785,6 +842,8 @@ development_status:
   epic-9: in-progress
   9-1-dockerize-for-production: done
   5-18-verify-email-page-rebuild: review
+  5-19-landing-page-framed-editorial: review
+  5-20-popular-search-tile-images: review
   epic-10: in-progress
   10-1-redis-response-caching: review
   10-2-redis-connection-string-in-env: review

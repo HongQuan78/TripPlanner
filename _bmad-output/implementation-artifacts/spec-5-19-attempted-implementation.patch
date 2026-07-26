@@ -1,0 +1,2766 @@
+diff --git a/FE/src/app/index.css b/FE/src/app/index.css
+index 54b1749..51dde4f 100644
+--- a/FE/src/app/index.css
++++ b/FE/src/app/index.css
+@@ -32,6 +32,29 @@
+   --radius-full: 999px;
+   --shadow-sm: 0 1px 3px rgba(11, 28, 48, 0.08);
+   --shadow-lg: 0 10px 24px rgba(11, 28, 48, 0.12);
++  --shadow-xl: 0 14px 30px rgba(11, 28, 48, 0.16);
++  --gradient-hero-stand-in:
++    radial-gradient(
++      100% 80% at 88% 12%,
++      var(--color-surface-container-high) 0%,
++      color-mix(in srgb, var(--color-surface-container-high) 0%, transparent) 58%
++    ),
++    linear-gradient(
++      152deg,
++      var(--color-surface-variant) 0%,
++      var(--color-secondary-container) 18%,
++      var(--color-secondary) 46%,
++      var(--color-tertiary) 72%,
++      var(--color-on-surface) 100%
++    ),
++    var(--color-surface-container);
++  --gradient-tile-scrim: linear-gradient(
++    to top,
++    color-mix(in srgb, var(--color-on-surface) 78%, transparent) 0%,
++    color-mix(in srgb, var(--color-on-surface) 66%, transparent) 40%,
++    color-mix(in srgb, var(--color-on-surface) 18%, transparent) 72%,
++    color-mix(in srgb, var(--color-on-surface) 0%, transparent) 100%
++  );
+   --duration-fast: 150ms;
+   --duration-slow: 400ms;
+   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+diff --git a/FE/src/features/destinations/LocationResultList.module.css b/FE/src/features/destinations/LocationResultList.module.css
+deleted file mode 100644
+index 3c8b4ea..0000000
+--- a/FE/src/features/destinations/LocationResultList.module.css
++++ /dev/null
+@@ -1,58 +0,0 @@
+-.list {
+-  list-style: none;
+-  margin: 1.5rem auto 0;
+-  padding: 0;
+-  max-width: 32rem;
+-  display: flex;
+-  flex-direction: column;
+-  gap: 0.5rem;
+-}
+-
+-.item {
+-  width: 100%;
+-  display: flex;
+-  align-items: center;
+-  gap: 0.5rem;
+-  padding: 0.75rem 1rem;
+-  border: 1px solid var(--color-outline-variant);
+-  border-radius: var(--radius-md);
+-  background: var(--color-surface-container-lowest);
+-  font-family: inherit;
+-  font-size: 1rem;
+-  color: var(--color-on-surface);
+-  cursor: pointer;
+-  transition:
+-    box-shadow var(--duration-fast) ease,
+-    border-color var(--duration-fast) ease;
+-}
+-
+-.item:hover {
+-  box-shadow: var(--shadow-sm);
+-  border-color: var(--color-primary);
+-}
+-
+-.selected {
+-  border-color: var(--color-primary);
+-  background: var(--color-surface-container-low);
+-}
+-
+-.name {
+-  font-weight: 600;
+-  margin-right: auto;
+-}
+-
+-.pill {
+-  padding: 0.2rem 0.6rem;
+-  border-radius: var(--radius-md);
+-  background: var(--color-surface-container-low);
+-  color: var(--color-on-surface-variant);
+-  font-size: 0.75rem;
+-  font-weight: 500;
+-  line-height: 1.2;
+-}
+-
+-.partial {
+-  font-size: 0.8rem;
+-  color: var(--color-on-surface-variant);
+-  font-style: italic;
+-}
+diff --git a/FE/src/features/destinations/LocationResultList.tsx b/FE/src/features/destinations/LocationResultList.tsx
+deleted file mode 100644
+index eca9d0a..0000000
+--- a/FE/src/features/destinations/LocationResultList.tsx
++++ /dev/null
+@@ -1,46 +0,0 @@
+-import type { LocationSearchResult } from '@/shared/api/types';
+-import styles from './LocationResultList.module.css';
+-
+-interface LocationResultListProps {
+-  results: LocationSearchResult[];
+-  selected: LocationSearchResult | null;
+-  onSelect: (location: LocationSearchResult) => void;
+-}
+-
+-function isSameLocation(a: LocationSearchResult, b: LocationSearchResult): boolean {
+-  return (
+-    a.name === b.name &&
+-    a.latitude === b.latitude &&
+-    a.longitude === b.longitude &&
+-    a.locationType === b.locationType
+-  );
+-}
+-
+-export default function LocationResultList({
+-  results,
+-  selected,
+-  onSelect,
+-}: LocationResultListProps) {
+-  return (
+-    <ul className={styles.list}>
+-      {results.map((result, index) => {
+-        const isSelected = selected !== null && isSameLocation(selected, result);
+-        return (
+-          <li key={`${result.name}-${result.latitude}-${result.longitude}-${index}`}>
+-            <button
+-              type="button"
+-              className={isSelected ? `${styles.item} ${styles.selected}` : styles.item}
+-              aria-pressed={isSelected}
+-              onClick={() => onSelect(result)}
+-            >
+-              <span className={styles.name}>{result.name}</span>
+-              <span className={styles.pill}>{result.countryCode}</span>
+-              <span className={styles.pill}>{result.locationType}</span>
+-              {result.isPartialMatch && <span className={styles.partial}>Partial match</span>}
+-            </button>
+-          </li>
+-        );
+-      })}
+-    </ul>
+-  );
+-}
+diff --git a/FE/src/features/destinations/SearchPage.module.css b/FE/src/features/destinations/SearchPage.module.css
+index dc82aa4..053ce5a 100644
+--- a/FE/src/features/destinations/SearchPage.module.css
++++ b/FE/src/features/destinations/SearchPage.module.css
+@@ -1,55 +1,56 @@
+ .page {
+-  text-align: center;
++  text-align: left;
+ }
+ 
++/* --- hero band: framed editorial, clipped, bottom-left inset --- */
++
+ .heroBand {
+   position: relative;
+   min-height: 16rem;
+   border-radius: var(--radius-lg);
+   overflow: hidden;
+   display: flex;
+-  align-items: center;
+-  justify-content: center;
+-  padding: 2rem 1.5rem;
+-  background:
+-    linear-gradient(
+-      to top,
+-      color-mix(in srgb, var(--color-on-surface) 80%, transparent) 0%,
+-      color-mix(in srgb, var(--color-on-surface) 72%, transparent) 45%,
+-      color-mix(in srgb, var(--color-on-surface) 65%, transparent) 78%,
+-      color-mix(in srgb, var(--color-on-surface) 30%, transparent) 90%,
+-      color-mix(in srgb, var(--color-on-surface) 0%, transparent) 100%
+-    ),
+-    linear-gradient(
+-      160deg,
+-      var(--color-surface-container-highest) 0%,
+-      var(--color-secondary-container) 28%,
+-      var(--color-tertiary-container) 62%,
+-      var(--color-tertiary) 82%,
+-      var(--color-on-surface) 100%
+-    ),
+-    var(--color-surface-container);
++  align-items: flex-end;
++  padding: 1.5rem;
++  background: var(--gradient-hero-stand-in);
+   background-size: cover;
+ }
+ 
+ @media (min-width: 768px) {
+   .heroBand {
+-    min-height: 22rem;
++    min-height: 24rem;
++    padding: 2.5rem;
+   }
+ }
+ 
++.heroScrim {
++  position: absolute;
++  inset: 0;
++  background: linear-gradient(
++    to top,
++    color-mix(in srgb, var(--color-on-surface) 80%, transparent) 0%,
++    color-mix(in srgb, var(--color-on-surface) 72%, transparent) 45%,
++    color-mix(in srgb, var(--color-on-surface) 65%, transparent) 78%,
++    color-mix(in srgb, var(--color-on-surface) 30%, transparent) 90%,
++    color-mix(in srgb, var(--color-on-surface) 0%, transparent) 100%
++  );
++}
++
+ .heroInner {
++  position: relative;
++  z-index: 2;
++  width: 100%;
++  max-width: 34rem;
+   display: flex;
+   flex-direction: column;
+-  align-items: center;
+-  text-align: center;
+-  gap: 0.75rem;
+-  width: 100%;
++  align-items: flex-start;
++  gap: 0.875rem;
+ }
+ 
+ .title {
+   font-size: 2rem;
+   line-height: 1.3;
++  font-weight: 700;
+   color: var(--color-on-primary);
+   margin: 0;
+ }
+@@ -68,81 +69,118 @@
+   margin: 0;
+ }
+ 
++/* --- the one search bar --- */
++
+ .form {
+-  display: flex;
+-  gap: 0.5rem;
+   width: 100%;
+-  max-width: 32rem;
+-  margin: 0 auto;
++  max-width: 34rem;
++  margin: 0;
+ }
+ 
+-.inputWrap {
++.bar {
+   position: relative;
+-  flex: 1;
+-  min-width: 0;
+   display: flex;
++  align-items: center;
++  gap: 0.5rem;
++  height: 3.5rem;
++  padding: 0 0.375rem 0 1rem;
++  background: var(--color-surface-container-lowest);
++  border: 1px solid var(--color-outline-variant);
++  border-radius: var(--radius-md);
++  box-shadow: var(--shadow-lg);
++  transition:
++    box-shadow var(--duration-fast) ease,
++    transform var(--duration-fast) ease;
+ }
+ 
+-@media (max-width: 480px) {
+-  .form {
+-    flex-wrap: wrap;
+-    justify-content: center;
+-  }
++.bar:hover {
++  box-shadow: var(--shadow-xl);
++  transform: translateY(-1px);
++}
+ 
+-  .inputWrap {
+-    flex-basis: 100%;
+-  }
++.bar:focus-within {
++  outline: 2px solid var(--color-primary);
++  outline-offset: 2px;
++}
++
++.barGlyph {
++  flex: none;
++  display: flex;
++  color: var(--color-outline);
+ }
+ 
+ .input {
+   flex: 1;
+   min-width: 0;
+-  height: 3rem;
+-  padding: 0 0.75rem;
+-  border: 1px solid var(--color-outline-variant);
+-  border-radius: var(--radius-md);
++  height: 100%;
++  border: 0;
++  background: transparent;
+   font-family: inherit;
+   font-size: 1rem;
+-  background: var(--color-surface-container-lowest);
+   color: var(--color-on-surface);
+-  box-shadow: var(--shadow-lg);
+ }
+ 
+ .input:focus {
+-  outline: 2px solid var(--color-primary);
+-  outline-offset: 1px;
++  outline: none;
+ }
+ 
+-.submit,
+-.retry {
+-  padding: 0.7rem 1.5rem;
+-  border: none;
++.input::-webkit-search-cancel-button {
++  display: none;
++}
++
++.clear {
++  flex: none;
++  width: 2.75rem;
++  height: 2.75rem;
++  padding: 0;
++  border: 0;
++  background: transparent;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  cursor: pointer;
++}
++
++.clearGlyph {
++  width: 1.75rem;
++  height: 1.75rem;
++  border-radius: var(--radius-full);
++  background: var(--color-surface-container-low);
++  color: var(--color-on-surface-variant);
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  font-size: 0.8125rem;
++  transition: background var(--duration-fast) ease;
++}
++
++.clear:hover .clearGlyph {
++  background: var(--color-surface-container);
++}
++
++.submit {
++  flex: none;
++  width: 2.75rem;
++  height: 2.75rem;
++  padding: 0;
++  border: 0;
+   border-radius: var(--radius-md);
+   background: var(--color-primary);
+   color: var(--color-on-primary);
+-  font-family: inherit;
+-  font-size: 0.875rem;
+-  font-weight: 600;
+-  letter-spacing: 0.05em;
++  display: flex;
++  align-items: center;
++  justify-content: center;
+   cursor: pointer;
+   transition:
+     background var(--duration-fast) ease,
+     transform var(--duration-fast) ease;
+ }
+ 
+-.submit {
+-  height: 3rem;
+-  padding: 0 1.5rem;
+-  box-shadow: var(--shadow-sm);
+-}
+-
+-.submit:hover:enabled,
+-.retry:hover {
++.submit:hover:enabled {
+   background: var(--color-primary-container);
+ }
+ 
+-.submit:active:enabled,
+-.retry:active {
++.submit:active:enabled {
+   transform: scale(0.98);
+ }
+ 
+@@ -151,61 +189,63 @@
+   cursor: not-allowed;
+ }
+ 
+-.clear {
+-  height: 3rem;
+-  padding: 0 1.25rem;
+-  border: 1px solid var(--color-primary);
+-  border-radius: var(--radius-md);
+-  background: var(--color-surface-container-lowest);
+-  color: var(--color-primary);
+-  font-family: inherit;
+-  font-size: 0.875rem;
+-  font-weight: 600;
+-  letter-spacing: 0.05em;
+-  cursor: pointer;
+-  transition:
+-    background var(--duration-fast) ease,
+-    transform var(--duration-fast) ease;
+-}
++/* --- pre-search body --- */
+ 
+-.clear:hover {
+-  background: var(--color-surface-container-low);
++.preSearch {
++  margin-top: 2rem;
+ }
+ 
+-.clear:active {
+-  transform: scale(0.98);
++.section + .section {
++  margin-top: 1.75rem;
+ }
+ 
+-.popular {
++.sectionHead {
+   display: flex;
+-  flex-direction: column;
+-  align-items: center;
+-  gap: 0.5rem;
+-  margin-top: 0.25rem;
++  align-items: baseline;
++  justify-content: space-between;
++  gap: 0.75rem;
++  margin: 0 0 0.75rem;
+ }
+ 
+-.popularLabel {
++.sectionLabel {
++  margin: 0;
+   font-size: 0.75rem;
+   font-weight: 500;
+   line-height: 1.2;
+-  color: var(--color-on-primary);
+-  margin: 0;
++  color: var(--color-on-surface-variant);
++}
++
++.clearRecents {
++  padding: 0.25rem 0.375rem;
++  border: 0;
++  border-radius: var(--radius-sm);
++  background: transparent;
++  font-family: inherit;
++  font-size: 0.75rem;
++  font-weight: 600;
++  color: var(--color-primary);
++  cursor: pointer;
++  transition: background var(--duration-fast) ease;
++}
++
++.clearRecents:hover {
++  background: var(--color-surface-container-low);
+ }
+ 
+-.chipRow {
++.recentRow {
+   display: flex;
+   flex-wrap: wrap;
+-  justify-content: center;
+   gap: 0.5rem;
+ }
+ 
+-.chip {
++.recentChip {
+   position: relative;
+-  height: 2rem;
+-  padding: 0 0.75rem;
+   display: inline-flex;
+   align-items: center;
+-  border: none;
++  gap: 0.375rem;
++  height: 2rem;
++  padding: 0 0.75rem;
++  border: 1px solid var(--color-outline-variant);
+   border-radius: var(--radius-full);
+   background: var(--color-surface-container-lowest);
+   color: var(--color-on-surface);
+@@ -217,25 +257,213 @@
+   transition: background var(--duration-fast) ease;
+ }
+ 
+-.chip::after {
++.recentChip::after {
+   content: '';
+   position: absolute;
+   inset: -6px 0;
+ }
+ 
+-.chip:hover {
++.recentChip:hover {
+   background: var(--color-surface-container-low);
+ }
+ 
++.recentGlyph {
++  display: flex;
++  color: var(--color-outline);
++}
++
++/* --- destination tile rail --- */
++
++.rail {
++  display: flex;
++  gap: 0.75rem;
++  overflow-x: auto;
++  padding: 0.25rem 0.25rem 0.875rem;
++  scroll-snap-type: x mandatory;
++}
++
++.tile {
++  position: relative;
++  flex: none;
++  width: 13rem;
++  aspect-ratio: 16 / 10;
++  padding: 0;
++  border: 0;
++  border-radius: var(--radius-lg);
++  overflow: hidden;
++  cursor: pointer;
++  scroll-snap-align: start;
++  font-family: inherit;
++  transition:
++    transform var(--duration-fast) ease,
++    box-shadow var(--duration-fast) ease;
++}
++
++@media (max-width: 900px) {
++  .tile {
++    width: 11rem;
++  }
++}
++
++.tile:hover {
++  transform: translateY(-4px);
++  box-shadow: var(--shadow-lg);
++}
++
++.tileScrim {
++  position: absolute;
++  inset: 0;
++  z-index: 1;
++  background: var(--gradient-tile-scrim);
++}
++
++.tileName {
++  position: absolute;
++  z-index: 2;
++  left: 0.75rem;
++  bottom: 0.625rem;
++  color: var(--color-on-primary);
++  font-size: 1rem;
++  font-weight: 600;
++  letter-spacing: -0.01em;
++}
++
++.tileA {
++  background: linear-gradient(
++    150deg,
++    var(--color-secondary-container),
++    var(--color-tertiary-container) 60%,
++    var(--color-on-surface)
++  );
++}
++
++.tileB {
++  background: linear-gradient(
++    150deg,
++    var(--color-surface-variant),
++    var(--color-secondary) 58%,
++    var(--color-on-surface)
++  );
++}
++
++.tileC {
++  background: linear-gradient(
++    150deg,
++    var(--color-surface-container-high),
++    var(--color-tertiary) 62%,
++    var(--color-on-surface)
++  );
++}
++
++.tileD {
++  background: linear-gradient(
++    150deg,
++    var(--color-secondary-container),
++    var(--color-secondary) 55%,
++    var(--color-on-surface)
++  );
++}
++
++.tileE {
++  background: linear-gradient(
++    150deg,
++    var(--color-surface-container),
++    var(--color-tertiary-container) 58%,
++    var(--color-on-surface)
++  );
++}
++
++.tileF {
++  background: linear-gradient(
++    150deg,
++    var(--color-surface-variant),
++    var(--color-tertiary) 55%,
++    var(--color-on-surface)
++  );
++}
++
++/* --- how-it-works band --- */
++
++.steps {
++  margin: 2rem 0 0;
++  padding: 0;
++  list-style: none;
++  border-top: 1px solid var(--color-outline-variant);
++}
++
++.step {
++  display: grid;
++  grid-template-columns: 2.5rem 1fr;
++  gap: 1rem;
++  align-items: start;
++  padding: 1.5rem 0;
++  border-bottom: 1px solid var(--color-outline-variant);
++}
++
++.stepNumeral {
++  font-size: 1.5rem;
++  font-weight: 600;
++  line-height: 1.4;
++  letter-spacing: -0.01em;
++  color: var(--color-outline);
++}
++
++.stepHeading {
++  margin: 0 0 0.1875rem;
++  font-size: 1.125rem;
++  font-weight: 600;
++  line-height: 1.4;
++}
++
++.stepBody {
++  margin: 0;
++  font-size: 1rem;
++  line-height: 1.5;
++  color: var(--color-on-surface-variant);
++}
++
++/* --- search status and attractions --- */
++
++.searchStatus {
++  max-width: 60rem;
++  margin: 1.5rem auto 0;
++  text-align: center;
++}
++
+ .results {
+   max-width: 60rem;
+-  margin: 2rem auto 0;
++  margin: 0 auto;
+ }
+ 
+ .loading {
++  margin: 0;
+   color: var(--color-on-surface-variant);
+ }
+ 
++.retry {
++  padding: 0.7rem 1.5rem;
++  border: none;
++  border-radius: var(--radius-md);
++  background: var(--color-primary);
++  color: var(--color-on-primary);
++  font-family: inherit;
++  font-size: 0.875rem;
++  font-weight: 600;
++  letter-spacing: 0.05em;
++  cursor: pointer;
++  transition:
++    background var(--duration-fast) ease,
++    transform var(--duration-fast) ease;
++}
++
++.retry:hover {
++  background: var(--color-primary-container);
++}
++
++.retry:active {
++  transform: scale(0.98);
++}
++
+ .attractions {
+   margin-top: 2rem;
+   text-align: left;
+diff --git a/FE/src/features/destinations/SearchPage.test.tsx b/FE/src/features/destinations/SearchPage.test.tsx
+index ccdd2b7..13ad34b 100644
+--- a/FE/src/features/destinations/SearchPage.test.tsx
++++ b/FE/src/features/destinations/SearchPage.test.tsx
+@@ -6,6 +6,7 @@ import { ApiError } from '@/shared/api/client';
+ import type { Attraction, LocationSearchResult } from '@/shared/api/types';
+ import SearchPage from './SearchPage';
+ import { resetSearchState } from './searchState';
++import { clearRecentSearches } from './recentSearches';
+ 
+ vi.mock('./api', () => ({
+   searchLocations: vi.fn(),
+@@ -70,414 +71,669 @@ function renderPage() {
+   );
+ }
+ 
++function searchbox() {
++  return screen.getByRole('searchbox', { name: /search/i });
++}
++
++function typeInput(value: string) {
++  fireEvent.change(searchbox(), { target: { value } });
++}
++
+ function submitSearch(query: string) {
+-  fireEvent.change(screen.getByRole('searchbox', { name: /search/i }), {
+-    target: { value: query },
+-  });
++  typeInput(query);
+   fireEvent.click(screen.getByRole('button', { name: /^search$/i }));
+ }
+ 
++function queryDropdown() {
++  return screen.queryByRole('listbox', { name: /location suggestions/i });
++}
++
++function findDropdown() {
++  return screen.findByRole('listbox', { name: /location suggestions/i });
++}
++
++async function chooseSuggestion(query: string, optionName: RegExp) {
++  typeInput(query);
++  let option: HTMLElement | null = null;
++  await waitFor(() => {
++    const listbox = screen.getByRole('listbox', { name: /location suggestions/i });
++    option = within(listbox).getByRole('option', { name: optionName });
++  });
++  fireEvent.mouseDown(option!);
++}
++
++function sleep(ms: number) {
++  return new Promise((resolve) => {
++    setTimeout(resolve, ms);
++  });
++}
++
+ beforeEach(() => {
+   searchLocationsMock.mockReset();
+   getAttractionsMock.mockReset();
+   resetSearchState();
++  clearRecentSearches();
+ });
+ 
+ describe('SearchPage', () => {
+-  it('renders submitted results with name, country code, and type labels', async () => {
+-    searchLocationsMock.mockResolvedValue([parisCity, franceCountry]);
+-    renderPage();
++  describe('typed submit', () => {
++    it('renders submitted matches as dropdown options and nothing in the page body', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity, franceCountry]);
++      renderPage();
+ 
+-    submitSearch('paris');
++      submitSearch('paris');
+ 
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
++      const listbox = await findDropdown();
++      const options = within(listbox).getAllByRole('option');
++      expect(options).toHaveLength(2);
++      expect(within(options[0]).getByText('Paris')).toBeInTheDocument();
++      expect(within(options[0]).getByText('FR')).toBeInTheDocument();
++      expect(within(options[0]).getByText('City')).toBeInTheDocument();
++      expect(within(options[1]).getByText('France')).toBeInTheDocument();
++      expect(within(options[1]).getByText('Country')).toBeInTheDocument();
++      expect(searchLocationsMock).toHaveBeenCalledWith('paris');
++      expect(screen.getAllByRole('listbox')).toHaveLength(1);
+     });
+-    expect(screen.getByText('France')).toBeInTheDocument();
+-    expect(screen.getAllByText('FR')).toHaveLength(2);
+-    expect(screen.getByText('City')).toBeInTheDocument();
+-    expect(screen.getByText('Country')).toBeInTheDocument();
+-    expect(searchLocationsMock).toHaveBeenCalledWith('paris');
+-  });
+ 
+-  it('renders at most 5 results', async () => {
+-    const many = Array.from({ length: 7 }, (_, index) => ({
+-      ...parisCity,
+-      name: `City ${index + 1}`,
+-      latitude: index,
+-    }));
+-    searchLocationsMock.mockResolvedValue(many);
+-    renderPage();
++    it('shows at most 5 options', async () => {
++      const many = Array.from({ length: 7 }, (_, index) => ({
++        ...parisCity,
++        name: `City ${index + 1}`,
++        latitude: index,
++      }));
++      searchLocationsMock.mockResolvedValue(many);
++      renderPage();
+ 
+-    submitSearch('city');
++      submitSearch('city');
+ 
+-    await waitFor(() => {
+-      expect(screen.getByText('City 1')).toBeInTheDocument();
++      const listbox = await findDropdown();
++      expect(within(listbox).getAllByRole('option')).toHaveLength(5);
++      expect(screen.queryByText('City 6')).not.toBeInTheDocument();
+     });
+-    expect(screen.getAllByRole('listitem')).toHaveLength(5);
+-    expect(screen.queryByText('City 6')).not.toBeInTheDocument();
+-  });
+ 
+-  it('indicates partial matches', async () => {
+-    searchLocationsMock.mockResolvedValue([{ ...parisCity, isPartialMatch: true }]);
+-    renderPage();
++    it('keeps the dropdown open showing "No attractions found." when nothing matches', async () => {
++      searchLocationsMock.mockResolvedValue([]);
++      renderPage();
+ 
+-    submitSearch('par');
++      submitSearch('xyzzy');
+ 
+-    await waitFor(() => {
+-      expect(screen.getByText(/partial match/i)).toBeInTheDocument();
++      await waitFor(() => {
++        expect(screen.getByText('No attractions found.')).toBeInTheDocument();
++      });
++      expect(searchbox()).toHaveValue('xyzzy');
++      expect(screen.getByText('Popular searches')).toBeInTheDocument();
++      expect(screen.getByRole('button', { name: 'Tokyo' })).toBeInTheDocument();
+     });
+-  });
+ 
+-  it('fetches attractions with the city coordinates when a city is selected', async () => {
+-    searchLocationsMock.mockResolvedValue([parisCity]);
+-    getAttractionsMock.mockResolvedValue([louvre]);
+-    renderPage();
++    it('does not submit a whitespace-only query', () => {
++      renderPage();
+ 
+-    submitSearch('paris');
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
+-    });
+-    fireEvent.click(screen.getByRole('button', { name: /paris/i }));
++      typeInput('   ');
++      fireEvent.submit(screen.getByRole('search'));
+ 
+-    await waitFor(() => {
+-      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      expect(searchLocationsMock).not.toHaveBeenCalled();
+     });
+-    expect(getAttractionsMock).toHaveBeenCalledWith(48.8566, 2.3522, { kinds: [], minRate: null });
+-  });
+ 
+-  it('shows a narrow-to-city prompt and fetches nothing when a country is selected', async () => {
+-    searchLocationsMock.mockResolvedValue([franceCountry]);
+-    renderPage();
++    it('shows a loading indicator while the search is in flight', async () => {
++      let resolveSearch: (value: LocationSearchResult[]) => void = () => {};
++      searchLocationsMock.mockImplementation(
++        () =>
++          new Promise((resolve) => {
++            resolveSearch = resolve;
++          }),
++      );
++      renderPage();
++
++      submitSearch('paris');
+ 
+-    submitSearch('france');
+-    await waitFor(() => {
+-      expect(screen.getByText('France')).toBeInTheDocument();
++      expect(screen.getByText(/searching/i)).toBeInTheDocument();
++      resolveSearch([parisCity]);
++      await findDropdown();
+     });
+-    fireEvent.click(screen.getByRole('button', { name: /france/i }));
+ 
+-    expect(screen.getByText(/search for a specific city/i)).toBeInTheDocument();
+-    expect(getAttractionsMock).not.toHaveBeenCalled();
+-  });
++    it('shows a service unavailable state with retry when the search returns 503', async () => {
++      searchLocationsMock.mockRejectedValueOnce(new ApiError(503, 'Service unavailable.'));
++      searchLocationsMock.mockResolvedValueOnce([parisCity]);
++      renderPage();
+ 
+-  it('renders attraction cards with kinds tags capped at 3, rating, and heritage tag', async () => {
+-    searchLocationsMock.mockResolvedValue([parisCity]);
+-    getAttractionsMock.mockResolvedValue([louvre]);
+-    renderPage();
++      submitSearch('paris');
+ 
+-    submitSearch('paris');
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
+-    });
+-    fireEvent.click(screen.getByRole('button', { name: /paris/i }));
+-    await waitFor(() => {
+-      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      await waitFor(() => {
++        expect(screen.getByText(/service unavailable/i)).toBeInTheDocument();
++      });
++      expect(queryDropdown()).not.toBeInTheDocument();
++
++      fireEvent.click(screen.getByRole('button', { name: /try again/i }));
++
++      await findDropdown();
++      expect(searchLocationsMock).toHaveBeenCalledTimes(2);
+     });
+ 
+-    const card = screen.getByRole('link', { name: /louvre museum/i });
+-    expect(card).toHaveAttribute('href', '/attractions/W123');
+-    expect(within(card).getByText('museums')).toBeInTheDocument();
+-    expect(within(card).getByText('interesting places')).toBeInTheDocument();
+-    expect(within(card).getByText('cultural')).toBeInTheDocument();
+-    expect(within(card).queryByText('urban environment')).not.toBeInTheDocument();
+-    expect(within(card).getByLabelText('Rated 3 of 3')).toBeInTheDocument();
+-    expect(within(card).getByText(/heritage/i)).toBeInTheDocument();
+-    expect(within(card).getByRole('img')).toHaveAttribute('src', 'https://example.com/louvre.jpg');
+-  });
++    it('clears the previous selection when a new search is submitted', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      getAttractionsMock.mockResolvedValue([louvre]);
++      renderPage();
+ 
+-  it('renders the image placeholder and no rating badge for a bare attraction', async () => {
+-    searchLocationsMock.mockResolvedValue([parisCity]);
+-    getAttractionsMock.mockResolvedValue([barePlace]);
+-    renderPage();
++      await chooseSuggestion('pa', /Paris/);
++      await waitFor(() => {
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      });
+ 
+-    submitSearch('paris');
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
+-    });
+-    fireEvent.click(screen.getByRole('button', { name: /paris/i }));
+-    await waitFor(() => {
+-      expect(screen.getByText('Hidden Garden')).toBeInTheDocument();
+-    });
++      searchLocationsMock.mockResolvedValue([franceCountry]);
++      submitSearch('france');
+ 
+-    const card = screen.getByRole('link', { name: /hidden garden/i });
+-    expect(within(card).queryByRole('img')).not.toBeInTheDocument();
+-    expect(within(card).getByTestId('image-placeholder')).toBeInTheDocument();
+-    expect(within(card).queryByText(/not rated/i)).not.toBeInTheDocument();
+-    expect(within(card).queryByLabelText(/rated/i)).not.toBeInTheDocument();
++      await findDropdown();
++      expect(screen.queryByText(/attractions near paris/i)).not.toBeInTheDocument();
++      expect(screen.queryByText('Louvre Museum')).not.toBeInTheDocument();
++    });
+   });
+ 
+-  it('falls back to the image placeholder when the image fails to load', async () => {
+-    searchLocationsMock.mockResolvedValue([parisCity]);
+-    getAttractionsMock.mockResolvedValue([louvre]);
+-    renderPage();
++  describe('dropdown dismissal', () => {
++    it('closes on an outside click and keeps the field value', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      renderPage();
+ 
+-    submitSearch('paris');
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
+-    });
+-    fireEvent.click(screen.getByRole('button', { name: /paris/i }));
+-    await waitFor(() => {
+-      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+-    });
++      typeInput('pa');
++      await findDropdown();
+ 
+-    fireEvent.error(within(screen.getByRole('link', { name: /louvre museum/i })).getByRole('img'));
++      fireEvent.pointerDown(document.body);
+ 
+-    const card = screen.getByRole('link', { name: /louvre museum/i });
+-    expect(within(card).queryByRole('img')).not.toBeInTheDocument();
+-    expect(within(card).getByTestId('image-placeholder')).toBeInTheDocument();
+-  });
++      expect(queryDropdown()).not.toBeInTheDocument();
++      expect(searchbox()).toHaveValue('pa');
++    });
++
++    it('closes when the input loses focus', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      renderPage();
+ 
+-  it('shows the exact "No attractions found." message when the search returns nothing', async () => {
+-    searchLocationsMock.mockResolvedValue([]);
+-    renderPage();
++      typeInput('pa');
++      await findDropdown();
+ 
+-    submitSearch('xyzzy');
++      fireEvent.blur(searchbox());
+ 
+-    await waitFor(() => {
+-      expect(screen.getByText('No attractions found.')).toBeInTheDocument();
++      expect(queryDropdown()).not.toBeInTheDocument();
++      expect(searchbox()).toHaveValue('pa');
+     });
+-  });
+ 
+-  it('keeps a distinct empty state when a city has no attractions', async () => {
+-    searchLocationsMock.mockResolvedValue([parisCity]);
+-    getAttractionsMock.mockResolvedValue([]);
+-    renderPage();
++    it('registers a pointer choice without blur pre-empting it', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      getAttractionsMock.mockResolvedValue([louvre]);
++      renderPage();
+ 
+-    submitSearch('paris');
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
+-    });
+-    fireEvent.click(screen.getByRole('button', { name: /paris/i }));
++      typeInput('pa');
++      const listbox = await findDropdown();
++      fireEvent.mouseDown(within(listbox).getByRole('option'));
+ 
+-    await waitFor(() => {
+-      expect(screen.getByText(/no attractions in this area/i)).toBeInTheDocument();
++      expect(queryDropdown()).not.toBeInTheDocument();
++      expect(searchbox()).toHaveValue('Paris');
++      await waitFor(() => {
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      });
+     });
+-  });
+ 
+-  it('shows a service unavailable state with retry when the search returns 503', async () => {
+-    searchLocationsMock.mockRejectedValueOnce(new ApiError(503, 'Service unavailable.'));
+-    searchLocationsMock.mockResolvedValueOnce([parisCity]);
+-    renderPage();
++    it('closes on Escape without changing the input, and reopens when typing resumes', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      renderPage();
+ 
+-    submitSearch('paris');
++      typeInput('pa');
++      await findDropdown();
+ 
+-    await waitFor(() => {
+-      expect(screen.getByText(/service unavailable/i)).toBeInTheDocument();
+-    });
++      fireEvent.keyDown(searchbox(), { key: 'Escape' });
+ 
+-    fireEvent.click(screen.getByRole('button', { name: /try again/i }));
++      expect(queryDropdown()).not.toBeInTheDocument();
++      expect(searchbox()).toHaveValue('pa');
+ 
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
++      typeInput('par');
++      await findDropdown();
+     });
+-    expect(searchLocationsMock).toHaveBeenCalledTimes(2);
+-  });
+ 
+-  it('shows a service unavailable state with retry when attractions return 503', async () => {
+-    searchLocationsMock.mockResolvedValue([parisCity]);
+-    getAttractionsMock.mockRejectedValueOnce(new ApiError(503, 'Service unavailable.'));
+-    getAttractionsMock.mockResolvedValueOnce([louvre]);
+-    renderPage();
++    it('does not reopen after choosing a suggestion whose name carries whitespace', async () => {
++      searchLocationsMock.mockResolvedValue([{ ...parisCity, name: '  Paris  ' }]);
++      getAttractionsMock.mockResolvedValue([louvre]);
++      renderPage();
++
++      typeInput('pa');
++      const listbox = await findDropdown();
++      fireEvent.mouseDown(within(listbox).getByRole('option'));
++
++      await sleep(500);
+ 
+-    submitSearch('paris');
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
++      expect(queryDropdown()).not.toBeInTheDocument();
+     });
+-    fireEvent.click(screen.getByRole('button', { name: /paris/i }));
+ 
+-    await waitFor(() => {
+-      expect(screen.getByText(/service unavailable/i)).toBeInTheDocument();
+-    });
++    it('issues no further location search when an option is chosen before the debounce settles', async () => {
++      searchLocationsMock.mockResolvedValue([
++        { ...parisCity, name: 'Tokyo', latitude: 35.6762, longitude: 139.6503 },
++      ]);
++      getAttractionsMock.mockResolvedValue([louvre]);
++      renderPage();
++
++      typeInput('Tok');
++      const listbox = await findDropdown();
++      fireEvent.mouseDown(within(listbox).getByRole('option'));
+ 
+-    fireEvent.click(screen.getByRole('button', { name: /try again/i }));
++      await sleep(500);
+ 
+-    await waitFor(() => {
+-      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      expect(searchLocationsMock).toHaveBeenCalledTimes(1);
++      expect(searchLocationsMock).toHaveBeenCalledWith('Tok');
++      expect(screen.getByText('Attractions near Tokyo')).toBeInTheDocument();
++      expect(getAttractionsMock).toHaveBeenCalledWith(35.6762, 139.6503, {
++        kinds: [],
++        minRate: null,
++      });
+     });
+-    expect(getAttractionsMock).toHaveBeenCalledTimes(2);
+   });
+ 
+-  it('shows a loading indicator while the search is in flight', async () => {
+-    let resolveSearch: (value: LocationSearchResult[]) => void = () => {};
+-    searchLocationsMock.mockImplementation(
+-      () =>
+-        new Promise((resolve) => {
+-          resolveSearch = resolve;
+-        }),
+-    );
+-    renderPage();
+-
+-    submitSearch('paris');
+-
+-    expect(screen.getByText(/searching/i)).toBeInTheDocument();
+-    resolveSearch([parisCity]);
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
++  describe('auto-suggest', () => {
++    it('shows debounced suggestions after typing 2+ characters', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity, franceCountry]);
++      renderPage();
++
++      typeInput('p');
++      typeInput('pa');
++      typeInput('par');
++      expect(searchLocationsMock).not.toHaveBeenCalled();
++
++      const listbox = await findDropdown();
++      expect(searchLocationsMock).toHaveBeenCalledTimes(1);
++      expect(searchLocationsMock).toHaveBeenCalledWith('par');
++      expect(within(listbox).getAllByRole('option')).toHaveLength(2);
+     });
+-  });
+ 
+-  it('resets to the initial state when the search is cleared', async () => {
+-    searchLocationsMock.mockResolvedValue([parisCity]);
+-    renderPage();
++    it('does not open or fetch for fewer than 2 characters', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      renderPage();
++
++      typeInput('p');
++      await sleep(400);
+ 
+-    submitSearch('paris');
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
++      expect(searchLocationsMock).not.toHaveBeenCalled();
++      expect(queryDropdown()).not.toBeInTheDocument();
+     });
+ 
+-    fireEvent.click(screen.getByRole('button', { name: /clear/i }));
++    it('keeps the previous option list rendered while the next query resolves', async () => {
++      searchLocationsMock.mockResolvedValueOnce([parisCity]);
++      searchLocationsMock.mockImplementationOnce(() => new Promise(() => {}));
++      renderPage();
+ 
+-    expect(screen.queryAllByRole('listitem')).toHaveLength(0);
+-    expect(screen.getByRole('searchbox', { name: /search/i })).toHaveValue('');
+-  });
++      typeInput('pa');
++      await findDropdown();
+ 
+-  it('does not submit a whitespace-only query', () => {
+-    renderPage();
++      typeInput('par');
++      await waitFor(() => {
++        expect(searchLocationsMock).toHaveBeenCalledTimes(2);
++      });
+ 
+-    fireEvent.change(screen.getByRole('searchbox', { name: /search/i }), {
+-      target: { value: '   ' },
++      const listbox = queryDropdown();
++      expect(listbox).toBeInTheDocument();
++      expect(within(listbox!).getAllByRole('option')).toHaveLength(1);
++      expect(screen.queryByText('No attractions found.')).not.toBeInTheDocument();
+     });
+-    fireEvent.submit(screen.getByRole('search'));
+ 
+-    expect(searchLocationsMock).not.toHaveBeenCalled();
+-  });
++    it('supports keyboard navigation with ArrowDown/ArrowUp and Enter selection', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity, franceCountry]);
++      getAttractionsMock.mockResolvedValue([louvre]);
++      renderPage();
+ 
+-  it('restores the search, results, and selection after unmounting and remounting', async () => {
+-    searchLocationsMock.mockResolvedValue([parisCity]);
+-    getAttractionsMock.mockResolvedValue([louvre]);
+-    const first = renderPage();
++      typeInput('fr');
++      const listbox = await findDropdown();
++      const options = within(listbox).getAllByRole('option');
+ 
+-    submitSearch('paris');
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
+-    });
+-    fireEvent.click(screen.getByRole('button', { name: /paris/i }));
+-    await waitFor(() => {
+-      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      fireEvent.keyDown(searchbox(), { key: 'ArrowDown' });
++      expect(options[0]).toHaveAttribute('aria-selected', 'true');
++      fireEvent.keyDown(searchbox(), { key: 'ArrowDown' });
++      expect(options[1]).toHaveAttribute('aria-selected', 'true');
++      fireEvent.keyDown(searchbox(), { key: 'ArrowDown' });
++      expect(options[0]).toHaveAttribute('aria-selected', 'true');
++      fireEvent.keyDown(searchbox(), { key: 'ArrowUp' });
++      expect(options[1]).toHaveAttribute('aria-selected', 'true');
++
++      fireEvent.keyDown(searchbox(), { key: 'Enter' });
++      expect(searchbox()).toHaveValue('France');
++      expect(queryDropdown()).not.toBeInTheDocument();
++      expect(
++        screen.getByText(/france is a country — search for a specific city/i),
++      ).toBeInTheDocument();
+     });
+ 
+-    first.unmount();
+-    renderPage();
++    it('keeps the combobox contract on the input and never makes options tab stops', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      renderPage();
+ 
+-    expect(screen.getByRole('searchbox', { name: /search/i })).toHaveValue('paris');
+-    await waitFor(() => {
+-      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+-    });
+-    expect(screen.getByText(/attractions near paris/i)).toBeInTheDocument();
+-  });
++      const input = searchbox();
++      expect(input).toHaveAttribute('aria-autocomplete', 'list');
++      expect(input).toHaveAttribute('aria-expanded', 'false');
++      expect(input).toHaveAttribute('aria-controls', 'location-suggestions');
++      expect(input).toHaveAccessibleDescription(/arrow keys/i);
+ 
+-  it('clears the previous selection when a new search is submitted', async () => {
+-    searchLocationsMock.mockResolvedValueOnce([parisCity]);
+-    getAttractionsMock.mockResolvedValue([louvre]);
+-    renderPage();
++      typeInput('pa');
++      const listbox = await findDropdown();
++      expect(searchbox()).toHaveAttribute('aria-expanded', 'true');
++      for (const option of within(listbox).getAllByRole('option')) {
++        expect(option).not.toHaveAttribute('tabindex');
++      }
+ 
+-    submitSearch('paris');
+-    await waitFor(() => {
+-      expect(screen.getByText('Paris')).toBeInTheDocument();
++      fireEvent.keyDown(searchbox(), { key: 'ArrowDown' });
++      expect(searchbox()).toHaveAttribute(
++        'aria-activedescendant',
++        'location-suggestions-option-0',
++      );
+     });
+-    fireEvent.click(screen.getByRole('button', { name: /paris/i }));
+-    await waitFor(() => {
+-      expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++
++    it('fails silently when the suggestion request errors', async () => {
++      searchLocationsMock.mockRejectedValue(new ApiError(503, 'Service unavailable'));
++      renderPage();
++
++      typeInput('pa');
++      await waitFor(() => {
++        expect(searchLocationsMock).toHaveBeenCalledWith('pa');
++      });
++      await sleep(50);
++
++      expect(queryDropdown()).not.toBeInTheDocument();
++      expect(screen.queryByText(/service unavailable/i)).not.toBeInTheDocument();
++      expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument();
+     });
+ 
+-    searchLocationsMock.mockResolvedValueOnce([franceCountry]);
+-    submitSearch('france');
++    it('announces the chosen city in a polite live region', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      getAttractionsMock.mockResolvedValue([louvre]);
++      renderPage();
+ 
+-    await waitFor(() => {
+-      expect(screen.getByText('France')).toBeInTheDocument();
++      await chooseSuggestion('pa', /Paris/);
++
++      const announcement = screen.getByText('Paris selected.');
++      expect(announcement).toHaveAttribute('aria-live', 'polite');
+     });
+-    expect(screen.queryByText(/attractions near paris/i)).not.toBeInTheDocument();
+-    expect(screen.queryByText('Louvre Museum')).not.toBeInTheDocument();
+   });
+ 
+-  function typeInput(value: string) {
+-    fireEvent.change(screen.getByRole('searchbox', { name: /search/i }), {
+-      target: { value },
++  describe('landing body', () => {
++    const tileCities = ['Đà Nẵng', 'Paris', 'Tokyo', 'Rome', 'Barcelona', 'New York'];
++
++    it('renders the hero headline, tagline, a wordless input, and the search landmark', () => {
++      renderPage();
++
++      expect(screen.getByRole('heading', { level: 1, name: 'Where to next?' })).toBeInTheDocument();
++      expect(screen.getByText('Search any city and start building the trip.')).toBeInTheDocument();
++      expect(searchbox()).not.toHaveAttribute('placeholder');
++      expect(screen.getByRole('search')).toBeInTheDocument();
+     });
+-  }
+ 
+-  function sleep(ms: number) {
+-    return new Promise((resolve) => {
+-      setTimeout(resolve, ms);
++    it('omits the recent-searches section entirely on a first visit', () => {
++      renderPage();
++
++      expect(screen.queryByText('Recent searches')).not.toBeInTheDocument();
++      expect(screen.queryByRole('button', { name: /clear recent searches/i })).not.toBeInTheDocument();
++      expect(screen.getByText('Popular searches')).toBeInTheDocument();
+     });
+-  }
+ 
+-  describe('hero band and suggestion chips', () => {
+-    const chipCities = ['Đà Nẵng', 'Paris', 'Tokyo', 'Rome', 'Barcelona', 'New York'];
++    it('renders the six popular-search tiles under their label', () => {
++      renderPage();
+ 
+-    it('renders the hero headline, tagline, and an input without placeholder text', () => {
++      for (const city of tileCities) {
++        expect(screen.getByRole('button', { name: city })).toBeInTheDocument();
++      }
++    });
++
++    it('renders the how-it-works band as three ordered steps with no heading of its own', () => {
+       renderPage();
+ 
+-      expect(screen.getByRole('heading', { level: 1, name: 'Where to next?' })).toBeInTheDocument();
++      expect(screen.getByRole('heading', { name: 'Search a city' })).toBeInTheDocument();
++      expect(screen.getByText('Anywhere in the world, by name.')).toBeInTheDocument();
++      expect(screen.getByRole('heading', { name: "See what's there" })).toBeInTheDocument();
+       expect(
+-        screen.getByText('Search any city and start building the trip.'),
++        screen.getByText('Attractions with ratings, heritage marks, and distance from the centre.'),
+       ).toBeInTheDocument();
+-      expect(screen.getByRole('searchbox', { name: /search/i })).not.toHaveAttribute(
+-        'placeholder',
+-      );
++      expect(screen.getByRole('heading', { name: 'Build the days' })).toBeInTheDocument();
++      expect(
++        screen.getByText(
++          'Drop places into a day-by-day itinerary and move them as plans change.',
++        ),
++      ).toBeInTheDocument();
++      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+     });
+ 
+-    it('shows the six popular-search chips under their label before any search', () => {
++    it('loads a tile city in one gesture without opening the dropdown or searching', async () => {
++      getAttractionsMock.mockResolvedValue([louvre]);
+       renderPage();
+ 
+-      expect(screen.getByText('Popular searches')).toBeInTheDocument();
+-      for (const city of chipCities) {
+-        expect(screen.getByRole('button', { name: city })).toBeInTheDocument();
+-      }
++      fireEvent.click(screen.getByRole('button', { name: 'Tokyo' }));
++
++      expect(searchbox()).toHaveValue('Tokyo');
++      expect(queryDropdown()).not.toBeInTheDocument();
++      await waitFor(() => {
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      });
++      expect(screen.getByText('Attractions near Tokyo')).toBeInTheDocument();
++      expect(screen.queryByText('Popular searches')).not.toBeInTheDocument();
++
++      await sleep(400);
++      expect(searchLocationsMock).not.toHaveBeenCalled();
+     });
+ 
+-    it('pre-fills the input and submits the search in one gesture when a chip is activated', async () => {
++    it('records a chosen city as a recent search and re-chooses it from its chip', async () => {
+       searchLocationsMock.mockResolvedValue([parisCity]);
++      getAttractionsMock.mockResolvedValue([louvre]);
+       renderPage();
+ 
+-      fireEvent.click(screen.getByRole('button', { name: 'Paris' }));
++      await chooseSuggestion('pa', /Paris/);
++      await waitFor(() => {
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      });
++
++      fireEvent.click(screen.getByRole('button', { name: /clear search/i }));
++
++      const recentSection = screen.getByText('Recent searches').closest('section')!;
++      const chip = within(recentSection).getByRole('button', { name: /Paris/ });
++      const callsBefore = searchLocationsMock.mock.calls.length;
++      fireEvent.click(chip);
+ 
+-      expect(screen.getByRole('searchbox', { name: /search/i })).toHaveValue('Paris');
+       await waitFor(() => {
+-        expect(screen.getByText('Paris')).toBeInTheDocument();
++        expect(screen.getByText('Attractions near Paris')).toBeInTheDocument();
+       });
+-      expect(searchLocationsMock).toHaveBeenCalledWith('Paris');
+-      expect(screen.queryByText('Popular searches')).not.toBeInTheDocument();
++      expect(queryDropdown()).not.toBeInTheDocument();
++      expect(searchLocationsMock.mock.calls.length).toBe(callsBefore);
+     });
+ 
+-    it('hides the chips once a query has been submitted and restores them on Clear', async () => {
++    it('erases the history when "Clear recent searches" is activated', async () => {
+       searchLocationsMock.mockResolvedValue([parisCity]);
++      getAttractionsMock.mockResolvedValue([louvre]);
+       renderPage();
+ 
+-      submitSearch('paris');
++      await chooseSuggestion('pa', /Paris/);
++      await waitFor(() => {
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      });
++      fireEvent.click(screen.getByRole('button', { name: /clear search/i }));
++      expect(screen.getByText('Recent searches')).toBeInTheDocument();
++
++      fireEvent.click(screen.getByRole('button', { name: /clear recent searches/i }));
++
++      expect(screen.queryByText('Recent searches')).not.toBeInTheDocument();
++    });
++
++    it('returns the full pre-search body on clear and keeps the history', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      getAttractionsMock.mockResolvedValue([louvre]);
++      renderPage();
++
++      await chooseSuggestion('pa', /Paris/);
+       await waitFor(() => {
+-        expect(screen.getByText('Paris')).toBeInTheDocument();
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+       });
+       expect(screen.queryByText('Popular searches')).not.toBeInTheDocument();
+ 
+-      fireEvent.click(screen.getByRole('button', { name: /clear/i }));
++      fireEvent.click(screen.getByRole('button', { name: /clear search/i }));
+ 
++      expect(searchbox()).toHaveValue('');
++      expect(queryDropdown()).not.toBeInTheDocument();
+       expect(screen.getByText('Popular searches')).toBeInTheDocument();
+       expect(screen.getByRole('button', { name: 'Tokyo' })).toBeInTheDocument();
++      expect(screen.getByRole('heading', { name: 'Build the days' })).toBeInTheDocument();
++      expect(screen.getByText('Recent searches')).toBeInTheDocument();
++      expect(screen.queryByText('Attractions near Paris')).not.toBeInTheDocument();
++    });
++
++    it('renders the inline clear only when the field has a value', async () => {
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      renderPage();
++
++      expect(screen.queryByRole('button', { name: /clear search/i })).not.toBeInTheDocument();
++
++      typeInput('pa');
++
++      expect(screen.getByRole('button', { name: /clear search/i })).toBeInTheDocument();
+     });
+ 
+-    it('keeps chips visible while typing an unsubmitted query', async () => {
++    it('keeps the pre-search body visible while typing an unsubmitted query', async () => {
+       searchLocationsMock.mockResolvedValue([parisCity]);
+       renderPage();
+ 
+       typeInput('pa');
+-      await screen.findByRole('listbox', { name: /location suggestions/i });
++      await findDropdown();
+ 
+       expect(screen.getByText('Popular searches')).toBeInTheDocument();
+     });
+ 
+-    it('skips the pre-search chips when a session is restored', async () => {
++    it('selects the current value when the bar is focused so typing replaces it', async () => {
+       searchLocationsMock.mockResolvedValue([parisCity]);
+-      const first = renderPage();
++      getAttractionsMock.mockResolvedValue([louvre]);
++      renderPage();
++
++      await chooseSuggestion('pa', /Paris/);
++      const input = searchbox() as HTMLInputElement;
++
++      fireEvent.focus(input);
++
++      expect(input.selectionStart).toBe(0);
++      expect(input.selectionEnd).toBe('Paris'.length);
++    });
++  });
++
++  describe('chosen city', () => {
++    async function chooseParis() {
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      renderPage();
++      await chooseSuggestion('pa', /Paris/);
++    }
++
++    it('fetches attractions with the city coordinates', async () => {
++      getAttractionsMock.mockResolvedValue([louvre]);
++      await chooseParis();
+ 
+-      submitSearch('paris');
+       await waitFor(() => {
+-        expect(screen.getByText('Paris')).toBeInTheDocument();
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+       });
+-      first.unmount();
++      expect(getAttractionsMock).toHaveBeenCalledWith(48.8566, 2.3522, {
++        kinds: [],
++        minRate: null,
++      });
++      expect(searchLocationsMock).toHaveBeenCalledTimes(1);
++    });
++
++    it('shows a narrow-to-city prompt and fetches nothing when a country is chosen', async () => {
++      searchLocationsMock.mockResolvedValue([franceCountry]);
++      renderPage();
++
++      await chooseSuggestion('fr', /France/);
++
++      expect(screen.getByText(/france is a country — search for a specific city/i)).toBeInTheDocument();
++      expect(getAttractionsMock).not.toHaveBeenCalled();
++      expect(searchbox()).toHaveValue('France');
++    });
++
++    it('renders attraction cards with kinds tags capped at 3, rating, and heritage tag', async () => {
++      getAttractionsMock.mockResolvedValue([louvre]);
++      await chooseParis();
++      await waitFor(() => {
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      });
++
++      const card = screen.getByRole('link', { name: /louvre museum/i });
++      expect(card).toHaveAttribute('href', '/attractions/W123');
++      expect(within(card).getByText('museums')).toBeInTheDocument();
++      expect(within(card).getByText('interesting places')).toBeInTheDocument();
++      expect(within(card).getByText('cultural')).toBeInTheDocument();
++      expect(within(card).queryByText('urban environment')).not.toBeInTheDocument();
++      expect(within(card).getByLabelText('Rated 3 of 3')).toBeInTheDocument();
++      expect(within(card).getByText(/heritage/i)).toBeInTheDocument();
++      expect(within(card).getByRole('img')).toHaveAttribute(
++        'src',
++        'https://example.com/louvre.jpg',
++      );
++    });
++
++    it('renders the image placeholder and no rating badge for a bare attraction', async () => {
++      getAttractionsMock.mockResolvedValue([barePlace]);
++      await chooseParis();
++      await waitFor(() => {
++        expect(screen.getByText('Hidden Garden')).toBeInTheDocument();
++      });
++
++      const card = screen.getByRole('link', { name: /hidden garden/i });
++      expect(within(card).queryByRole('img')).not.toBeInTheDocument();
++      expect(within(card).getByTestId('image-placeholder')).toBeInTheDocument();
++      expect(within(card).queryByText(/not rated/i)).not.toBeInTheDocument();
++      expect(within(card).queryByLabelText(/rated/i)).not.toBeInTheDocument();
++    });
++
++    it('falls back to the image placeholder when the image fails to load', async () => {
++      getAttractionsMock.mockResolvedValue([louvre]);
++      await chooseParis();
++      await waitFor(() => {
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      });
++
++      fireEvent.error(within(screen.getByRole('link', { name: /louvre museum/i })).getByRole('img'));
++
++      const card = screen.getByRole('link', { name: /louvre museum/i });
++      expect(within(card).queryByRole('img')).not.toBeInTheDocument();
++      expect(within(card).getByTestId('image-placeholder')).toBeInTheDocument();
++    });
+ 
++    it('keeps a distinct empty state when a city has no attractions', async () => {
++      getAttractionsMock.mockResolvedValue([]);
++      await chooseParis();
++
++      await waitFor(() => {
++        expect(screen.getByText(/no attractions in this area/i)).toBeInTheDocument();
++      });
++    });
++
++    it('shows a service unavailable state with retry when attractions return 503', async () => {
++      getAttractionsMock.mockRejectedValueOnce(new ApiError(503, 'Service unavailable.'));
++      getAttractionsMock.mockResolvedValueOnce([louvre]);
++      await chooseParis();
++
++      await waitFor(() => {
++        expect(screen.getByText(/service unavailable/i)).toBeInTheDocument();
++      });
++
++      fireEvent.click(screen.getByRole('button', { name: /try again/i }));
++
++      await waitFor(() => {
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      });
++      expect(getAttractionsMock).toHaveBeenCalledTimes(2);
++    });
++
++    it('restores the input and the chosen city after unmounting and remounting', async () => {
++      getAttractionsMock.mockResolvedValue([louvre]);
++      const first = renderPage();
++      searchLocationsMock.mockResolvedValue([parisCity]);
++      await chooseSuggestion('pa', /Paris/);
++      await waitFor(() => {
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      });
++
++      first.unmount();
+       renderPage();
+ 
++      expect(searchbox()).toHaveValue('Paris');
++      await waitFor(() => {
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
++      });
++      expect(screen.getByText('Attractions near Paris')).toBeInTheDocument();
+       expect(screen.queryByText('Popular searches')).not.toBeInTheDocument();
+     });
+   });
+@@ -503,11 +759,7 @@ describe('SearchPage', () => {
+     async function selectParisCity() {
+       searchLocationsMock.mockResolvedValue([parisCity]);
+       renderPage();
+-      submitSearch('paris');
+-      await waitFor(() => {
+-        expect(screen.getByText('Paris')).toBeInTheDocument();
+-      });
+-      fireEvent.click(screen.getByRole('button', { name: /paris/i }));
++      await chooseSuggestion('pa', /Paris/);
+     }
+ 
+     it('refetches with the chosen category when a filter checkbox is toggled', async () => {
+@@ -561,9 +813,6 @@ describe('SearchPage', () => {
+           minRate: null,
+         });
+       });
+-      await waitFor(() => {
+-        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+-      });
+ 
+       fireEvent.click(screen.getByRole('button', { name: /clear filters/i }));
+ 
+@@ -606,61 +855,16 @@ describe('SearchPage', () => {
+       expect(screen.getByRole('checkbox', { name: 'Cultural' })).toBeChecked();
+     });
+ 
+-    it('resets sort to recommended when a new city is selected', async () => {
++    it('resets filters and sort when a new city is chosen from the dropdown', async () => {
+       getAttractionsMock.mockResolvedValue([lowRated, highRated]);
+       await selectParisCity();
+       await waitFor(() => {
+         expect(screen.getByText('Low Rated')).toBeInTheDocument();
+       });
+-      fireEvent.change(screen.getByLabelText(/sort by/i), { target: { value: 'rating' } });
+-      expect(screen.getByLabelText(/sort by/i)).toHaveValue('rating');
+-
+-      const otherCity: LocationSearchResult = { ...parisCity, name: 'Lyon', latitude: 45.75, longitude: 4.85 };
+-      searchLocationsMock.mockResolvedValue([otherCity]);
+-      submitSearch('lyon');
+-      await waitFor(() => {
+-        expect(screen.getByText('Lyon')).toBeInTheDocument();
+-      });
+-      fireEvent.click(screen.getByRole('button', { name: /lyon/i }));
+-
+-      await waitFor(() => {
+-        expect(screen.getByLabelText(/sort by/i)).toHaveValue('recommended');
+-      });
+-    });
+-
+-    it('resets the minimum-rating select back to Any when Clear filters is clicked', async () => {
+-      getAttractionsMock.mockResolvedValue([louvre]);
+-      await selectParisCity();
+-      await waitFor(() => {
+-        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+-      });
+-
+-      fireEvent.change(screen.getByLabelText(/minimum rating/i), { target: { value: '3' } });
+-      await waitFor(() => {
+-        expect(getAttractionsMock).toHaveBeenCalledWith(48.8566, 2.3522, {
+-          kinds: [],
+-          minRate: 3,
+-        });
+-      });
+-      expect(screen.getByLabelText(/minimum rating/i)).toHaveValue('3');
+-
+-      fireEvent.click(screen.getByRole('button', { name: /clear filters/i }));
+-
+-      expect(screen.getByLabelText(/minimum rating/i)).toHaveValue('');
+-      await waitFor(() => {
+-        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+-      });
+-    });
+-
+-    it('resets category and minimum-rating filters when a new city is selected', async () => {
+-      getAttractionsMock.mockResolvedValue([louvre]);
+-      await selectParisCity();
+-      await waitFor(() => {
+-        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+-      });
+ 
+       fireEvent.click(screen.getByRole('checkbox', { name: 'Cultural' }));
+       fireEvent.change(screen.getByLabelText(/minimum rating/i), { target: { value: '3' } });
++      fireEvent.change(screen.getByLabelText(/sort by/i), { target: { value: 'rating' } });
+       await waitFor(() => {
+         expect(getAttractionsMock).toHaveBeenCalledWith(48.8566, 2.3522, {
+           kinds: ['cultural'],
+@@ -668,68 +872,52 @@ describe('SearchPage', () => {
+         });
+       });
+ 
+-      const otherCity: LocationSearchResult = {
++      const lyon: LocationSearchResult = {
+         ...parisCity,
+         name: 'Lyon',
+         latitude: 45.75,
+         longitude: 4.85,
+       };
+-      searchLocationsMock.mockResolvedValue([otherCity]);
+-      submitSearch('lyon');
+-      await waitFor(() => {
+-        expect(screen.getByText('Lyon')).toBeInTheDocument();
+-      });
+-      fireEvent.click(screen.getByRole('button', { name: /lyon/i }));
++      searchLocationsMock.mockResolvedValue([lyon]);
++      await chooseSuggestion('ly', /Lyon/);
+ 
+-      expect(screen.getByRole('checkbox', { name: 'Cultural' })).not.toBeChecked();
+-      expect(screen.getByLabelText(/minimum rating/i)).toHaveValue('');
+       await waitFor(() => {
+         expect(getAttractionsMock).toHaveBeenLastCalledWith(45.75, 4.85, {
+           kinds: [],
+           minRate: null,
+         });
+       });
++      expect(screen.getByRole('checkbox', { name: 'Cultural' })).not.toBeChecked();
++      expect(screen.getByLabelText(/minimum rating/i)).toHaveValue('');
++      expect(screen.getByLabelText(/sort by/i)).toHaveValue('recommended');
+       expect(getAttractionsMock).not.toHaveBeenCalledWith(45.75, 4.85, {
+         kinds: ['cultural'],
+         minRate: 3,
+       });
+     });
+ 
+-    it('resets filters and refetches with defaults when a new city is chosen from the suggestion dropdown', async () => {
++    it('resets the minimum-rating select back to Any when Clear filters is clicked', async () => {
+       getAttractionsMock.mockResolvedValue([louvre]);
+       await selectParisCity();
+       await waitFor(() => {
+         expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+       });
+ 
+-      fireEvent.click(screen.getByRole('checkbox', { name: 'Cultural' }));
+       fireEvent.change(screen.getByLabelText(/minimum rating/i), { target: { value: '3' } });
+       await waitFor(() => {
+         expect(getAttractionsMock).toHaveBeenCalledWith(48.8566, 2.3522, {
+-          kinds: ['cultural'],
++          kinds: [],
+           minRate: 3,
+         });
+       });
++      expect(screen.getByLabelText(/minimum rating/i)).toHaveValue('3');
+ 
+-      const otherCity: LocationSearchResult = {
+-        ...parisCity,
+-        name: 'Lyon',
+-        latitude: 45.75,
+-        longitude: 4.85,
+-      };
+-      searchLocationsMock.mockResolvedValue([otherCity]);
+-      typeInput('ly');
+-      const listbox = await screen.findByRole('listbox', { name: /location suggestions/i });
+-      fireEvent.mouseDown(within(listbox).getByRole('option'));
++      fireEvent.click(screen.getByRole('button', { name: /clear filters/i }));
+ 
++      expect(screen.getByLabelText(/minimum rating/i)).toHaveValue('');
+       await waitFor(() => {
+-        expect(getAttractionsMock).toHaveBeenLastCalledWith(45.75, 4.85, {
+-          kinds: [],
+-          minRate: null,
+-        });
++        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+       });
+-      expect(screen.getByRole('checkbox', { name: 'Cultural' })).not.toBeChecked();
+-      expect(screen.getByLabelText(/minimum rating/i)).toHaveValue('');
+     });
+ 
+     it('shows a filter-aware empty state when filtered results are empty', async () => {
+@@ -759,11 +947,7 @@ describe('SearchPage', () => {
+     async function selectParisCity() {
+       searchLocationsMock.mockResolvedValue([parisCity]);
+       renderPage();
+-      submitSearch('paris');
+-      await waitFor(() => {
+-        expect(screen.getByText('Paris')).toBeInTheDocument();
+-      });
+-      fireEvent.click(screen.getByRole('button', { name: /paris/i }));
++      await chooseSuggestion('pa', /Paris/);
+     }
+ 
+     function cardCount() {
+@@ -817,9 +1001,7 @@ describe('SearchPage', () => {
+     it('dedupes appended pages by xid', async () => {
+       const firstPage = makeAttractions(20, 'a');
+       const secondPage = [firstPage[19], ...makeAttractions(3, 'b')];
+-      getAttractionsMock
+-        .mockResolvedValueOnce(firstPage)
+-        .mockResolvedValueOnce(secondPage);
++      getAttractionsMock.mockResolvedValueOnce(firstPage).mockResolvedValueOnce(secondPage);
+       await selectParisCity();
+ 
+       await waitFor(() => {
+@@ -836,14 +1018,12 @@ describe('SearchPage', () => {
+ 
+     it('shows a busy, disabled control while the next page loads', async () => {
+       let resolveSecond: (value: Attraction[]) => void = () => {};
+-      getAttractionsMock
+-        .mockResolvedValueOnce(makeAttractions(20, 'a'))
+-        .mockImplementationOnce(
+-          () =>
+-            new Promise((resolve) => {
+-              resolveSecond = resolve;
+-            }),
+-        );
++      getAttractionsMock.mockResolvedValueOnce(makeAttractions(20, 'a')).mockImplementationOnce(
++        () =>
++          new Promise((resolve) => {
++            resolveSecond = resolve;
++          }),
++      );
+       await selectParisCity();
+ 
+       await waitFor(() => {
+@@ -888,7 +1068,7 @@ describe('SearchPage', () => {
+       });
+     });
+ 
+-    it('resets pagination when a new city is selected', async () => {
++    it('resets pagination when a new city is chosen', async () => {
+       getAttractionsMock
+         .mockResolvedValueOnce(makeAttractions(20, 'a'))
+         .mockResolvedValueOnce(makeAttractions(5, 'b'));
+@@ -902,19 +1082,15 @@ describe('SearchPage', () => {
+         expect(cardCount()).toBe(25);
+       });
+ 
+-      const otherCity: LocationSearchResult = {
++      const lyon: LocationSearchResult = {
+         ...parisCity,
+         name: 'Lyon',
+         latitude: 45.75,
+         longitude: 4.85,
+       };
+-      searchLocationsMock.mockResolvedValue([otherCity]);
++      searchLocationsMock.mockResolvedValue([lyon]);
+       getAttractionsMock.mockResolvedValueOnce(makeAttractions(2, 'c'));
+-      submitSearch('lyon');
+-      await waitFor(() => {
+-        expect(screen.getByText('Lyon')).toBeInTheDocument();
+-      });
+-      fireEvent.click(screen.getByRole('button', { name: /lyon/i }));
++      await chooseSuggestion('ly', /Lyon/);
+ 
+       await waitFor(() => {
+         expect(cardCount()).toBe(2);
+@@ -926,142 +1102,4 @@ describe('SearchPage', () => {
+       });
+     });
+   });
+-
+-  describe('auto-suggest', () => {
+-    it('shows debounced suggestions with name, country code, and type labels after typing 2+ characters', async () => {
+-      searchLocationsMock.mockResolvedValue([parisCity, franceCountry]);
+-      renderPage();
+-
+-      typeInput('p');
+-      typeInput('pa');
+-      typeInput('par');
+-      expect(searchLocationsMock).not.toHaveBeenCalled();
+-
+-      const listbox = await screen.findByRole('listbox', { name: /location suggestions/i });
+-      expect(searchLocationsMock).toHaveBeenCalledTimes(1);
+-      expect(searchLocationsMock).toHaveBeenCalledWith('par');
+-      const options = within(listbox).getAllByRole('option');
+-      expect(options).toHaveLength(2);
+-      expect(within(options[0]).getByText('Paris')).toBeInTheDocument();
+-      expect(within(options[0]).getByText('FR')).toBeInTheDocument();
+-      expect(within(options[0]).getByText('City')).toBeInTheDocument();
+-      expect(within(options[1]).getByText('France')).toBeInTheDocument();
+-      expect(within(options[1]).getByText('Country')).toBeInTheDocument();
+-    });
+-
+-    it('does not fetch suggestions for fewer than 2 characters', async () => {
+-      searchLocationsMock.mockResolvedValue([parisCity]);
+-      renderPage();
+-
+-      typeInput('p');
+-      await sleep(400);
+-
+-      expect(searchLocationsMock).not.toHaveBeenCalled();
+-      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+-    });
+-
+-    it('choosing a city suggestion fills the input, closes the dropdown, and loads attractions without refetching the search', async () => {
+-      searchLocationsMock.mockResolvedValue([parisCity]);
+-      getAttractionsMock.mockResolvedValue([louvre]);
+-      renderPage();
+-
+-      typeInput('pa');
+-      const listbox = await screen.findByRole('listbox', { name: /location suggestions/i });
+-      fireEvent.mouseDown(within(listbox).getByRole('option'));
+-
+-      expect(screen.getByRole('searchbox', { name: /search/i })).toHaveValue('Paris');
+-      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+-      await waitFor(() => {
+-        expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
+-      });
+-      expect(getAttractionsMock).toHaveBeenCalledWith(parisCity.latitude, parisCity.longitude, {
+-        kinds: [],
+-        minRate: null,
+-      });
+-      expect(searchLocationsMock).toHaveBeenCalledTimes(1);
+-    });
+-
+-    it('choosing a country suggestion shows the narrow-to-city prompt and fetches no attractions', async () => {
+-      searchLocationsMock.mockResolvedValue([franceCountry]);
+-      renderPage();
+-
+-      typeInput('fr');
+-      const listbox = await screen.findByRole('listbox', { name: /location suggestions/i });
+-      fireEvent.mouseDown(within(listbox).getByRole('option'));
+-
+-      expect(
+-        screen.getByText(/france is a country — search for a specific city/i),
+-      ).toBeInTheDocument();
+-      expect(getAttractionsMock).not.toHaveBeenCalled();
+-    });
+-
+-    it('supports keyboard navigation with ArrowDown/ArrowUp and Enter selection', async () => {
+-      searchLocationsMock.mockResolvedValue([parisCity, franceCountry]);
+-      getAttractionsMock.mockResolvedValue([louvre]);
+-      renderPage();
+-
+-      typeInput('fr');
+-      const listbox = await screen.findByRole('listbox', { name: /location suggestions/i });
+-      const options = within(listbox).getAllByRole('option');
+-      const searchbox = screen.getByRole('searchbox', { name: /search/i });
+-
+-      fireEvent.keyDown(searchbox, { key: 'ArrowDown' });
+-      expect(options[0]).toHaveAttribute('aria-selected', 'true');
+-      fireEvent.keyDown(searchbox, { key: 'ArrowDown' });
+-      expect(options[1]).toHaveAttribute('aria-selected', 'true');
+-      fireEvent.keyDown(searchbox, { key: 'ArrowDown' });
+-      expect(options[0]).toHaveAttribute('aria-selected', 'true');
+-      fireEvent.keyDown(searchbox, { key: 'ArrowUp' });
+-      expect(options[1]).toHaveAttribute('aria-selected', 'true');
+-
+-      fireEvent.keyDown(searchbox, { key: 'Enter' });
+-      expect(searchbox).toHaveValue('France');
+-      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+-      expect(
+-        screen.getByText(/france is a country — search for a specific city/i),
+-      ).toBeInTheDocument();
+-    });
+-
+-    it('closes the dropdown on Escape without changing the input', async () => {
+-      searchLocationsMock.mockResolvedValue([parisCity]);
+-      renderPage();
+-
+-      typeInput('pa');
+-      await screen.findByRole('listbox', { name: /location suggestions/i });
+-
+-      fireEvent.keyDown(screen.getByRole('searchbox', { name: /search/i }), { key: 'Escape' });
+-
+-      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+-      expect(screen.getByRole('searchbox', { name: /search/i })).toHaveValue('pa');
+-    });
+-
+-    it('fails silently when the suggestion request errors', async () => {
+-      searchLocationsMock.mockRejectedValue(new ApiError(503, 'Service unavailable'));
+-      renderPage();
+-
+-      typeInput('pa');
+-      await waitFor(() => {
+-        expect(searchLocationsMock).toHaveBeenCalledWith('pa');
+-      });
+-      await sleep(50);
+-
+-      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+-      expect(screen.queryByText(/service unavailable/i)).not.toBeInTheDocument();
+-      expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument();
+-    });
+-
+-    it('does not reopen the dropdown for the chosen suggestion text', async () => {
+-      searchLocationsMock.mockResolvedValue([parisCity]);
+-      getAttractionsMock.mockResolvedValue([louvre]);
+-      renderPage();
+-
+-      typeInput('pa');
+-      const listbox = await screen.findByRole('listbox', { name: /location suggestions/i });
+-      fireEvent.mouseDown(within(listbox).getByRole('option'));
+-
+-      await sleep(400);
+-
+-      expect(screen.queryByRole('listbox', { name: /location suggestions/i })).not.toBeInTheDocument();
+-    });
+-  });
+ });
+diff --git a/FE/src/features/destinations/SearchPage.tsx b/FE/src/features/destinations/SearchPage.tsx
+index d63a4e3..55a6bbe 100644
+--- a/FE/src/features/destinations/SearchPage.tsx
++++ b/FE/src/features/destinations/SearchPage.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useMemo, useState } from 'react';
++import { useEffect, useMemo, useRef, useState } from 'react';
+ import type { FormEvent, KeyboardEvent } from 'react';
+ import { ApiError } from '@/shared/api/client';
+ import type { LocationSearchResult } from '@/shared/api/types';
+@@ -6,7 +6,6 @@ import AttractionCard from './AttractionCard';
+ import AttractionControls from './AttractionControls';
+ import { dedupeAttractions, sortAttractions } from './attractionFilters';
+ import type { AttractionSort } from './attractionFilters';
+-import LocationResultList from './LocationResultList';
+ import skeletonStyles from '@/shared/ui/Skeleton.module.css';
+ import SuggestionDropdown from './SuggestionDropdown';
+ import { suggestionOptionId } from './suggestionOption';
+@@ -15,10 +14,84 @@ import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
+ import stateStyles from '@/shared/ui/PageState.module.css';
+ import styles from './SearchPage.module.css';
+ import { getSearchState, saveSearchState } from './searchState';
++import { addRecentSearch, clearRecentSearches, getRecentSearches } from './recentSearches';
+ 
+ const suggestionListId = 'location-suggestions';
++const keyboardHintId = 'location-search-keyboard-hint';
+ const ATTRACTION_SKELETON_COUNT = 4;
+-const POPULAR_CITIES = ['Đà Nẵng', 'Paris', 'Tokyo', 'Rome', 'Barcelona', 'New York'];
++const SUGGESTION_LIMIT = 5;
++
++const POPULAR_CITIES: LocationSearchResult[] = [
++  {
++    name: 'Đà Nẵng',
++    countryCode: 'VN',
++    locationType: 'City',
++    latitude: 16.0678,
++    longitude: 108.2208,
++    isPartialMatch: false,
++  },
++  {
++    name: 'Paris',
++    countryCode: 'FR',
++    locationType: 'City',
++    latitude: 48.8566,
++    longitude: 2.3522,
++    isPartialMatch: false,
++  },
++  {
++    name: 'Tokyo',
++    countryCode: 'JP',
++    locationType: 'City',
++    latitude: 35.6762,
++    longitude: 139.6503,
++    isPartialMatch: false,
++  },
++  {
++    name: 'Rome',
++    countryCode: 'IT',
++    locationType: 'City',
++    latitude: 41.9028,
++    longitude: 12.4964,
++    isPartialMatch: false,
++  },
++  {
++    name: 'Barcelona',
++    countryCode: 'ES',
++    locationType: 'City',
++    latitude: 41.3874,
++    longitude: 2.1686,
++    isPartialMatch: false,
++  },
++  {
++    name: 'New York',
++    countryCode: 'US',
++    locationType: 'City',
++    latitude: 40.7128,
++    longitude: -74.006,
++    isPartialMatch: false,
++  },
++];
++
++const TILE_GRADIENTS = [
++  styles.tileA,
++  styles.tileB,
++  styles.tileC,
++  styles.tileD,
++  styles.tileE,
++  styles.tileF,
++];
++
++const HOW_IT_WORKS = [
++  { heading: 'Search a city', body: 'Anywhere in the world, by name.' },
++  {
++    heading: "See what's there",
++    body: 'Attractions with ratings, heritage marks, and distance from the centre.',
++  },
++  {
++    heading: 'Build the days',
++    body: 'Drop places into a day-by-day itinerary and move them as plans change.',
++  },
++];
+ 
+ function errorMessage(error: unknown): string {
+   if (error instanceof ApiError && error.status !== 503 && error.status !== 0) {
+@@ -27,19 +100,46 @@ function errorMessage(error: unknown): string {
+   return 'Service unavailable — please try again.';
+ }
+ 
++function SearchGlyph() {
++  return (
++    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
++      <circle cx="11" cy="11" r="7" />
++      <path d="M20 20l-4.3-4.3" />
++    </svg>
++  );
++}
++
++function HistoryGlyph() {
++  return (
++    <span className={styles.recentGlyph} aria-hidden="true">
++      <svg
++        width="12"
++        height="12"
++        viewBox="0 0 24 24"
++        fill="none"
++        stroke="currentColor"
++        strokeWidth="2"
++      >
++        <path d="M3 12a9 9 0 1 0 3-6.7" />
++        <path d="M3 4v5h5" />
++      </svg>
++    </span>
++  );
++}
++
+ export default function SearchPage() {
+   const restored = getSearchState();
+   const [input, setInput] = useState(restored.input);
+   const [submittedQuery, setSubmittedQuery] = useState(restored.submittedQuery);
+   const [selected, setSelected] = useState<LocationSearchResult | null>(restored.selected);
+-  const [suppressedQuery, setSuppressedQuery] = useState(() =>
+-    restored.submittedQuery ? restored.input.trim() : '',
+-  );
+-  const [dismissedQuery, setDismissedQuery] = useState('');
++  const [activeSearch, setActiveSearch] = useState(false);
+   const [activeIndex, setActiveIndex] = useState(-1);
++  const [recents, setRecents] = useState<LocationSearchResult[]>(() => getRecentSearches());
++  const [announcement, setAnnouncement] = useState('');
+   const [categories, setCategories] = useState<string[]>([]);
+   const [minRate, setMinRate] = useState<number | null>(null);
+   const [sort, setSort] = useState<AttractionSort>('recommended');
++  const formRef = useRef<HTMLFormElement>(null);
+ 
+   useEffect(() => {
+     saveSearchState({ input, submittedQuery, selected });
+@@ -79,52 +179,69 @@ export default function SearchPage() {
+ 
+   const hasActiveFilters = categories.length > 0 || minRate !== null;
+ 
++  const trimmedInput = input.trim();
+   const debouncedInput = useDebouncedValue(input, 300);
+   const trimmedDebounced = debouncedInput.trim();
+-  const suggestionsSuppressed = trimmedDebounced === suppressedQuery;
+-  const suggestionsSource = useLocationSuggestions(suggestionsSuppressed ? '' : trimmedDebounced);
+-  const suggestions = (suggestionsSource.data ?? []).slice(0, 5);
+-  const dropdownOpen =
+-    input.trim().length >= 2 &&
+-    trimmedDebounced.length >= 2 &&
+-    !suggestionsSuppressed &&
+-    trimmedDebounced !== dismissedQuery &&
+-    suggestionsSource.isSuccess &&
+-    suggestions.length > 0;
++  const suggestionsSource = useLocationSuggestions(activeSearch ? trimmedDebounced : '');
++  const submittedMatchesInput = submittedQuery !== '' && submittedQuery === trimmedInput;
++  const optionSource = submittedMatchesInput ? search : suggestionsSource;
++  const options = (optionSource.data ?? []).slice(0, SUGGESTION_LIMIT);
++  const dropdownOpen = activeSearch && trimmedInput.length >= 2 && optionSource.isSuccess;
+ 
+   useEffect(() => {
+     setActiveIndex(-1);
+   }, [trimmedDebounced]);
+ 
+-  function handleChoose(suggestion: LocationSearchResult) {
+-    setInput(suggestion.name);
+-    setSuppressedQuery(suggestion.name);
+-    setDismissedQuery(trimmedDebounced);
+-    setSubmittedQuery(trimmedDebounced);
+-    handleSelectLocation(suggestion);
++  useEffect(() => {
++    if (!dropdownOpen) {
++      return;
++    }
++    function handlePointerDown(event: Event) {
++      const target = event.target;
++      if (target instanceof Node && formRef.current?.contains(target)) {
++        return;
++      }
++      setActiveSearch(false);
++      setActiveIndex(-1);
++    }
++    document.addEventListener('pointerdown', handlePointerDown);
++    document.addEventListener('mousedown', handlePointerDown);
++    return () => {
++      document.removeEventListener('pointerdown', handlePointerDown);
++      document.removeEventListener('mousedown', handlePointerDown);
++    };
++  }, [dropdownOpen]);
++
++  function handleChoose(location: LocationSearchResult) {
++    setInput(location.name);
++    setSubmittedQuery('');
++    setActiveSearch(false);
+     setActiveIndex(-1);
++    handleSelectLocation(location);
++    setRecents(addRecentSearch(location));
++    setAnnouncement(`${location.name} selected.`);
+   }
+ 
+   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+-    if (!dropdownOpen) {
++    if (event.key === 'Escape') {
++      setActiveSearch(false);
++      setActiveIndex(-1);
++      return;
++    }
++    if (!dropdownOpen || options.length === 0) {
+       return;
+     }
+     if (event.key === 'ArrowDown') {
+       event.preventDefault();
+-      setActiveIndex((index) => (index + 1) % suggestions.length);
++      setActiveIndex((index) => (index + 1) % options.length);
+     } else if (event.key === 'ArrowUp') {
+       event.preventDefault();
+-      setActiveIndex((index) =>
+-        index <= 0 ? suggestions.length - 1 : (index - 1) % suggestions.length,
+-      );
++      setActiveIndex((index) => (index <= 0 ? options.length - 1 : (index - 1) % options.length));
+     } else if (event.key === 'Enter') {
+-      if (activeIndex >= 0 && activeIndex < suggestions.length) {
++      if (activeIndex >= 0 && activeIndex < options.length) {
+         event.preventDefault();
+-        handleChoose(suggestions[activeIndex]);
++        handleChoose(options[activeIndex]);
+       }
+-    } else if (event.key === 'Escape') {
+-      setDismissedQuery(trimmedDebounced);
+-      setActiveIndex(-1);
+     }
+   }
+ 
+@@ -136,17 +253,7 @@ export default function SearchPage() {
+     }
+     handleSelectLocation(null);
+     setSubmittedQuery(query);
+-    setSuppressedQuery(query);
+-    setDismissedQuery(trimmedDebounced);
+-    setActiveIndex(-1);
+-  }
+-
+-  function handleChipSelect(city: string) {
+-    setInput(city);
+-    handleSelectLocation(null);
+-    setSubmittedQuery(city);
+-    setSuppressedQuery(city);
+-    setDismissedQuery(trimmedDebounced);
++    setActiveSearch(true);
+     setActiveIndex(-1);
+   }
+ 
+@@ -154,21 +261,28 @@ export default function SearchPage() {
+     setInput('');
+     setSubmittedQuery('');
+     handleSelectLocation(null);
+-    setSuppressedQuery('');
+-    setDismissedQuery('');
++    setActiveSearch(false);
+     setActiveIndex(-1);
+   }
+ 
+-  const results = (search.data ?? []).slice(0, 5);
++  function handleClearRecents() {
++    setRecents(clearRecentSearches());
++  }
++
++  const showPreSearchBody = selected === null;
+ 
+   return (
+     <section className={styles.page}>
+       <section className={styles.heroBand}>
++        <span className={styles.heroScrim} aria-hidden="true" />
+         <div className={styles.heroInner}>
+           <h1 className={styles.title}>Where to next?</h1>
+           <p className={styles.tagline}>Search any city and start building the trip.</p>
+-          <form className={styles.form} role="search" onSubmit={handleSubmit}>
+-            <div className={styles.inputWrap}>
++          <form className={styles.form} role="search" ref={formRef} onSubmit={handleSubmit}>
++            <div className={styles.bar}>
++              <span className={styles.barGlyph} aria-hidden="true">
++                <SearchGlyph />
++              </span>
+               <input
+                 type="search"
+                 className={styles.input}
+@@ -177,79 +291,151 @@ export default function SearchPage() {
+                 aria-autocomplete="list"
+                 aria-expanded={dropdownOpen}
+                 aria-controls={suggestionListId}
++                aria-describedby={keyboardHintId}
+                 aria-activedescendant={
+                   dropdownOpen && activeIndex >= 0
+                     ? suggestionOptionId(suggestionListId, activeIndex)
+                     : undefined
+                 }
+                 value={input}
+-                onChange={(event) => setInput(event.target.value)}
++                onChange={(event) => {
++                  setInput(event.target.value);
++                  setActiveSearch(true);
++                }}
++                onFocus={(event) => event.currentTarget.select()}
++                onBlur={() => {
++                  setActiveSearch(false);
++                  setActiveIndex(-1);
++                }}
+                 onKeyDown={handleKeyDown}
+               />
++              {input.length > 0 && (
++                <button
++                  type="button"
++                  className={styles.clear}
++                  aria-label="Clear search"
++                  onClick={handleClear}
++                >
++                  <span className={styles.clearGlyph} aria-hidden="true">
++                    ✕
++                  </span>
++                </button>
++              )}
++              <button
++                type="submit"
++                className={styles.submit}
++                aria-label="Search"
++                disabled={trimmedInput.length === 0}
++              >
++                <span aria-hidden="true">
++                  <SearchGlyph />
++                </span>
++              </button>
+               {dropdownOpen && (
+                 <SuggestionDropdown
+                   id={suggestionListId}
+-                  suggestions={suggestions}
++                  suggestions={options}
+                   activeIndex={activeIndex}
+                   onChoose={handleChoose}
+                 />
+               )}
+             </div>
+-            <button type="submit" className={styles.submit} disabled={input.trim().length === 0}>
+-              Search
+-            </button>
+-            <button type="button" className={styles.clear} onClick={handleClear}>
+-              Clear
+-            </button>
++            <p className={skeletonStyles.visuallyHidden} id={keyboardHintId}>
++              Type at least two characters to see suggestions. Use the up and down arrow keys to move
++              through them, Enter to choose, Escape to dismiss.
++            </p>
+           </form>
+-          {submittedQuery === '' && (
+-            <div className={styles.popular}>
+-              <p className={styles.popularLabel}>Popular searches</p>
+-              <div className={styles.chipRow}>
+-                {POPULAR_CITIES.map((city) => (
++        </div>
++      </section>
++
++      <p aria-live="polite" className={skeletonStyles.visuallyHidden}>
++        {announcement}
++      </p>
++
++      {(search.isFetching || search.isError) && (
++        <div className={styles.searchStatus}>
++          {search.isFetching && <p className={styles.loading}>Searching…</p>}
++          {search.isError && !search.isFetching && (
++            <div className={stateStyles.state}>
++              <span className={stateStyles.emoji} aria-hidden="true">
++                ⛅
++              </span>
++              <p className={stateStyles.text}>{errorMessage(search.error)}</p>
++              <button type="button" className={styles.retry} onClick={() => void search.refetch()}>
++                Try again
++              </button>
++            </div>
++          )}
++        </div>
++      )}
++
++      {showPreSearchBody && (
++        <div className={styles.preSearch}>
++          {recents.length > 0 && (
++            <section className={styles.section}>
++              <div className={styles.sectionHead}>
++                <p className={styles.sectionLabel}>Recent searches</p>
++                <button
++                  type="button"
++                  className={styles.clearRecents}
++                  aria-label="Clear recent searches"
++                  onClick={handleClearRecents}
++                >
++                  Clear
++                </button>
++              </div>
++              <div className={styles.recentRow}>
++                {recents.map((recent) => (
+                   <button
+-                    key={city}
++                    key={`${recent.name}-${recent.latitude}-${recent.longitude}`}
+                     type="button"
+-                    className={styles.chip}
+-                    onClick={() => handleChipSelect(city)}
++                    className={styles.recentChip}
++                    onClick={() => handleChoose(recent)}
+                   >
+-                    {city}
++                    <HistoryGlyph />
++                    {recent.name}
+                   </button>
+                 ))}
+               </div>
+-            </div>
++            </section>
+           )}
+-        </div>
+-      </section>
+-
+-      <div className={styles.results}>
+-        {search.isFetching && <p className={styles.loading}>Searching…</p>}
+-
+-        {search.isError && !search.isFetching && (
+-          <div className={stateStyles.state}>
+-            <span className={stateStyles.emoji} aria-hidden="true">
+-              ⛅
+-            </span>
+-            <p className={stateStyles.text}>{errorMessage(search.error)}</p>
+-            <button type="button" className={styles.retry} onClick={() => void search.refetch()}>
+-              Try again
+-            </button>
+-          </div>
+-        )}
+ 
+-        {search.isSuccess && results.length === 0 && (
+-          <div className={stateStyles.state}>
+-            <span className={stateStyles.emoji} aria-hidden="true">
+-              🔍
+-            </span>
+-            <p className={stateStyles.text}>No attractions found.</p>
+-          </div>
+-        )}
++          <section className={styles.section}>
++            <div className={styles.sectionHead}>
++              <p className={styles.sectionLabel}>Popular searches</p>
++            </div>
++            <div className={styles.rail}>
++              {POPULAR_CITIES.map((city, index) => (
++                <button
++                  key={city.name}
++                  type="button"
++                  className={`${styles.tile} ${TILE_GRADIENTS[index % TILE_GRADIENTS.length]}`}
++                  onClick={() => handleChoose(city)}
++                >
++                  <span className={styles.tileScrim} aria-hidden="true" />
++                  <span className={styles.tileName}>{city.name}</span>
++                </button>
++              ))}
++            </div>
++          </section>
+ 
+-        {results.length > 0 && (
+-          <LocationResultList results={results} selected={selected} onSelect={handleSelectLocation} />
+-        )}
++          <ol className={styles.steps}>
++            {HOW_IT_WORKS.map((step, index) => (
++              <li key={step.heading} className={styles.step}>
++                <span className={styles.stepNumeral} aria-hidden="true">
++                  {index + 1}
++                </span>
++                <div>
++                  <h2 className={styles.stepHeading}>{step.heading}</h2>
++                  <p className={styles.stepBody}>{step.body}</p>
++                </div>
++              </li>
++            ))}
++          </ol>
++        </div>
++      )}
+ 
++      <div className={styles.results}>
+         {selected !== null && selected.locationType === 'Country' && (
+           <div className={stateStyles.state}>
+             <span className={stateStyles.emoji} aria-hidden="true">
+diff --git a/FE/src/features/destinations/SuggestionDropdown.module.css b/FE/src/features/destinations/SuggestionDropdown.module.css
+index a678c15..cee4098 100644
+--- a/FE/src/features/destinations/SuggestionDropdown.module.css
++++ b/FE/src/features/destinations/SuggestionDropdown.module.css
+@@ -1,12 +1,10 @@
+-.list {
++.panel {
+   position: absolute;
+-  top: calc(100% + 0.35rem);
++  top: calc(100% + 0.5rem);
+   left: 0;
+   right: 0;
+-  z-index: 10;
+-  margin: 0;
+-  padding: 0.35rem;
+-  list-style: none;
++  z-index: 20;
++  overflow: hidden;
+   background: var(--color-surface-container-lowest);
+   border: 1px solid var(--color-outline-variant);
+   border-radius: var(--radius-lg);
+@@ -14,31 +12,66 @@
+   text-align: left;
+ }
+ 
++.list {
++  margin: 0;
++  padding: 0.375rem;
++  list-style: none;
++}
++
++.list:empty {
++  display: none;
++}
++
+ .item {
+   display: flex;
+   align-items: center;
+-  gap: 0.5rem;
+-  padding: 0.5rem 0.75rem;
++  gap: 0.625rem;
++  padding: 0.6875rem 0.75rem;
+   border-radius: var(--radius-md);
+   cursor: pointer;
+ }
+ 
++.item + .item {
++  margin-top: 0.125rem;
++}
++
+ .item:hover,
+ .active {
+   background: var(--color-surface-container-low);
+ }
+ 
++.active {
++  box-shadow: inset 0 0 0 2px var(--color-primary);
++}
++
++.pin {
++  flex: none;
++  display: flex;
++  color: var(--color-outline);
++}
++
+ .name {
++  flex: 1;
++  min-width: 0;
++  font-size: 1rem;
+   font-weight: 600;
+   color: var(--color-on-surface);
+ }
+ 
+ .pill {
+-  padding: 0.15rem 0.6rem;
+-  border-radius: var(--radius-md);
++  flex: none;
++  padding: 0.125rem 0.4375rem;
++  border-radius: var(--radius-full);
+   background: var(--color-surface-variant);
+   color: var(--color-on-surface-variant);
+-  font-size: 0.75rem;
++  font-size: 0.6875rem;
+   font-weight: 500;
+   line-height: 1.2;
+ }
++
++.empty {
++  margin: 0;
++  padding: 1rem 1.125rem;
++  font-size: 1rem;
++  color: var(--color-on-surface-variant);
++}
+diff --git a/FE/src/features/destinations/SuggestionDropdown.tsx b/FE/src/features/destinations/SuggestionDropdown.tsx
+index 213da7b..26c62a5 100644
+--- a/FE/src/features/destinations/SuggestionDropdown.tsx
++++ b/FE/src/features/destinations/SuggestionDropdown.tsx
+@@ -9,6 +9,17 @@ interface SuggestionDropdownProps {
+   onChoose: (suggestion: LocationSearchResult) => void;
+ }
+ 
++function MapPinGlyph() {
++  return (
++    <span className={styles.pin} aria-hidden="true">
++      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
++        <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" />
++        <circle cx="12" cy="10" r="2.5" />
++      </svg>
++    </span>
++  );
++}
++
+ export default function SuggestionDropdown({
+   id,
+   suggestions,
+@@ -16,24 +27,28 @@ export default function SuggestionDropdown({
+   onChoose,
+ }: SuggestionDropdownProps) {
+   return (
+-    <ul id={id} role="listbox" aria-label="Location suggestions" className={styles.list}>
+-      {suggestions.map((suggestion, index) => (
+-        <li
+-          key={`${suggestion.name}-${suggestion.latitude}-${suggestion.longitude}-${index}`}
+-          id={suggestionOptionId(id, index)}
+-          role="option"
+-          aria-selected={index === activeIndex}
+-          className={index === activeIndex ? `${styles.item} ${styles.active}` : styles.item}
+-          onMouseDown={(event) => {
+-            event.preventDefault();
+-            onChoose(suggestion);
+-          }}
+-        >
+-          <span className={styles.name}>{suggestion.name}</span>
+-          <span className={styles.pill}>{suggestion.countryCode}</span>
+-          <span className={styles.pill}>{suggestion.locationType}</span>
+-        </li>
+-      ))}
+-    </ul>
++    <div className={styles.panel}>
++      <ul id={id} role="listbox" aria-label="Location suggestions" className={styles.list}>
++        {suggestions.map((suggestion, index) => (
++          <li
++            key={`${suggestion.name}-${suggestion.latitude}-${suggestion.longitude}-${index}`}
++            id={suggestionOptionId(id, index)}
++            role="option"
++            aria-selected={index === activeIndex}
++            className={index === activeIndex ? `${styles.item} ${styles.active}` : styles.item}
++            onMouseDown={(event) => {
++              event.preventDefault();
++              onChoose(suggestion);
++            }}
++          >
++            <MapPinGlyph />
++            <span className={styles.name}>{suggestion.name}</span>
++            <span className={styles.pill}>{suggestion.countryCode}</span>
++            <span className={styles.pill}>{suggestion.locationType}</span>
++          </li>
++        ))}
++      </ul>
++      {suggestions.length === 0 && <p className={styles.empty}>No attractions found.</p>}
++    </div>
+   );
+ }
+diff --git a/FE/src/features/destinations/hooks.ts b/FE/src/features/destinations/hooks.ts
+index 98920da..14a43c5 100644
+--- a/FE/src/features/destinations/hooks.ts
++++ b/FE/src/features/destinations/hooks.ts
+@@ -27,6 +27,7 @@ export function useLocationSuggestions(query: string) {
+     retry: false,
+     staleTime: locationStaleTime,
+     refetchOnWindowFocus: false,
++    placeholderData: (previous) => previous,
+   });
+ }
+ 
+diff --git a/FE/src/features/destinations/recentSearches.ts b/FE/src/features/destinations/recentSearches.ts
+new file mode 100644
+index 0000000..13a19e6
+--- /dev/null
++++ b/FE/src/features/destinations/recentSearches.ts
+@@ -0,0 +1,31 @@
++import type { LocationSearchResult } from '@/shared/api/types';
++
++const RECENT_SEARCH_LIMIT = 5;
++
++let history: LocationSearchResult[] = [];
++
++function isSameLocation(a: LocationSearchResult, b: LocationSearchResult): boolean {
++  return (
++    a.name === b.name &&
++    a.latitude === b.latitude &&
++    a.longitude === b.longitude &&
++    a.locationType === b.locationType
++  );
++}
++
++export function getRecentSearches(): LocationSearchResult[] {
++  return history;
++}
++
++export function addRecentSearch(location: LocationSearchResult): LocationSearchResult[] {
++  history = [location, ...history.filter((entry) => !isSameLocation(entry, location))].slice(
++    0,
++    RECENT_SEARCH_LIMIT,
++  );
++  return history;
++}
++
++export function clearRecentSearches(): LocationSearchResult[] {
++  history = [];
++  return history;
++}

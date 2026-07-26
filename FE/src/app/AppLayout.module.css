@@ -10,41 +10,66 @@
   position: sticky;
   top: 0;
   z-index: 10;
+  background: color-mix(in srgb, var(--color-surface-container-lowest) 85%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.headerInner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--color-surface-container-lowest);
-  box-shadow: var(--shadow-sm);
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0.65rem 1rem;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-  line-height: 1.4;
+  gap: 0.55rem;
   color: var(--color-primary);
   text-decoration: none;
+  border-radius: var(--radius-md);
+  transition: opacity var(--duration-fast) ease;
+}
+
+.brand:hover {
+  opacity: 0.85;
+}
+
+.brandMark {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-full);
+  display: block;
+}
+
+.brandName {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
 }
 
 .nav {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .navLink {
+  position: relative;
   color: var(--color-on-surface-variant);
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
   line-height: 1.2;
   padding: 0.5rem 0.9rem;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   transition:
     background var(--duration-fast) ease,
     color var(--duration-fast) ease;
@@ -55,34 +80,111 @@
   background: var(--color-surface-container-low);
 }
 
+.navLinkActive {
+  color: var(--color-primary);
+  background: var(--color-surface-container);
+}
+
+.divider {
+  width: 1px;
+  height: 1.5rem;
+  margin: 0 0.35rem;
+  background: var(--color-outline-variant);
+}
+
+.user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .userEmail {
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-on-surface-variant);
   font-size: 0.875rem;
   font-weight: 500;
 }
 
+.registerButton,
 .logoutButton {
-  padding: 0.45rem 1rem;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--color-primary);
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-full);
   font-family: inherit;
   font-size: 0.875rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-decoration: none;
   cursor: pointer;
   transition:
     background var(--duration-fast) ease,
+    color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease,
     transform var(--duration-fast) ease;
 }
 
-.logoutButton:hover {
-  background: var(--color-surface-container-low);
+.registerButton {
+  border: 1px solid transparent;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-sm);
 }
 
+.registerButton:hover {
+  background: var(--color-primary-container);
+  box-shadow: var(--shadow-lg);
+}
+
+.logoutButton {
+  border: 1px solid var(--color-outline-variant);
+  background: transparent;
+  color: var(--color-on-surface-variant);
+}
+
+.logoutButton:hover {
+  border-color: var(--color-error);
+  color: var(--color-error);
+  background: var(--color-error-container);
+}
+
+.registerButton:active,
 .logoutButton:active {
   transform: scale(0.98);
+}
+
+@media (max-width: 40rem) {
+  .brandName {
+    font-size: 1.1rem;
+  }
+
+  .userEmail,
+  .divider {
+    display: none;
+  }
+
+  .navLink,
+  .registerButton,
+  .logoutButton {
+    padding: 0.45rem 0.75rem;
+  }
 }
 
 .content {

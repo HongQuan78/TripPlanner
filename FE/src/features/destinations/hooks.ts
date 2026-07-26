@@ -7,14 +7,17 @@ const locationStaleTime = 5 * 60 * 1000;
 export const ATTRACTIONS_PAGE_SIZE = 20;
 export const ATTRACTIONS_MAX_OFFSET = 1000;
 
+export const LOCATION_QUERY_MIN_LENGTH = 2;
+
 export function useLocationSearch(query: string) {
   return useQuery({
     queryKey: ['locationSearch', query],
     queryFn: () => searchLocations(query),
-    enabled: query.length > 0,
+    enabled: query.length >= LOCATION_QUERY_MIN_LENGTH,
     retry: false,
     staleTime: locationStaleTime,
     refetchOnWindowFocus: false,
+    placeholderData: (previous) => previous,
   });
 }
 
@@ -23,10 +26,11 @@ export function useLocationSuggestions(query: string) {
   return useQuery({
     queryKey: ['locationSearch', trimmed],
     queryFn: () => searchLocations(trimmed),
-    enabled: trimmed.length >= 2,
+    enabled: trimmed.length >= LOCATION_QUERY_MIN_LENGTH,
     retry: false,
     staleTime: locationStaleTime,
     refetchOnWindowFocus: false,
+    placeholderData: (previous) => previous,
   });
 }
 
