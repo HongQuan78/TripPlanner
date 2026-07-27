@@ -35,7 +35,7 @@ project: tripplanner
 # (+2 net), lint clean (2 pre-existing warnings), production build green. Moved
 # to done.
 
-last_updated: 2026-07-27
+last_updated: 2026-07-28
 
 # 2026-07-27: added 6-12-replace-automapper-with-mapperly — user asked to drop AutoMapper for
 # Mapperly or Mapster without breaking anything and while keeping Clean Architecture intact.
@@ -1130,7 +1130,7 @@ development_status:
   6-2-backend-code-review-epics-1-4: review
   6-3-fix-xid-import-destination-mapping: review
   6-4-attraction-detail-caching: done
-  6-5-destination-opening-hours-source: review
+  6-5-destination-opening-hours-source: in-progress
   6-6-feature-2-requirements-verification: done
   6-7-opening-hours-not-available-copy: done
   6-8-destination-details-latency-nfr3: review
