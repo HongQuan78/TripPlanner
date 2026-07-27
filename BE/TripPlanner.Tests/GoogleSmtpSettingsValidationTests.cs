@@ -67,13 +67,14 @@ public class GoogleSmtpSettingsValidationTests
     }
 
     [Fact]
-    public void StartupValidation_InvalidProvider_Throws()
+    public void Registration_InvalidProvider_Throws()
     {
-        using var provider = BuildProvider(new Dictionary<string, string?> { ["EmailSettings:Provider"] = "Mailgun" });
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            BuildProvider(new Dictionary<string, string?> { ["EmailSettings:Provider"] = "Mailgun" }));
 
-        var validator = provider.GetRequiredService<IStartupValidator>();
-
-        Assert.Throws<OptionsValidationException>(() => validator.Validate());
+        Assert.Contains("Mailgun", exception.Message);
+        Assert.Contains("Resend", exception.Message);
+        Assert.Contains("Google", exception.Message);
     }
 
     [Fact]

@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
 using TripPlanner.Application.Interfaces.Services;
 using TripPlanner.Infrastructure.Extensions;
+using TripPlanner.Infrastructure.ExternalServices.Email.Providers;
 using TripPlanner.Infrastructure.ExternalServices.Google;
 using TripPlanner.Infrastructure.ExternalServices.Resend;
 
@@ -10,7 +12,7 @@ namespace TripPlanner.Tests;
 
 public class EmailProviderSelectionTests
 {
-    private static ServiceProvider BuildProvider(string? provider)
+    private static ServiceProvider BuildProvider(string? provider, bool includeResendSettings = true)
     {
         var settings = new Dictionary<string, string?>
         {
@@ -31,6 +33,14 @@ public class EmailProviderSelectionTests
         if (provider is not null)
         {
             settings["EmailSettings:Provider"] = provider;
+        }
+
+        if (!includeResendSettings)
+        {
+            settings["ResendSettings:ApiKey"] = string.Empty;
+            settings["ResendSettings:SmtpHost"] = string.Empty;
+            settings["ResendSettings:SmtpPort"] = "0";
+            settings["ResendSettings:TimeoutMilliseconds"] = "0";
         }
 
         var configuration = new ConfigurationBuilder()
@@ -67,5 +77,33 @@ public class EmailProviderSelectionTests
         var sender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
 
         Assert.IsType<GoogleEmailSender>(sender);
+    }
+
+    [Fact]
+    public void UnsupportedProvider_ThrowsNamingSupportedKeys()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() => BuildProvider("Sendgrid"));
+
+        Assert.Contains("Sendgrid", exception.Message);
+        Assert.Contains("Resend", exception.Message);
+        Assert.Contains("Google", exception.Message);
+    }
+
+    [Fact]
+    public void SupportedKeys_AreResendAndGoogle()
+    {
+        Assert.Equal(
+            new[] { "Resend", "Google" },
+            EmailProviderRegistry.SupportedKeys.ToArray());
+    }
+
+    [Fact]
+    public void ProviderGoogle_WithBlankResendSettings_StartupValidationSucceeds()
+    {
+        using var root = BuildProvider("Google", includeResendSettings: false);
+
+        var validator = root.GetRequiredService<IStartupValidator>();
+
+        validator.Validate();
     }
 }

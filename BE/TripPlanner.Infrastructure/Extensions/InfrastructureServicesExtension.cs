@@ -8,11 +8,10 @@ using TripPlanner.Application.Interfaces.Services;
 using TripPlanner.Infrastructure.Caching;
 using TripPlanner.Infrastructure.Data;
 using TripPlanner.Infrastructure.ExternalServices.Email;
-using TripPlanner.Infrastructure.ExternalServices.Google;
+using TripPlanner.Infrastructure.ExternalServices.Email.Providers;
 using TripPlanner.Infrastructure.ExternalServices.OpenTripMap;
 using TripPlanner.Infrastructure.ExternalServices.Overpass;
 using TripPlanner.Infrastructure.ExternalServices.Photon;
-using TripPlanner.Infrastructure.ExternalServices.Resend;
 using TripPlanner.Infrastructure.ExternalServices.Wikipedia;
 using TripPlanner.Infrastructure.Mappings;
 using TripPlanner.Infrastructure.Persistence;
@@ -57,44 +56,17 @@ public static class InfrastructureServicesExtension
             .Validate(settings => !string.IsNullOrWhiteSpace(settings.VerificationUrlBase), "EmailSettings:VerificationUrlBase must be configured.")
             .Validate(settings => settings.TokenExpiryHours > 0, "EmailSettings:TokenExpiryHours must be greater than zero.")
             .Validate(
-                settings => string.IsNullOrWhiteSpace(settings.Provider)
-                    || settings.Provider.Trim().Equals("Resend", StringComparison.OrdinalIgnoreCase)
-                    || settings.Provider.Trim().Equals("Google", StringComparison.OrdinalIgnoreCase),
-                "EmailSettings:Provider must be either \"Resend\" or \"Google\".")
+                settings => EmailProviderRegistry.IsSupported(settings.Provider),
+                $"EmailSettings:Provider must be one of: {string.Join(", ", EmailProviderRegistry.SupportedKeys)}.")
             .ValidateOnStart();
 
         services.AddSingleton<IVerificationTokenService, VerificationTokenService>();
         services.AddScoped<IVerificationEmailContentBuilder, VerificationEmailContentBuilder>();
 
-        string? providerSetting = configuration.GetSection(EmailSettings.SectionName)["Provider"];
-        string emailProvider = string.IsNullOrWhiteSpace(providerSetting) ? "Resend" : providerSetting.Trim();
-        if (emailProvider.Equals("Google", StringComparison.OrdinalIgnoreCase))
-        {
-            services.AddOptions<GoogleSmtpSettings>()
-                .Bind(configuration.GetSection(GoogleSmtpSettings.SectionName))
-                .Validate(settings => !string.IsNullOrWhiteSpace(settings.Username), "GoogleSmtpSettings:Username must be configured.")
-                .Validate(settings => !string.IsNullOrWhiteSpace(settings.AppPassword), "GoogleSmtpSettings:AppPassword must be configured.")
-                .Validate(settings => !string.IsNullOrWhiteSpace(settings.SmtpHost), "GoogleSmtpSettings:SmtpHost must be configured.")
-                .Validate(settings => settings.SmtpPort > 0, "GoogleSmtpSettings:SmtpPort must be greater than zero.")
-                .Validate(settings => settings.TimeoutMilliseconds > 0, "GoogleSmtpSettings:TimeoutMilliseconds must be greater than zero.")
-                .ValidateOnStart();
+        EmailProviderRegistry
+            .Resolve(configuration.GetSection(EmailSettings.SectionName)["Provider"])
+            .Register(services, configuration);
 
-            services.AddScoped<IEmailSender, GoogleEmailSender>();
-        }
-        else
-        {
-            services.AddOptions<ResendSettings>()
-                .Bind(configuration.GetSection(ResendSettings.SectionName))
-                .Validate(settings => !string.IsNullOrWhiteSpace(settings.ApiKey), "ResendSettings:ApiKey must be configured.")
-                .Validate(settings => !string.IsNullOrWhiteSpace(settings.SmtpHost), "ResendSettings:SmtpHost must be configured.")
-                .Validate(settings => settings.SmtpPort > 0, "ResendSettings:SmtpPort must be greater than zero.")
-                .Validate(settings => settings.TimeoutMilliseconds > 0, "ResendSettings:TimeoutMilliseconds must be greater than zero.")
-                .ValidateOnStart();
-
-            services.AddScoped<IEmailSender, ResendEmailSender>();
-        }
-
-        services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
         services.AddScoped<IApplicationMapper, ApplicationMapper>();
 
         services.Configure<OpenTripMapSettings>(options =>
