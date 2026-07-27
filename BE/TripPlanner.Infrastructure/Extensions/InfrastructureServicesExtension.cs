@@ -120,7 +120,6 @@ public static class InfrastructureServicesExtension
 
         var redisSettings = new RedisSettings();
         configuration.GetSection(RedisSettings.SectionName).Bind(redisSettings);
-        services.Configure<RedisSettings>(options => configuration.GetSection(RedisSettings.SectionName).Bind(options));
 
         string? redisConnectionString = configuration.GetConnectionString("Redis");
         if (!string.IsNullOrWhiteSpace(redisConnectionString))
