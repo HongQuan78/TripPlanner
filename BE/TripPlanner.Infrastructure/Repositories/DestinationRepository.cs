@@ -19,7 +19,7 @@ public class DestinationRepository(TripPlannerDbContext context) : Repository<De
         if (!string.IsNullOrWhiteSpace(filter.Category))
         {
             string category = filter.Category.Trim();
-            query = query.Where(x => EF.Property<string>(x, "destination_type") == category);
+            query = query.Where(x => x.Category == category);
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Search))

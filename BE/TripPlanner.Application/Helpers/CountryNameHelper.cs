@@ -6,11 +6,6 @@ public static class CountryNameHelper
 {
     private static readonly Lazy<Dictionary<string, RegionInfo>> Countries = new(BuildCountries);
 
-    public static bool IsCountry(string name)
-    {
-        return Countries.Value.ContainsKey(name);
-    }
-
     public static string? GetCountryCode(string name)
     {
         return Countries.Value.TryGetValue(name, out var region) ? region.TwoLetterISORegionName : null;

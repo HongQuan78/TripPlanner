@@ -35,7 +35,168 @@ project: tripplanner
 # (+2 net), lint clean (2 pre-existing warnings), production build green. Moved
 # to done.
 
-last_updated: 2026-07-26
+last_updated: 2026-07-27
+
+# 2026-07-27: 6-10-backend-clean-architecture-remediation — executed the 6-9 audit's
+# §6 follow-up table. ALL SIX resolved: #1/#4/#5/#6 by code, #2 by owner decision (delete
+# the fields), #3 by owner decision (accept + document the coupling, no code).
+# #1 removed all six confirmed dead items (IRepository<T>.Remove + Repository<T>.Remove,
+# CountryNameHelper.IsCountry, AttractionCategoryHelper.AllowedCategories, the
+# services.Configure<RedisSettings> line — the local bind that actually feeds the cache
+# wiring was left alone — ResendEmailSenderTests.CreateSettings, and TripDayConfiguration's
+# unnecessary using). #4 closed both LOW consistency findings: IUserRepository now extends
+# IRepository<User> and UserRepository derives from Repository<User> (reading the inherited
+# Context instead of the captured primary-constructor parameter), and Application finally
+# owns its composition root via a new ApplicationServicesExtension.AddApplicationUseCases()
+# holding all 18 use cases + IDestinationResolver, leaving AppServicesExtension a single
+# call. That needed Microsoft.Extensions.DependencyInjection.Abstractions on the Application
+# project — CONTRACT-ONLY, mirroring the already-present Logging.Abstractions, so the layer
+# still references no framework implementation; CLAUDE.md now says so explicitly with a
+# "do not add a package that does" guard. Five ApplicationServicesRegistrationTests protect
+# it, the load-bearing one reflecting over every public I*UseCase interface in the UseCases
+# namespace so a forgotten registration is a RED TEST rather than a runtime resolution
+# failure at first request; a non-vacuity test stops the reflection passing by discovering
+# nothing. #5 turned the magic-string EF include into the named constant
+# TripRepository.DayDestinationsIncludePath used by both queries, guarded by 3 new tests
+# that walk the path against DbContext.Model, assert the query translates to SQL touching
+# trip_days/trip_day_destinations/destinations, and pin that an unresolvable path throws
+# naming the bad segment. DEVIATION recorded: the audit asked for a test that materializes
+# a real trip, which needs an in-memory SQLite package the test project does not reference
+# (a new dependency), so the context is built with UseNpgsql and only ToQueryString() is
+# called — full EF query compilation, no connection. This catches a renamed _items, which
+# was the finding; it does NOT verify rows come back in Position order, and that ordering
+# stays unguarded by a live query. #6 added BE/.editorconfig (IDE0005/IDE0051/IDE0052 as
+# warnings, generated Migrations/*.cs exempted) + BE/Directory.Build.props supplying the two
+# properties that make them fire at all: EnforceCodeStyleInBuild and GenerateDocumentationFile
+# (IDE0005 reports NOTHING without the latter), with CS1591 suppressed because doc generation
+# would otherwise demand XML comments on every public member and the repo style rule forbids
+# comments outright. Two traps recorded for the next person: an .editorconfig section glob is
+# relative to the FILE'S OWN directory, so [BE/TripPlanner.Infrastructure/Migrations/*.cs]
+# matched nothing and left both generated-file warnings standing; and the config was
+# RED-VERIFIED, not assumed — a throwaway `using System.Text;` was prepended to
+# CountryNameHelper.cs, IDE0005 was confirmed to fire on it, then reverted and git-diff
+# re-checked, because a silently non-firing analyzer config looks exactly like a clean tree.
+# BE 308/308 (300 baseline +5 registration +3 include-path), build 0 warnings / 0 errors.
+# CLAUDE.md updated in three places (Application package rationale + composition root, the
+# repository/include-path convention, and a new Code Style paragraph on the analyzer wiring);
+# the 6-9 audit report gained a remediation-status header, a Status column on the §6 table,
+# and a §8 remediation log.
+#
+# #2 (§3.2) resolved by the USER'S OWN CALL, and it is not the fix the audit assumed: rather
+# than correct the mapping, DELETE Restaurant.CuisineType and Restaurant.IsHalalFriendly
+# entirely. Rationale from the user — both fields predate the OpenTripMap integration, the
+# provider supplies neither a cuisine nor a halal signal, so they are dead data, not a
+# mapping bug. This is the third reading §3.2 itself floated (xid-imported places should not
+# be modelled as data-carrying Restaurants), resolved by shrinking the model. Restaurant is
+# now a PURE CATEGORY MARKER — Category => "Restaurant" and nothing else — but still
+# load-bearing: DestinationCategoryHelper.IsRestaurantCategory picks it over Landmark at
+# import and it drives DestinationResponse.Category. Landmark.OpeningHours explicitly LEFT
+# ALONE; unlike the two deleted fields it is genuinely sourced (Overpass). Removed in ONE
+# pass across every layer so none is left holding a field nothing supplies: domain ctor now
+# (name, rating, externalId); DestinationResolver.cs:54 no longer writes the kind code
+# anywhere; both DestinationResponse fields; both MappingProfile ForMembers; the
+# RestaurantConfiguration property config + both columns off the three seed rows; new
+# migration 20260727143836_RemoveRestaurantCuisineFields; and the FE's types.ts members plus
+# 9 null fixture lines in 3 test files. The FE was safe because it NEVER RENDERED either
+# field — outside types.ts every occurrence was a fixture set to null (grep-verified before
+# and after). The pinning assertions at TripDayServiceTests.cs:223-224 were deleted ON
+# PURPOSE — exactly the deliberate break §3.2 warned must not happen by accident; the rest of
+# that test is intact and still proves the restaurant-vs-landmark import branch (IsType,
+# name, ExternalId, Category, rating, repo Add, SaveChangesAsync), so no TEST CASE was
+# removed and the count stays 308. The generated migration was READ, not assumed: two
+# DropColumns on destinations (not a table rebuild), Down re-adds both columns and restores
+# the three seed values, and only the new migration pair + TripPlannerDbContextModelSnapshot
+# changed — the historical *.Designer.cs snapshots still name the columns, which is correct
+# since they record the model at their own commit. NOTED FOR REVIEW: migration not applied to
+# a live Postgres (none in this session), and Down re-adds CuisineType as NULLABLE where the
+# original was NOT NULL (EF cannot backfill non-seed rows), so a rollback yields a laxer
+# column than the original.
+#
+# #3 (§3.1) resolved as ACCEPT + DOCUMENT per the user's choice — no code. CLAUDE.md gained a
+# paragraph naming all three roles the Responses records play, the concrete consequence (a
+# frontend field rename is NOT a presentation-only change: it forces edits in the OpenTripMap
+# adapters and the domain-import path and can change what gets persisted), the ~1 day cost
+# across 3 ports / 3 adapters / ~10 test files, the condition that would make it worth paying
+# (wire and provider contracts actually diverging), and a warning that a HALF-SPLIT is worse
+# than either end state. Closed as a recorded decision, not a defect fixed.
+#
+# Final: BE 308/308, build 0 warnings / 0 errors; FE 335/335 across 28 files, tsc+vite build
+# green, lint at the 2 pre-existing warnings. Status: review.
+
+# 2026-07-27: added 6-11-flatten-destination-hierarchy — direct follow-on from 6-10's #2.
+# Deleting CuisineType/IsHalalFriendly left Restaurant a subclass with ZERO fields, so the
+# user asked whether Landmark.cs and Restaurant.cs can go too, keeping only Destination.
+# Answer: yes, and it fixes a real defect rather than just tidying. DestinationResolver.cs:54
+# discards details.OpeningHours for restaurants because OpeningHours lives only on Landmark —
+# but Overpass returns opening_hours for ANY OSM element, which is exactly what 6-5 was built
+# to source, so every xid-imported restaurant silently throws its hours away. Nothing else in
+# the solution branches on the subtype (only MappingProfile's `src is Landmark` projection and
+# the discriminator itself) — no virtual method, no polymorphism; it is a category enum wearing
+# an inheritance costume. Two more wins: DestinationRepository.cs:22 filters via
+# EF.Property<string>(x, "destination_type"), the same runtime-only magic-string fragility 6-10
+# had to wrap in a guard test, and it becomes a compile-checked x.Category; and the SAME PLACE
+# currently reads "Restaurant" in the trip planner but "foods" on its own detail page, because
+# DestinationDetailsResponse.Category is already the raw OTM PrimaryKind while
+# DestinationResponse.Category is the discriminator — after this, one source.
+# USER DECISION: adopt the OpenTripMap vocabulary DIRECTLY (cultural/historic/architecture/
+# natural/amusements/foods/interesting_places/...) rather than preserving "Landmark"/"Restaurant".
+# Category is stored VERBATIM and deliberately NOT validated against a closed list — narrowing it
+# would discard real provider data — with interesting_places (OTM's own root kind, already the
+# AttractionSearchParameter default) as the null fallback.
+# Two things flagged in the story as the risky parts. (1) The migration: EF scaffolds AddColumn
+# Category + DropColumn destination_type with NOTHING between them, which would leave every row
+# empty and then destroy the only evidence of what it was — a hand-written migrationBuilder.Sql
+# backfill must sit between them, and the ordering verified by reading the file. Restaurant→foods
+# is exact (DestinationCategoryHelper matched on food/restaurant to begin with), but
+# Landmark→interesting_places is a FLOOR, not a recovery: the true kind was discarded at import
+# and no longer exists anywhere, so pre-story rows stay generic while post-story rows carry the
+# real kind. Recorded as accepted, unrecoverable precision loss. (2) 61 construction sites across
+# 7 test files need a category argument inserted MID-signature, so it is mechanical but not a
+# blind find-replace — let the compiler name them.
+# Verified while scoping: the OpeningHours column is ALREADY nullable in destinations
+# (InitialCreate.cs — TPH forces subclass-required properties nullable at the DB level despite
+# LandmarkConfiguration's IsRequired()), so moving it to the base as string? needs NO column
+# change at all; and the FE never calls /api/destinations (every /destinations path in FE/src is
+# nested under /api/trips/...), so the ?category= vocabulary change has no frontend fallout —
+# still a public API change worth noting at review. DestinationCategoryHelper gets deleted (its
+# only caller is the removed branch); AttractionCategoryHelper is a DIFFERENT class and stays.
+# Small FE piece included: a shared formatCategory helper, since DestinationDetailsPage already
+# renders raw snake_case OTM kinds today and the planner row is about to start. ready-for-dev.
+
+# 2026-07-27: 6-9-backend-clean-architecture-audit executed (review-only, no production
+# code changed) — user asked for a Clean Architecture conformance check plus a dead-code
+# sweep of the whole BE solution. Baseline d6ef591, build 0 warnings, BE 300/300. Verdict:
+# the dependency rule is enforced STRUCTURALLY by the .csproj graph (Application/Domain
+# cannot reference API/Infrastructure — the compiler rejects it), Domain is genuinely pure
+# and properly encapsulated, Application's only package is Logging.Abstractions (and it is
+# actually used), AutoMapper stays quarantined behind IApplicationMapper, and all 11
+# Application service ports are wired + consumed. Nothing High. One systemic MEDIUM leak:
+# Application/DTOs/Responses records serve THREE roles at once — HTTP body, external-provider
+# port return type (IGeocodingService/IAttractionSearchService/IDestinationDetailsService),
+# and domain-import source (DestinationResolver.cs:45-55 builds a Landmark/Restaurant out of
+# a presentation DTO), so a frontend field rename is not a presentation change. Second MEDIUM:
+# DestinationResolver.cs:54 writes the OpenTripMap KIND CODE into Restaurant.CuisineType, so
+# every xid-imported restaurant persists CuisineType="foods" with IsHalalFriendly hardcoded
+# false — and TripDayServiceTests.cs:223 PINS that with Assert.Equal("foods", ...), so a
+# correct fix fails a green test; needs a modelling decision before code. Six confirmed dead
+# items, all small: IRepository<T>.Remove + Repository<T>.Remove (zero callers anywhere —
+# deletion goes through the aggregate), CountryNameHelper.IsCountry, AttractionCategoryHelper
+# .AllowedCategories, the services.Configure<RedisSettings> registration at
+# InfrastructureServicesExtension.cs:123 (IOptions<RedisSettings> is never injected; only the
+# local bind at :121-122 feeds :131), ResendEmailSenderTests.CreateSettings, and an unnecessary
+# using at TripDayConfiguration.cs:2. Three LOW arch inconsistencies: IUserRepository does not
+# extend IRepository<User> unlike its two siblings; Application has no AddApplicationServices
+# so the API registers Application's own concrete DestinationResolver; TripRepository's
+# .Include("Days._items.Destination") couples the repo to a PRIVATE domain field name and
+# fails at runtime (not compile time) if _items is renamed, with no guarding test. Explicitly
+# verified NOT dead and recorded so the next audit skips them: all 5 IApplicationMapper
+# methods, all 5 ErrorType members, all 6 domain mutators, every property on all 9 *Settings
+# classes, AttractionResponse.DistanceMeters (FE-consumed wire field), and all 27 endpoint/
+# validator/EF-configuration classes (reached via extension-method syntax or assembly scanning
+# — a naive reference scan flags every one as a false positive). Also noted: the repo ships no
+# .editorconfig, so IDE0005/IDE0051 findings can silently reappear; the audit ran the analyzers
+# through a TEMPORARY BE/.editorconfig that was removed (git status verified clean). Report:
+# backend-clean-architecture-audit.md. Status: review.
 
 # 2026-07-26: added 5-21-create-trip-dialog — user wants create-trip to be a popup
 # "instead of a page". Verified at ff0beb1 that there IS no create-trip route: it is an
@@ -895,6 +1056,9 @@ development_status:
   6-6-feature-2-requirements-verification: done
   6-7-opening-hours-not-available-copy: done
   6-8-destination-details-latency-nfr3: review
+  6-9-backend-clean-architecture-audit: review
+  6-10-backend-clean-architecture-remediation: review
+  6-11-flatten-destination-hierarchy: ready-for-dev
   epic-7: in-progress
   7-1-resend-email-integration: review
   7-2-email-provider-strategy-pattern: review

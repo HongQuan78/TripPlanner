@@ -52,8 +52,6 @@ export interface Destination {
   category: string;
   xid: string | null;
   openingHours: string | null;
-  cuisineType: string | null;
-  isHalalFriendly: boolean | null;
 }
 
 export interface TripDay {

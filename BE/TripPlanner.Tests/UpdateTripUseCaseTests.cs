@@ -47,7 +47,7 @@ public class UpdateTripUseCaseTests
     public async Task ExecuteAsync_ShrinkDropsDaysWithDestinationsNotConfirmed_ReturnsConflictFailure()
     {
         var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 3), 1);
-        trip.Days.First(d => d.Day == new DateOnly(2024, 6, 3)).AddDestination(new Landmark("Louvre", 4.9, "9am-6pm"));
+        trip.Days.First(d => d.Day == new DateOnly(2024, 6, 3)).AddDestination(new Destination("Louvre", 4.9, "cultural", "9am-6pm"));
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
 
         var result = await UseCase().ExecuteAsync(1, Request("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2)), 1);
@@ -62,7 +62,7 @@ public class UpdateTripUseCaseTests
     public async Task ExecuteAsync_ShrinkDropsDaysWithDestinationsConfirmed_ReturnsSuccessWithRegeneratedDays()
     {
         var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 3), 1);
-        trip.Days.First(d => d.Day == new DateOnly(2024, 6, 3)).AddDestination(new Landmark("Louvre", 4.9, "9am-6pm"));
+        trip.Days.First(d => d.Day == new DateOnly(2024, 6, 3)).AddDestination(new Destination("Louvre", 4.9, "cultural", "9am-6pm"));
         var expected = new TripResponse { Name = "Trip" };
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
         _mapper.MapToTripResponse(trip).Returns(expected);
@@ -80,7 +80,7 @@ public class UpdateTripUseCaseTests
     public async Task ExecuteAsync_ShrinkDropsOnlyEmptyDays_SucceedsWithoutConfirmation()
     {
         var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 3), 1);
-        trip.Days.First(d => d.Day == new DateOnly(2024, 6, 1)).AddDestination(new Landmark("Louvre", 4.9, "9am-6pm"));
+        trip.Days.First(d => d.Day == new DateOnly(2024, 6, 1)).AddDestination(new Destination("Louvre", 4.9, "cultural", "9am-6pm"));
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
         _mapper.MapToTripResponse(trip).Returns(new TripResponse());
 

@@ -5,13 +5,11 @@ using TripPlanner.Infrastructure.Data;
 
 namespace TripPlanner.Infrastructure.Repositories;
 
-public class UserRepository(TripPlannerDbContext context) : IUserRepository
+public class UserRepository(TripPlannerDbContext context) : Repository<User>(context), IUserRepository
 {
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default) =>
-        await context.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+        await Context.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
 
     public async Task<User?> GetByVerificationTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
-        await context.Users.FirstOrDefaultAsync(u => u.VerificationTokenHash == tokenHash, cancellationToken);
-
-    public void Add(User user) => context.Users.Add(user);
+        await Context.Users.FirstOrDefaultAsync(u => u.VerificationTokenHash == tokenHash, cancellationToken);
 }

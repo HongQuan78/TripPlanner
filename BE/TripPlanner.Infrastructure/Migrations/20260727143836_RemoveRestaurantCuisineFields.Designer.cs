@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TripPlanner.Infrastructure.Data;
@@ -11,9 +12,11 @@ using TripPlanner.Infrastructure.Data;
 namespace TripPlanner.Infrastructure.Migrations
 {
     [DbContext(typeof(TripPlannerDbContext))]
-    partial class TripPlannerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260727143836_RemoveRestaurantCuisineFields")]
+    partial class RemoveRestaurantCuisineFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,11 +33,6 @@ namespace TripPlanner.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<string>("ExternalId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -44,12 +42,13 @@ namespace TripPlanner.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("OpeningHours")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<double>("Rating")
                         .HasColumnType("double precision");
+
+                    b.Property<string>("destination_type")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
 
                     b.HasKey("Id");
 
@@ -58,52 +57,9 @@ namespace TripPlanner.Infrastructure.Migrations
 
                     b.ToTable("destinations", (string)null);
 
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Category = "architecture",
-                            Name = "Landmark 81",
-                            OpeningHours = "08:00 - 22:00",
-                            Rating = 4.5
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Category = "historic",
-                            Name = "Hoi An Ancient Town",
-                            OpeningHours = "Open all day",
-                            Rating = 4.7999999999999998
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Category = "amusements",
-                            Name = "Vinpearl Safari Phu Quoc",
-                            OpeningHours = "09:00 - 16:00",
-                            Rating = 4.5999999999999996
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Category = "foods",
-                            Name = "Com que duong bau",
-                            Rating = 4.4000000000000004
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Category = "foods",
-                            Name = "Pho Hoa Pasteur",
-                            Rating = 4.5
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Category = "foods",
-                            Name = "Com tam 3 anh em",
-                            Rating = 4.4000000000000004
-                        });
+                    b.HasDiscriminator<string>("destination_type").HasValue("Destination");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("TripPlanner.Domain.Models.Trip", b =>
@@ -237,6 +193,74 @@ namespace TripPlanner.Infrastructure.Migrations
                     b.HasIndex("destination_id");
 
                     b.ToTable("trip_saved_places", (string)null);
+                });
+
+            modelBuilder.Entity("TripPlanner.Domain.Models.Landmark", b =>
+                {
+                    b.HasBaseType("TripPlanner.Domain.Models.Destination");
+
+                    b.Property<string>("OpeningHours")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasDiscriminator().HasValue("Landmark");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Landmark 81",
+                            Rating = 4.5,
+                            destination_type = "Landmark",
+                            OpeningHours = "08:00 - 22:00"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Hoi An Ancient Town",
+                            Rating = 4.7999999999999998,
+                            destination_type = "Landmark",
+                            OpeningHours = "Open all day"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Vinpearl Safari Phu Quoc",
+                            Rating = 4.5999999999999996,
+                            destination_type = "Landmark",
+                            OpeningHours = "09:00 - 16:00"
+                        });
+                });
+
+            modelBuilder.Entity("TripPlanner.Domain.Models.Restaurant", b =>
+                {
+                    b.HasBaseType("TripPlanner.Domain.Models.Destination");
+
+                    b.HasDiscriminator().HasValue("Restaurant");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 4,
+                            Name = "Com que duong bau",
+                            Rating = 4.4000000000000004,
+                            destination_type = "Restaurant"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "Pho Hoa Pasteur",
+                            Rating = 4.5,
+                            destination_type = "Restaurant"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Name = "Com tam 3 anh em",
+                            Rating = 4.4000000000000004,
+                            destination_type = "Restaurant"
+                        });
                 });
 
             modelBuilder.Entity("TripPlanner.Domain.Models.Trip", b =>

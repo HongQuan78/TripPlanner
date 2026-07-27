@@ -19,14 +19,6 @@ public class ResendEmailSenderTests
             "http://localhost:5000/api/auth/verify-email?token=raw-token\n\n" +
             "This link expires in 24 hours. If you did not sign up, you can safely ignore this email.");
 
-    private static ResendSettings CreateSettings() => new()
-    {
-        ApiKey = "re_test_key",
-        SmtpHost = "smtp.resend.com",
-        SmtpPort = 587,
-        TimeoutMilliseconds = 10000
-    };
-
     [Fact]
     public void BuildMessage_ReturnsExpectedShape()
     {

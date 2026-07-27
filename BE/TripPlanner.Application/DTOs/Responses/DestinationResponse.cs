@@ -8,6 +8,4 @@ public sealed record DestinationResponse
     public string Category { get; init; } = string.Empty;
     public string? Xid { get; init; }
     public string? OpeningHours { get; init; }
-    public string? CuisineType { get; init; }
-    public bool? IsHalalFriendly { get; init; }
 }

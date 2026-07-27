@@ -66,7 +66,7 @@ public class TripTests
     public void Update_RetainedDays_KeepTheirDestinations()
     {
         var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 3), 1);
-        var destination = new Landmark("Louvre", 4.9, "9am-6pm");
+        var destination = new Destination("Louvre", 4.9, "cultural", "9am-6pm");
         trip.Days.First(d => d.Day == new DateOnly(2024, 6, 2)).AddDestination(destination);
 
         trip.Update("Trip", new DateOnly(2024, 6, 2), new DateOnly(2024, 6, 2));
@@ -105,7 +105,7 @@ public class TripTests
     public void AddSavedPlace_AddsDestinationToPool()
     {
         var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var destination = new Landmark("Louvre", 4.9, "9am-6pm");
+        var destination = new Destination("Louvre", 4.9, "cultural", "9am-6pm");
 
         trip.AddSavedPlace(destination);
 
@@ -116,7 +116,7 @@ public class TripTests
     public void RemoveSavedPlace_RemovesDestinationFromPool()
     {
         var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var destination = new Landmark("Louvre", 4.9, "9am-6pm");
+        var destination = new Destination("Louvre", 4.9, "cultural", "9am-6pm");
         trip.AddSavedPlace(destination);
 
         trip.RemoveSavedPlace(destination);
@@ -128,7 +128,7 @@ public class TripTests
     public void ScheduleFromSavedPlaces_MovesDestinationFromPoolToDay()
     {
         var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var destination = new Landmark("Louvre", 4.9, "9am-6pm");
+        var destination = new Destination("Louvre", 4.9, "cultural", "9am-6pm");
         trip.AddSavedPlace(destination);
         var tripDay = trip.Days.First();
 
@@ -142,9 +142,9 @@ public class TripTests
     public void AddDestination_AppendsInCallOrder()
     {
         var tripDay = new TripDay(new DateOnly(2024, 6, 1));
-        var first = SetId(new Landmark("First", 4.0, "9am-5pm"), 1);
-        var second = SetId(new Landmark("Second", 4.1, "9am-5pm"), 2);
-        var third = SetId(new Landmark("Third", 4.2, "9am-5pm"), 3);
+        var first = SetId(new Destination("First", 4.0, "cultural", "9am-5pm"), 1);
+        var second = SetId(new Destination("Second", 4.1, "cultural", "9am-5pm"), 2);
+        var third = SetId(new Destination("Third", 4.2, "cultural", "9am-5pm"), 3);
 
         tripDay.AddDestination(first);
         tripDay.AddDestination(second);
@@ -157,9 +157,9 @@ public class TripTests
     public void RemoveDestination_DropsItemAndRenumbersWithoutGaps()
     {
         var tripDay = new TripDay(new DateOnly(2024, 6, 1));
-        var first = SetId(new Landmark("First", 4.0, "9am-5pm"), 1);
-        var second = SetId(new Landmark("Second", 4.1, "9am-5pm"), 2);
-        var third = SetId(new Landmark("Third", 4.2, "9am-5pm"), 3);
+        var first = SetId(new Destination("First", 4.0, "cultural", "9am-5pm"), 1);
+        var second = SetId(new Destination("Second", 4.1, "cultural", "9am-5pm"), 2);
+        var third = SetId(new Destination("Third", 4.2, "cultural", "9am-5pm"), 3);
         tripDay.AddDestination(first);
         tripDay.AddDestination(second);
         tripDay.AddDestination(third);
@@ -173,9 +173,9 @@ public class TripTests
     public void ReorderDestinations_YieldsRequestedOrder()
     {
         var tripDay = new TripDay(new DateOnly(2024, 6, 1));
-        var first = SetId(new Landmark("First", 4.0, "9am-5pm"), 1);
-        var second = SetId(new Landmark("Second", 4.1, "9am-5pm"), 2);
-        var third = SetId(new Landmark("Third", 4.2, "9am-5pm"), 3);
+        var first = SetId(new Destination("First", 4.0, "cultural", "9am-5pm"), 1);
+        var second = SetId(new Destination("Second", 4.1, "cultural", "9am-5pm"), 2);
+        var third = SetId(new Destination("Third", 4.2, "cultural", "9am-5pm"), 3);
         tripDay.AddDestination(first);
         tripDay.AddDestination(second);
         tripDay.AddDestination(third);
@@ -191,9 +191,9 @@ public class TripTests
         var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
         var fromDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 1));
         var toDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 2));
-        var moving = SetId(new Landmark("Moving", 4.0, "9am-5pm"), 1);
-        var staying = SetId(new Landmark("Staying", 4.1, "9am-5pm"), 2);
-        var existing = SetId(new Landmark("Existing", 4.2, "9am-5pm"), 3);
+        var moving = SetId(new Destination("Moving", 4.0, "cultural", "9am-5pm"), 1);
+        var staying = SetId(new Destination("Staying", 4.1, "cultural", "9am-5pm"), 2);
+        var existing = SetId(new Destination("Existing", 4.2, "cultural", "9am-5pm"), 3);
         fromDay.AddDestination(moving);
         fromDay.AddDestination(staying);
         toDay.AddDestination(existing);
@@ -211,9 +211,9 @@ public class TripTests
         var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
         var fromDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 1));
         var toDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 2));
-        var first = SetId(new Landmark("First", 4.0, "9am-5pm"), 1);
-        var second = SetId(new Landmark("Second", 4.1, "9am-5pm"), 2);
-        var third = SetId(new Landmark("Third", 4.2, "9am-5pm"), 3);
+        var first = SetId(new Destination("First", 4.0, "cultural", "9am-5pm"), 1);
+        var second = SetId(new Destination("Second", 4.1, "cultural", "9am-5pm"), 2);
+        var third = SetId(new Destination("Third", 4.2, "cultural", "9am-5pm"), 3);
         fromDay.AddDestination(first);
         fromDay.AddDestination(second);
         fromDay.AddDestination(third);
@@ -231,7 +231,7 @@ public class TripTests
         var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
         var fromDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 1));
         var toDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 2));
-        var shared = SetId(new Landmark("Shared", 4.0, "9am-5pm"), 1);
+        var shared = SetId(new Destination("Shared", 4.0, "cultural", "9am-5pm"), 1);
         fromDay.AddDestination(shared);
         toDay.AddDestination(shared);
 
@@ -247,7 +247,7 @@ public class TripTests
         var trip = new Trip("Trip", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
         var fromDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 1));
         var toDay = trip.Days.First(d => d.Day == new DateOnly(2024, 6, 2));
-        var moving = SetId(new Landmark("Moving", 4.0, "9am-5pm"), 1);
+        var moving = SetId(new Destination("Moving", 4.0, "cultural", "9am-5pm"), 1);
         fromDay.AddDestination(moving);
 
         trip.MoveDestinationBetweenDays(moving, fromDay, toDay);

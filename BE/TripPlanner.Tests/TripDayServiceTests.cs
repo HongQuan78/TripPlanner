@@ -97,7 +97,7 @@ public class TripDayServiceTests
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
         var tripDay = trip.Days.First();
-        var existing = new Landmark("Eiffel Tower", 4.8, "9am-11pm");
+        var existing = new Destination("Eiffel Tower", 4.8, "cultural", "9am-11pm");
         tripDay.AddDestination(existing);
 
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
@@ -113,7 +113,7 @@ public class TripDayServiceTests
     public async Task AddDestinationToTripDayAsync_ValidInput_ReturnsSuccessResult()
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var destination = new Landmark("Louvre", 4.9, "9am-6pm");
+        var destination = new Destination("Louvre", 4.9, "cultural", "9am-6pm");
         var expected = new TripDayResponse { Day = new DateOnly(2024, 6, 1) };
 
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
@@ -144,7 +144,7 @@ public class TripDayServiceTests
     public async Task AddDestinationToTripDayAsync_XidAlreadyImported_ReusesExistingDestination()
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var existing = new Landmark("Eiffel Tower", 4.8, "9am-11pm", "W123");
+        var existing = new Destination("Eiffel Tower", 4.8, "cultural", "9am-11pm", "W123");
         var expected = new TripDayResponse { Day = new DateOnly(2024, 6, 1) };
 
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
@@ -183,12 +183,12 @@ public class TripDayServiceTests
 
         Assert.True(result.IsSuccess);
         var added = Assert.Single(trip.Days.First().Destinations);
-        var landmark = Assert.IsType<Landmark>(added);
-        Assert.Equal("Eiffel Tower", landmark.Name);
-        Assert.Equal("W123", landmark.ExternalId);
-        Assert.Equal("Landmark", landmark.Category);
-        Assert.Equal(3, landmark.Rating);
-        Assert.Equal("9am-11pm", landmark.OpeningHours);
+        var destination = Assert.IsType<Destination>(added);
+        Assert.Equal("Eiffel Tower", destination.Name);
+        Assert.Equal("W123", destination.ExternalId);
+        Assert.Equal("architecture", destination.Category);
+        Assert.Equal(3, destination.Rating);
+        Assert.Equal("9am-11pm", destination.OpeningHours);
         _destinationRepository.Received(1).Add(Arg.Is<Destination>(x => x.ExternalId == "W123"));
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
@@ -216,13 +216,12 @@ public class TripDayServiceTests
 
         Assert.True(result.IsSuccess);
         var added = Assert.Single(trip.Days.First().Destinations);
-        var restaurant = Assert.IsType<Restaurant>(added);
-        Assert.Equal("Pho Corner", restaurant.Name);
-        Assert.Equal("W456", restaurant.ExternalId);
-        Assert.Equal("Restaurant", restaurant.Category);
-        Assert.Equal("foods", restaurant.CuisineType);
-        Assert.False(restaurant.IsHalalFriendly);
-        Assert.Equal(2, restaurant.Rating);
+        var destination = Assert.IsType<Destination>(added);
+        Assert.Equal("Pho Corner", destination.Name);
+        Assert.Equal("W456", destination.ExternalId);
+        Assert.Equal("foods", destination.Category);
+        Assert.Equal(2, destination.Rating);
+        Assert.Equal("8am-9pm", destination.OpeningHours);
         _destinationRepository.Received(1).Add(Arg.Is<Destination>(x => x.ExternalId == "W456"));
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
@@ -261,7 +260,7 @@ public class TripDayServiceTests
     public async Task AddDestinationToTripDayAsync_XidDestinationAlreadyOnDay_ReturnsBadRequestFailure()
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var existing = new Landmark("Eiffel Tower", 4.8, "9am-11pm", "W123");
+        var existing = new Destination("Eiffel Tower", 4.8, "cultural", "9am-11pm", "W123");
         trip.Days.First().AddDestination(existing);
 
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
@@ -327,7 +326,7 @@ public class TripDayServiceTests
     public async Task RemoveDestinationFromTripDayAsync_ValidInput_ReturnsSuccessResult()
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var destination = new Landmark("Eiffel Tower", 4.8, "9am-11pm");
+        var destination = new Destination("Eiffel Tower", 4.8, "cultural", "9am-11pm");
         trip.Days.First().AddDestination(destination);
 
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
@@ -381,8 +380,8 @@ public class TripDayServiceTests
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
         var tripDay = trip.Days.First();
-        tripDay.AddDestination(SetId(new Landmark("First", 4.0, "9am-5pm"), 1));
-        tripDay.AddDestination(SetId(new Landmark("Second", 4.1, "9am-5pm"), 2));
+        tripDay.AddDestination(SetId(new Destination("First", 4.0, "cultural", "9am-5pm"), 1));
+        tripDay.AddDestination(SetId(new Destination("Second", 4.1, "cultural", "9am-5pm"), 2));
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
 
         var result = await ReorderUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), new[] { 1, 99 }, 1);
@@ -399,8 +398,8 @@ public class TripDayServiceTests
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
         var tripDay = trip.Days.First();
-        tripDay.AddDestination(SetId(new Landmark("First", 4.0, "9am-5pm"), 1));
-        tripDay.AddDestination(SetId(new Landmark("Second", 4.1, "9am-5pm"), 2));
+        tripDay.AddDestination(SetId(new Destination("First", 4.0, "cultural", "9am-5pm"), 1));
+        tripDay.AddDestination(SetId(new Destination("Second", 4.1, "cultural", "9am-5pm"), 2));
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
 
         var result = await ReorderUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), new[] { 1, 1 }, 1);
@@ -415,9 +414,9 @@ public class TripDayServiceTests
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
         var tripDay = trip.Days.First();
-        tripDay.AddDestination(SetId(new Landmark("First", 4.0, "9am-5pm"), 1));
-        tripDay.AddDestination(SetId(new Landmark("Second", 4.1, "9am-5pm"), 2));
-        tripDay.AddDestination(SetId(new Landmark("Third", 4.2, "9am-5pm"), 3));
+        tripDay.AddDestination(SetId(new Destination("First", 4.0, "cultural", "9am-5pm"), 1));
+        tripDay.AddDestination(SetId(new Destination("Second", 4.1, "cultural", "9am-5pm"), 2));
+        tripDay.AddDestination(SetId(new Destination("Third", 4.2, "cultural", "9am-5pm"), 3));
         var expected = new TripResponse { Id = 1, Name = "Test" };
 
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
@@ -461,7 +460,7 @@ public class TripDayServiceTests
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
         var day = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 1));
-        day.AddDestination(SetId(new Landmark("First", 4.0, "9am-5pm"), 1));
+        day.AddDestination(SetId(new Destination("First", 4.0, "cultural", "9am-5pm"), 1));
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
 
         var result = await MoveUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), 1, new DateOnly(2024, 6, 1), 1);
@@ -491,7 +490,7 @@ public class TripDayServiceTests
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
         var fromDay = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 1));
-        fromDay.AddDestination(SetId(new Landmark("First", 4.0, "9am-5pm"), 1));
+        fromDay.AddDestination(SetId(new Destination("First", 4.0, "cultural", "9am-5pm"), 1));
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
 
         var result = await MoveUseCase().ExecuteAsync(1, new DateOnly(2024, 6, 1), 1, new DateOnly(2024, 7, 1), 1);
@@ -522,8 +521,8 @@ public class TripDayServiceTests
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
         var fromDay = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 1));
         var toDay = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 2));
-        fromDay.AddDestination(SetId(new Landmark("Duplicate", 4.0, "9am-5pm"), 1));
-        toDay.AddDestination(SetId(new Landmark("Duplicate", 4.0, "9am-5pm"), 1));
+        fromDay.AddDestination(SetId(new Destination("Duplicate", 4.0, "cultural", "9am-5pm"), 1));
+        toDay.AddDestination(SetId(new Destination("Duplicate", 4.0, "cultural", "9am-5pm"), 1));
         var expected = new TripResponse { Id = 1, Name = "Test" };
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
         _mapper.MapToTripResponse(trip).Returns(expected);
@@ -543,9 +542,9 @@ public class TripDayServiceTests
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 2), 1);
         var fromDay = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 1));
         var toDay = trip.Days.First(x => x.Day == new DateOnly(2024, 6, 2));
-        fromDay.AddDestination(SetId(new Landmark("Moving", 4.0, "9am-5pm"), 1));
-        fromDay.AddDestination(SetId(new Landmark("Staying", 4.1, "9am-5pm"), 2));
-        toDay.AddDestination(SetId(new Landmark("Existing", 4.2, "9am-5pm"), 3));
+        fromDay.AddDestination(SetId(new Destination("Moving", 4.0, "cultural", "9am-5pm"), 1));
+        fromDay.AddDestination(SetId(new Destination("Staying", 4.1, "cultural", "9am-5pm"), 2));
+        toDay.AddDestination(SetId(new Destination("Existing", 4.2, "cultural", "9am-5pm"), 3));
         var expected = new TripResponse { Id = 1, Name = "Test" };
 
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);

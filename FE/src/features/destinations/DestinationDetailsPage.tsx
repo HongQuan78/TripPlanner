@@ -10,6 +10,7 @@ import NearbyRail from './NearbyRail';
 import { useDestinationDetails } from './hooks';
 import { useAddToTrip } from '@/features/trips/AddToTripContext';
 import { parseOpenNow } from './openNow';
+import { formatCategory } from '@/shared/lib/formatCategory';
 import styles from './DestinationDetailsPage.module.css';
 import stateStyles from '@/shared/ui/PageState.module.css';
 
@@ -158,7 +159,7 @@ export default function DestinationDetailsPage({
           key={destination.xid}
           images={destination.imageUrls}
           name={destination.name}
-          category={destination.category}
+          category={formatCategory(destination.category)}
           onBack={goBack}
         />
       </div>
@@ -213,7 +214,7 @@ export default function DestinationDetailsPage({
         <aside className={styles.aside}>
           <div className={styles.panel}>
             {destination.category !== null && (
-              <span className={styles.panelEyebrow}>{destination.category}</span>
+              <span className={styles.panelEyebrow}>{formatCategory(destination.category)}</span>
             )}
             <p className={styles.panelTitle}>{destination.name}</p>
             {(destination.openingHours !== null || openNow !== null) && (
@@ -251,7 +252,7 @@ export default function DestinationDetailsPage({
       <div className={styles.stickyBar}>
         <div className={styles.stickyCtx}>
           {destination.category !== null && (
-            <span className={styles.stickyKey}>{destination.category}</span>
+            <span className={styles.stickyKey}>{formatCategory(destination.category)}</span>
           )}
           {openNow !== null && (
             <span

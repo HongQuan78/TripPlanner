@@ -71,7 +71,7 @@ public class SavedPlacesServiceTests
     public async Task AddDestinationToSavedPlaces_ValidInput_AddsToPoolAndReturnsSuccess()
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var destination = new Landmark("Louvre", 4.9, "9am-6pm");
+        var destination = new Destination("Louvre", 4.9, "cultural", "9am-6pm");
         var expected = new TripResponse { Id = 1, Name = "Test" };
 
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
@@ -90,7 +90,7 @@ public class SavedPlacesServiceTests
     public async Task AddDestinationToSavedPlaces_DestinationAlreadyInPool_ReturnsBadRequestFailure()
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var existing = new Landmark("Louvre", 4.9, "9am-6pm");
+        var existing = new Destination("Louvre", 4.9, "cultural", "9am-6pm");
         trip.AddSavedPlace(existing);
 
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
@@ -173,7 +173,7 @@ public class SavedPlacesServiceTests
     public async Task RemoveDestinationFromSavedPlaces_ValidInput_RemovesAndReturnsSuccess()
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var destination = new Landmark("Louvre", 4.9, "9am-6pm");
+        var destination = new Destination("Louvre", 4.9, "cultural", "9am-6pm");
         trip.AddSavedPlace(destination);
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
 
@@ -226,7 +226,7 @@ public class SavedPlacesServiceTests
     public async Task ScheduleSavedPlace_AlreadyOnDay_ReturnsBadRequestAndLeavesPoolUnchanged()
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var destination = new Landmark("Louvre", 4.9, "9am-6pm");
+        var destination = new Destination("Louvre", 4.9, "cultural", "9am-6pm");
         trip.AddSavedPlace(destination);
         trip.Days.First().AddDestination(destination);
         _tripRepository.GetWithDaysAndDestinationsAsync(1, 1, Arg.Any<CancellationToken>()).Returns(trip);
@@ -244,7 +244,7 @@ public class SavedPlacesServiceTests
     public async Task ScheduleSavedPlace_ValidInput_MovesFromPoolToDay()
     {
         var trip = new Trip("Test", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        var destination = new Landmark("Louvre", 4.9, "9am-6pm");
+        var destination = new Destination("Louvre", 4.9, "cultural", "9am-6pm");
         trip.AddSavedPlace(destination);
         var expected = new TripResponse { Id = 1 };
 

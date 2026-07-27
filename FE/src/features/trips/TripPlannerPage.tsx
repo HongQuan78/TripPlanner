@@ -39,6 +39,7 @@ import {
   todayISO,
   tripStatus,
 } from '@/shared/lib/dates';
+import { formatCategory } from '@/shared/lib/formatCategory';
 import stateStyles from '@/shared/ui/PageState.module.css';
 import styles from './TripPlannerPage.module.css';
 
@@ -74,7 +75,7 @@ function DestinationRow({
   const content = (
     <>
       <span className={styles.rowName}>{destination.name}</span>
-      <span className={styles.rowCategory}>{destination.category}</span>
+      <span className={styles.rowCategory}>{formatCategory(destination.category)}</span>
       <StarRating rating={destination.rating} />
     </>
   );

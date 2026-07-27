@@ -15,8 +15,6 @@ public static class AttractionCategoryHelper
         "foods"
     };
 
-    public static IReadOnlyCollection<string> AllowedCategories => AllowedCategoryCodes;
-
     public static bool IsAllowedCategory(string? category)
     {
         if (string.IsNullOrWhiteSpace(category))

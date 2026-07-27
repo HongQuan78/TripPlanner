@@ -9,13 +9,7 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         CreateMap<Destination, DestinationResponse>()
-            .ForMember(dest => dest.Xid, opt => opt.MapFrom(src => src.ExternalId))
-            .ForMember(dest => dest.OpeningHours,
-                opt => opt.MapFrom((src, _) => src is Landmark l ? l.OpeningHours : null))
-            .ForMember(dest => dest.CuisineType,
-                opt => opt.MapFrom((src, _) => src is Restaurant r ? r.CuisineType : null))
-            .ForMember(dest => dest.IsHalalFriendly,
-                opt => opt.MapFrom((src, _) => src is Restaurant r ? (bool?)r.IsHalalFriendly : null));
+            .ForMember(dest => dest.Xid, opt => opt.MapFrom(src => src.ExternalId));
 
         CreateMap<TripDay, TripDayResponse>()
             .ForMember(dest => dest.Destinations,

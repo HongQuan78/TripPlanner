@@ -46,8 +46,6 @@ const savedLouvre = {
   category: 'Landmark',
   xid: 'xid-notredame',
   openingHours: null,
-  cuisineType: null,
-  isHalalFriendly: null,
 };
 
 const trip: Trip = {
@@ -66,8 +64,6 @@ const trip: Trip = {
           category: 'Landmark',
           xid: 'xid-louvre',
           openingHours: null,
-          cuisineType: null,
-          isHalalFriendly: null,
         },
       ],
     },
@@ -85,8 +81,6 @@ const eiffel = {
   category: 'Landmark',
   xid: 'xid-eiffel',
   openingHours: null,
-  cuisineType: null,
-  isHalalFriendly: null,
 };
 
 const tripTwoDests: Trip = {
