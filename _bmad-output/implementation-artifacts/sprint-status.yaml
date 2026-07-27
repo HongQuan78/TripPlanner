@@ -37,6 +37,77 @@ project: tripplanner
 
 last_updated: 2026-07-27
 
+# 2026-07-27: added 6-12-replace-automapper-with-mapperly — user asked to drop AutoMapper for
+# Mapperly or Mapster without breaking anything and while keeping Clean Architecture intact.
+# Scoping found the surface is SIX files: the Infrastructure csproj, MappingProfile.cs (deleted),
+# ApplicationMapper.cs, the one AddAutoMapper DI line, MappingProfileTests.cs, and CLAUDE.md.
+# Nothing in Application/Domain/API changes — all 12 use-case consumers go through
+# IApplicationMapper, and every test except MappingProfileTests substitutes that port, so the
+# five use-case test classes are untouched by construction. USER CHOSE MAPPERLY: it is a source
+# generator, so a renamed member becomes a BUILD ERROR instead of a runtime
+# AutoMapperMappingException — which is the actual justification, since nothing in the solution
+# ever calls AssertConfigurationIsValid() and the 3 mapping tests are currently the only guard.
+# Mapster was rejected because its runtime TypeAdapterConfig reproduces exactly that failure mode.
+# Second design call: ApplicationMapper BECOMES the [Mapper] partial class implementing
+# IApplicationMapper, rather than an adapter delegating to a generated mapper — Mapperly can
+# implement an interface directly, so the five mapper.Map<T> delegation lines AutoMapper forced
+# disappear. The 6-9 audit's "AutoMapper is correctly quarantined" verdict is PRESERVED, not
+# undone: the port stays exactly where it is and only the engine behind it changes.
+# Two risks written into the story. (1) The 0-warning build: Trip.UserId, TripDay.Id and
+# TripDay.TripId have no response counterpart, so Mapperly's unmapped-source RMG diagnostics
+# will surface, and they must be closed with explicit [MapperIgnoreSource] rather than NoWarn or
+# an .editorconfig severity — blanket-silencing would discard the very compile-time safety the
+# migration exists to buy. (2) Test sequencing is INVERTED from the usual red-green: the new
+# nested-projection / Position-ordering / list-method tests are written GREEN against the
+# existing AutoMapper implementation FIRST, because their whole value is surviving the swap with
+# unedited assertions; a test written after the migration would only prove Mapperly agrees with
+# itself. Baseline pinned at 6d8b85d, BE 308/308, build 0/0. Created + picked up for dev-story.
+
+# 2026-07-27: 6-12-replace-automapper-with-mapperly implemented — all 7 tasks done. AutoMapper is
+# GONE from the solution (grep for AutoMapper/IMapper/MapperConfiguration across BE returns zero
+# hits) and ApplicationMapper is now a [Mapper] partial class whose five method bodies Mapperly
+# 4.3.1 generates at compile time. The AutoMapper-era adapter layer — ApplicationMapper(IMapper)
+# wrapping five mapper.Map<T> calls — is DELETED, not ported: the class now has no constructor and
+# no fields, because Mapperly implements the interface directly. IApplicationMapper itself is
+# untouched, and git diff proves TripPlanner.Application.csproj and TripPlanner.Domain.csproj are
+# BYTE-IDENTICAL to baseline, so the 6-9 audit's "mapping is quarantined in Infrastructure" verdict
+# survives intact — only the engine behind the port changed.
+# THE LOAD-BEARING BIT is the test sequencing, which was deliberately inverted from red-green. The
+# 3 pre-existing mapping tests were first EXTENDED to 13 and run GREEN AGAINST AUTOMAPPER (nested
+# Trip→TripDays→Destinations, Position-ordering after ReorderDestinations, both list methods,
+# empty-list cases, full per-member assertions). They were also routed through the IApplicationMapper
+# PORT rather than the concrete mapper, so the migration cost them exactly ONE line — the
+# construction — and every Assert in the file is byte-identical across the swap. All 13 stayed green.
+# That, not the green suite alone, is the evidence the wire contract is unchanged; a test written
+# after the swap would only prove Mapperly agrees with itself.
+# Wire behaviour was ALSO verified by READING the generated ApplicationMapper.g.cs rather than
+# inferring it: Xid = destination.ExternalId, TripDays = MapToListOfTripDayResponse(trip.Days),
+# nested maps REUSE the declared partial methods instead of duplicating them, and every collection
+# map is a sequential foreach append — which is why TripDay.Destinations' Position ordering (a
+# computed, ordered projection, not a stored collection) passes through untouched.
+# RMG020 was MEASURED, NOT ASSUMED, per the 6-10 precedent that a non-firing analyzer looks exactly
+# like a clean tree: with the three [MapperIgnoreSource] attributes (Trip.UserId, TripDay.Id,
+# TripDay.TripId) the build is clean, and deleting just the UserId one yields "warning RMG020 ...
+# 1 Warning(s)". So they are load-bearing against the 0-warning bar and must not be tidied away.
+# Closed individually and explicitly — no NoWarn, no .editorconfig severity override — because
+# blanket-silencing would absorb a FUTURE unmapped member and discard the exact compile-time safety
+# the migration exists to buy. The 6-10 analyzer wiring was not weakened in any way.
+# ONE DEVIATION (D2): added ApplicationMapperRegistrationTests (2 cases) beyond the authored task
+# list. Removing services.AddAutoMapper(...) is the single change here that can fail ONLY at runtime,
+# and nothing in the suite resolved IApplicationMapper from a real container — the other five
+# mapper-touching test classes all Substitute.For<IApplicationMapper>(). Builds the provider via
+# AddInfrastructureServices (EmailProviderSelectionTests pattern) and maps through the resolved
+# instance. No behaviour deviation found anywhere; no assertion needed editing.
+# Noted for review: the API was NOT booted against a live Postgres (none in this session), so there
+# is no request-level end-to-end confirmation — the DI tests are the closest substitute; the Scoped
+# lifetime on IApplicationMapper is now arguably wrong (a stateless Mapperly mapper wants Singleton)
+# and was left alone ON PURPOSE as a separate decision; and the pre-existing unrelated working-tree
+# edit to TripPlanner.API/appsettings.json was untouched and excluded from the File List.
+# ZERO frontend files touched, so the FE suite was not re-run — nothing in it could have changed.
+# BE 320/320 (308 baseline + 10 mapping + 2 registration), build 0 warnings / 0 errors. CLAUDE.md
+# updated in both places ("AutoMapper behind an interface" → "Mapping behind an interface", plus the
+# Infrastructure architecture bullet). Status: review.
+
 # 2026-07-27: 6-10-backend-clean-architecture-remediation — executed the 6-9 audit's
 # §6 follow-up table. ALL SIX resolved: #1/#4/#5/#6 by code, #2 by owner decision (delete
 # the fields), #3 by owner decision (accept + document the coupling, no code).
@@ -1027,6 +1098,13 @@ last_updated: 2026-07-27
 # visible closing condition. Code review 2026-07-26 accepted one residual leak: a
 # register-then-login pair can still distinguish a registered address — see deferred-work.md.
 
+# 2026-07-27: added 7-4-html-verification-email-and-provider-strategy — branded HTML
+# verification email (embedded-resource template, multipart/alternative with the existing
+# plain text as fallback) plus an explicit EmailProviderRegistry/IEmailProviderModule
+# strategy replacing the provider if/else in AddInfrastructureServices. The selective
+# bind/validate rule from 7-3 (only the chosen provider's transport settings are
+# validated at startup) is a preserved invariant, not a refactor target.
+
 development_status:
   epic-1: in-progress
   1-4-filter-and-sort-attractions: done
@@ -1059,10 +1137,12 @@ development_status:
   6-9-backend-clean-architecture-audit: review
   6-10-backend-clean-architecture-remediation: review
   6-11-flatten-destination-hierarchy: ready-for-dev
+  6-12-replace-automapper-with-mapperly: review
   epic-7: in-progress
   7-1-resend-email-integration: review
   7-2-email-provider-strategy-pattern: review
   7-3-google-smtp-email-provider: done
+  7-4-html-verification-email-and-provider-strategy: review
   5-8-trips-nav-and-auth-race-fix: review
   epic-8: in-progress
   8-1-destination-image-wikipedia-fallback: review
