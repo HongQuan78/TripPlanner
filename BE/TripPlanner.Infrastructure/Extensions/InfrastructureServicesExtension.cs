@@ -94,7 +94,6 @@ public static class InfrastructureServicesExtension
             services.AddScoped<IEmailSender, ResendEmailSender>();
         }
 
-        services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
         services.AddScoped<IApplicationMapper, ApplicationMapper>();
 
         services.Configure<OpenTripMapSettings>(options =>
