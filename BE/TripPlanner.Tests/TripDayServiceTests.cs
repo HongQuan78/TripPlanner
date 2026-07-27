@@ -220,8 +220,6 @@ public class TripDayServiceTests
         Assert.Equal("Pho Corner", restaurant.Name);
         Assert.Equal("W456", restaurant.ExternalId);
         Assert.Equal("Restaurant", restaurant.Category);
-        Assert.Equal("foods", restaurant.CuisineType);
-        Assert.False(restaurant.IsHalalFriendly);
         Assert.Equal(2, restaurant.Rating);
         _destinationRepository.Received(1).Add(Arg.Is<Destination>(x => x.ExternalId == "W456"));
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());

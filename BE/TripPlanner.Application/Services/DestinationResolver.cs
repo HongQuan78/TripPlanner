@@ -51,7 +51,7 @@ public class DestinationResolver(
 
             var rating = details.Rating ?? 0;
             Destination imported = DestinationCategoryHelper.IsRestaurantCategory(details.Category)
-                ? new Restaurant(details.Name, rating, details.Category ?? "Unknown", false, details.Xid)
+                ? new Restaurant(details.Name, rating, details.Xid)
                 : new Landmark(details.Name, rating, details.OpeningHours ?? string.Empty, details.Xid);
 
             destinationRepository.Add(imported);

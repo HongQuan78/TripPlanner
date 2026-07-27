@@ -2,15 +2,11 @@ namespace TripPlanner.Domain.Models;
 
 public class Restaurant : Destination
 {
-    public string CuisineType { get; private set; } = string.Empty;
-    public bool IsHalalFriendly { get; private set; }
     public override string Category => "Restaurant";
 
     private Restaurant() { }
 
-    public Restaurant(string name, double rating, string cuisineType, bool isHalalFriendly, string? externalId = null) : base(name, rating, externalId)
+    public Restaurant(string name, double rating, string? externalId = null) : base(name, rating, externalId)
     {
-        CuisineType = cuisineType;
-        IsHalalFriendly = isHalalFriendly;
     }
 }

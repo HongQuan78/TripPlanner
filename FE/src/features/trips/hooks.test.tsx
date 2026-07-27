@@ -52,8 +52,6 @@ const savedPlace = {
   category: 'Landmark',
   xid: 'xid-notredame',
   openingHours: null,
-  cuisineType: null,
-  isHalalFriendly: null,
 };
 
 const trip: Trip = {
@@ -96,8 +94,6 @@ const firstDest = {
   category: 'Landmark',
   xid: 'xid-louvre',
   openingHours: null,
-  cuisineType: null,
-  isHalalFriendly: null,
 };
 
 const secondDest = {
@@ -107,8 +103,6 @@ const secondDest = {
   category: 'Landmark',
   xid: 'xid-eiffel',
   openingHours: null,
-  cuisineType: null,
-  isHalalFriendly: null,
 };
 
 describe('useTrips', () => {

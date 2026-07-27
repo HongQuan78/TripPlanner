@@ -22,7 +22,7 @@ public class TripDayTests
     public void AddDestination_MultipleDestinations_AllAppearInList()
     {
         var landmark = new Landmark("Eiffel Tower", 4.8, "9am-11pm");
-        var restaurant = new Restaurant("Le Jules Verne", 4.5, "French", false);
+        var restaurant = new Restaurant("Le Jules Verne", 4.5);
 
         _tripDay.AddDestination(landmark);
         _tripDay.AddDestination(restaurant);
@@ -47,7 +47,7 @@ public class TripDayTests
     public void RemoveDestination_OneOfMultiple_OnlyRemovesTarget()
     {
         var landmark = new Landmark("Eiffel Tower", 4.8, "9am-11pm");
-        var restaurant = new Restaurant("Le Jules Verne", 4.5, "French", false);
+        var restaurant = new Restaurant("Le Jules Verne", 4.5);
         _tripDay.AddDestination(landmark);
         _tripDay.AddDestination(restaurant);
 

@@ -24,7 +24,7 @@ public class DestinationServiceTests
         var destinations = new List<Destination>
         {
             new Landmark("Eiffel Tower", 4.8, "9am-11pm"),
-            new Restaurant("Le Jules Verne", 4.5, "French", false)
+            new Restaurant("Le Jules Verne", 4.5)
         };
         var expected = new List<DestinationResponse>
         {
