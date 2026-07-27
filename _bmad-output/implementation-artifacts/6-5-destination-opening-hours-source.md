@@ -4,7 +4,7 @@ baseline_commit: 1bbb89f1298f0c6cf2edb46800b161052978e812
 
 # Story 6.5: Source destination opening hours from OpenStreetMap
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -59,6 +59,34 @@ Everything else in Feature 2 is implemented and tested — US1 (name, category, 
   - [x] Extended `OpenTripMapDestinationDetailsServiceTests`: hours populated when provider returns them; `null` when it returns `null` (constructor updated for the new dependency).
   - [x] `GetDestinationDetailsUseCaseTests` sparse-data null case still valid (unchanged); the populated-hours path is covered at the details-service level above.
   - [x] Extended the `TripDayServiceTests` xid-import Landmark path to assert `landmark.OpeningHours == "9am-11pm"` (AC #4).
+
+### Review Findings
+
+Adversarial code review, 2026-07-28 — 4 layers (blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor) against commit `8146a05`.
+
+- [ ] [Review][Decision] **Real OSM `opening_hours` strings overflow the `varchar(100)` column and 500 the add-to-trip endpoint** — `Destination.OpeningHours` is `HasMaxLength(100)` (`DestinationConfiguration.cs:18`, `character varying(100)` in `20260610153128_InitialCreate.cs:25`), but the provider returns the raw tag untruncated (`OverpassOpeningHoursProvider.cs:61`) and `DestinationResolver.cs:57` persists it verbatim. An ordinary tag such as `Mo-Th 08:00-12:00,13:00-17:00; Fr 08:00-12:00; Sa 09:00-13:00; Su off; PH off` exceeds 100 chars → Npgsql `22001` → 500. No test persists a value longer than 12 chars, so the suite stays green. Decision needed: widen the column via migration / truncate in the provider / reject over-length values.
+- [ ] [Review][Decision] **A single transient failure at first import is persisted forever** — `DestinationResolver.cs:35-39` short-circuits on `GetByExternalIdAsync`, so once a row exists `GetDetailsAsync` is never called again. If the first user to add an xid does so while Overpass is rate-limiting, `OpeningHours` is written `NULL` permanently; the 24 h cache expiry cannot heal it. Decision needed: skip persisting hours sourced from a degraded fetch, or add a re-enrichment path for `OpeningHours IS NULL` rows.
+- [ ] [Review][Decision] **Open-now badge evaluates OSM hours in the viewer's timezone** — `openNow.ts:83-84` uses `now.getDay()`/`now.getHours()` (browser local); OSM hours are in the destination's local time. This story is what makes the branch reachable (hours were always `null` before). A user in UTC+7 sees a confident green "Open now" for a Paris venue that closed hours ago. The response carries `Latitude`/`Longitude` but no timezone. Decision needed: return a UTC offset/IANA zone from the backend, or suppress the badge when the zone is unknown.
+- [ ] [Review][Decision] **`parseOpenNow` discards the whole parse on `off` rules and comma-separated multi-intervals** — `openNow.ts:111-115`: any unparseable time token returns `null`, hiding the badge. `Mo-Fr 09:00-17:00; Sa,Su off` and `Mo-Fr 08:00-12:00,14:00-18:00` are both very common real OSM forms and both kill the badge entirely. Fail-safe, but the badge vanishes for exactly the places with the richest hours data. Decision needed: extend the grammar, or accept and document.
+- [ ] [Review][Decision] **Exact-id lookup misses hours tagged on a contained node** — `OverpassOpeningHoursProvider.cs:46,55` resolves one element by id and takes `Elements.FirstOrDefault()`. In OSM `opening_hours` is often on the POI node inside a building while the OTM xid points at the enclosing way/relation; there is no fallback query. Every test feeds a response with the tag already on the first element, so real-world coverage is unmeasured. Decision needed: accept the coverage limit, or add a contained-node/`around` fallback.
+- [x] [Review][Patch] Transient Overpass failures are negative-cached for 24 h, silently defeating AC1 [BE/TripPlanner.Infrastructure/ExternalServices/Overpass/OverpassOpeningHoursProvider.cs:34] — fixed 2026-07-28
+- [x] [Review][Patch] Cache key is case-sensitive while xid parsing is not, so `n1`/`N1` cost two Overpass calls [BE/TripPlanner.Infrastructure/ExternalServices/Overpass/OverpassOpeningHoursProvider.cs:27] — fixed 2026-07-28
+- [x] [Review][Patch] `NotSupportedException` (Overpass 200 + `text/html` error page) escapes the catch filter [BE/TripPlanner.Infrastructure/ExternalServices/Overpass/OverpassOpeningHoursProvider.cs:63] — fixed 2026-07-28
+- [x] [Review][Patch] `cache.SetAsync` is called with an already-cancelled token after cancellation was swallowed [BE/TripPlanner.Infrastructure/ExternalServices/Overpass/OverpassOpeningHoursProvider.cs:37] — fixed 2026-07-28
+- [x] [Review][Patch] No test asserts the cache is used — deleting the cache read/write keeps all tests green [BE/TripPlanner.Tests/OverpassOpeningHoursProviderTests.cs] — fixed 2026-07-28
+- [x] [Review][Patch] No `TaskCanceledException` (timeout) test, though AC2/AC3 name timeouts explicitly [BE/TripPlanner.Tests/OverpassOpeningHoursProviderTests.cs:139] — fixed 2026-07-28
+- [ ] [Review][Patch] Identical negative-cache conflation in the sibling image provider (same commit, story 6-8 scope) [BE/TripPlanner.Infrastructure/ExternalServices/Wikipedia/WikipediaImageProvider.cs:39]
+- [ ] [Review][Patch] Bare `catch` swallows `OperationCanceledException` and genuine defects, and downgrades the image leg's 503 contract to a 200 [BE/TripPlanner.Infrastructure/ExternalServices/OpenTripMap/OpenTripMapDestinationDetailsService.cs:53]
+- [ ] [Review][Patch] Overpass QL carries no `[timeout:n]`, so a 5 s client abort leaves a 180 s server-side query holding the rate-limit slot [BE/TripPlanner.Infrastructure/ExternalServices/Overpass/OverpassOpeningHoursProvider.cs:46]
+- [ ] [Review][Patch] No `OverpassSettings` startup-validation test, breaking the per-provider pattern (`PhotonSettingsValidationTests`, `WikipediaSettingsValidationTests`) [BE/TripPlanner.Tests/]
+- [ ] [Review][Patch] `CacheMinutes` is bound but never validated, and its 1440 default is duplicated across four places [BE/TripPlanner.Infrastructure/Extensions/InfrastructureServicesExtension.cs:87]
+- [ ] [Review][Patch] `WikipediaSettings:CacheMinutes` is documented in neither `.env.example` nor `appsettings.json` [BE/TripPlanner.Infrastructure/Settings/WikipediaSettings.cs:8]
+- [ ] [Review][Patch] `^[NWRnwr]\d+$` accepts non-ASCII digits and unbounded ids, which are interpolated into the Overpass query [BE/TripPlanner.Infrastructure/ExternalServices/Overpass/OverpassOpeningHoursProvider.cs:98]
+- [ ] [Review][Patch] FE empty-state test is `value === null` only, so a whitespace-only string renders an empty row [FE/src/features/destinations/DestinationDetailsPage.tsx:49]
+- [ ] [Review][Patch] `CLAUDE.md`'s external-services port list omits `IOpeningHoursProvider`/`OverpassOpeningHoursProvider` [CLAUDE.md:136]
+- [ ] [Review][Patch] `epic-2` still records US4 as deferred with "no separate backend work is needed" [epic/epic-2-destination-details.md:9]
+- [ ] [Review][Patch] Story record is stale: File List omits the bundled 6-7/6-8 changes, test count reads 291 vs 336 at HEAD, and Task 4's `appsettings.json` claim no longer holds after commit `1c1ccac` [_bmad-output/implementation-artifacts/6-5-destination-opening-hours-source.md:52]
+- [x] [Review][Defer] A Redis outage turns the attractions list into a 500 instead of degrading [BE/TripPlanner.Infrastructure/Caching/RedisResponseCache.cs:12] — deferred, pre-existing: `OpenTripMapPlaceClient` already used `IResponseCache` inside the same `try` with the same narrow catch filter before this commit, so the exposure is not introduced here.
 
 ## Dev Notes
 
@@ -148,6 +176,8 @@ claude-opus-4-8[1m]
 
 - 2026-07-24: Story created from the Feature 2 audit (F2-US4 opening hours gap).
 - 2026-07-24: Implemented all 7 tasks — new `IOpeningHoursProvider` port + keyless Overpass adapter (OSM `opening_hours` by xid), wired into details mapping and the xid-import path, cached via `IResponseCache`, config/DI added. BE 291/291 (+11), build clean. Status → review.
+- 2026-07-28: Adversarial code review (4 layers) against commit `8146a05` — 23 findings recorded: 5 decision-needed, 17 patch, 1 deferred as pre-existing, 2 dismissed.
+- 2026-07-28: Addressed code review findings — 6 items resolved. `FetchAsync` now returns a tri-state `OpeningHoursLookup`, so only a definitive answer ("element found, tag present" or "element found, tag absent") is cached for `CacheMinutes`; transport failures, non-2xx and malformed responses get a 5-minute `FailureCacheMinutes` TTL instead of 24 h. Cache key rebuilt from the parsed element (`osm:hours:{type}:{id}`) so case variants share one entry; `NotSupportedException` added to the catch filter; the cache write is skipped when the caller's token is cancelled. BE 349/349 (+13), build clean at 0 warnings; 6 of the new tests verified red against the prior implementation.
 
 ## Open Questions (for the user — non-blocking)
 

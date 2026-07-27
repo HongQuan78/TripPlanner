@@ -15,6 +15,7 @@ internal partial class OverpassOpeningHoursProvider(
     IResponseCache cache) : IOpeningHoursProvider
 {
     private const int DefaultCacheMinutes = 1440;
+    private const int FailureCacheMinutes = 5;
 
     public async Task<string?> GetOpeningHoursAsync(OpeningHoursContext context, CancellationToken cancellationToken = default)
     {
@@ -24,22 +25,30 @@ internal partial class OverpassOpeningHoursProvider(
             return null;
         }
 
-        var cacheKey = $"osm:hours:{context.Xid.Trim()}";
+        var cacheKey = $"osm:hours:{element.Value.Type}:{element.Value.Id}";
         var cached = await cache.GetAsync<OpeningHoursCacheEntry>(cacheKey, cancellationToken);
         if (cached is not null)
         {
             return cached.Value;
         }
 
-        var hours = await FetchAsync(element.Value.Type, element.Value.Id, cancellationToken);
+        var lookup = await FetchAsync(element.Value.Type, element.Value.Id, cancellationToken);
 
-        var minutes = options.Value.CacheMinutes > 0 ? options.Value.CacheMinutes : DefaultCacheMinutes;
-        await cache.SetAsync(cacheKey, new OpeningHoursCacheEntry { Value = hours }, TimeSpan.FromMinutes(minutes), cancellationToken);
+        if (!cancellationToken.IsCancellationRequested)
+        {
+            var minutes = lookup.IsDefinitive ? ResolveCacheMinutes() : FailureCacheMinutes;
+            await cache.SetAsync(cacheKey, new OpeningHoursCacheEntry { Value = lookup.Value }, TimeSpan.FromMinutes(minutes), cancellationToken);
+        }
 
-        return hours;
+        return lookup.Value;
     }
 
-    private async Task<string?> FetchAsync(string elementType, string osmId, CancellationToken cancellationToken)
+    private int ResolveCacheMinutes()
+    {
+        return options.Value.CacheMinutes > 0 ? options.Value.CacheMinutes : DefaultCacheMinutes;
+    }
+
+    private async Task<OpeningHoursLookup> FetchAsync(string elementType, string osmId, CancellationToken cancellationToken)
     {
         try
         {
@@ -48,21 +57,23 @@ internal partial class OverpassOpeningHoursProvider(
             using var response = await httpClient.PostAsync("interpreter", content, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                return null;
+                return OpeningHoursLookup.Failed;
             }
 
             var payload = await response.Content.ReadFromJsonAsync<OverpassResponseModel>(cancellationToken);
             var tags = payload?.Elements?.FirstOrDefault()?.Tags;
             if (tags is null || !tags.TryGetValue("opening_hours", out var openingHours))
             {
-                return null;
+                return OpeningHoursLookup.Absent;
             }
 
-            return string.IsNullOrWhiteSpace(openingHours) ? null : openingHours.Trim();
+            return string.IsNullOrWhiteSpace(openingHours)
+                ? OpeningHoursLookup.Absent
+                : new OpeningHoursLookup(true, openingHours.Trim());
         }
-        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException)
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException or NotSupportedException)
         {
-            return null;
+            return OpeningHoursLookup.Failed;
         }
     }
 
@@ -102,6 +113,12 @@ internal partial class OverpassOpeningHoursProvider(
 internal sealed record OpeningHoursCacheEntry
 {
     public string? Value { get; init; }
+}
+
+internal sealed record OpeningHoursLookup(bool IsDefinitive, string? Value)
+{
+    public static readonly OpeningHoursLookup Absent = new(true, null);
+    public static readonly OpeningHoursLookup Failed = new(false, null);
 }
 
 internal sealed record OverpassResponseModel
