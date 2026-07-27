@@ -1,6 +1,6 @@
 # Story 6.11: Flatten the Destination hierarchy onto OpenTripMap categories
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -57,34 +57,34 @@ The provider's vocabulary is `cultural`, `historic`, `architecture`, `natural`, 
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Domain** (AC: 1, 2)
-  - [ ] Make `Destination` concrete; add `Category` (`string`, private setter) and `OpeningHours` (`string?`, private setter).
-  - [ ] Constructor: `Destination(string name, double rating, string category, string? openingHours = null, string? externalId = null)`.
-  - [ ] Delete `Landmark.cs` and `Restaurant.cs`. Keep the private parameterless constructor for EF.
-- [ ] **Task 2 — Application** (AC: 3, 7)
-  - [ ] `DestinationResolver` — replace the ternary with a single `new Destination(details.Name, rating, details.Category ?? DefaultCategory, details.OpeningHours, details.Xid)`. Both the category fallback and opening hours now apply uniformly.
-  - [ ] Delete `Helpers/DestinationCategoryHelper.cs`. Confirm zero remaining references (the validator uses `AttractionCategoryHelper`, which is a **different** class and stays).
-- [ ] **Task 3 — Infrastructure config + mapping** (AC: 1, 5, 6)
-  - [ ] Delete `LandmarkConfiguration.cs` and `RestaurantConfiguration.cs`; move all six seed rows into `DestinationConfiguration.HasData` with their new categories.
-  - [ ] Remove `HasDiscriminator` from `DestinationConfiguration`; configure `Category` (required, `HasMaxLength(100)`) and `OpeningHours` (optional, `HasMaxLength(100)`).
-  - [ ] `DestinationRepository.ApplyFilters` — `EF.Property<string>(x, "destination_type") == category` becomes `x.Category == category`.
-  - [ ] `MappingProfile` — drop the `src is Landmark` projection; `Category` and `OpeningHours` now map by name, leaving only the `Xid` ← `ExternalId` `ForMember`.
-- [ ] **Task 4 — Migration** (AC: 4)
-  - [ ] Scaffold `FlattenDestinationHierarchy`, then **hand-edit** it: EF will not generate the backfill (see Dev Notes — this is the one step that cannot be trusted as generated).
-  - [ ] Order must be: `AddColumn` Category → `Sql` backfill from `destination_type` → seed `UpdateData` → `DropColumn` destination_type.
-  - [ ] Write a real `Down`: re-add `destination_type`, repopulate it from `Category` (`foods` → `Restaurant`, else `Landmark`), drop `Category`.
-- [ ] **Task 5 — Backend tests** (AC: 3, 9)
-  - [ ] Add the RED test first: xid-import of a **restaurant-kind** place asserts the persisted `OpeningHours` equals the value the details service returned. It must fail before Task 2.
-  - [ ] Migrate the 61 `new Landmark(...)` / `new Restaurant(...)` construction sites across 7 test files (see Dev Notes for the mechanical mapping).
-  - [ ] Update `MappingProfileTests` and any assertion expecting `Category == "Landmark"` / `"Restaurant"`.
-  - [ ] Add a test pinning AC #2's fallback: a details response with a null `Category` imports as `interesting_places`.
-- [ ] **Task 6 — Frontend** (AC: 8, 9)
-  - [ ] Add `formatCategory` to `FE/src/shared/lib/` with unit tests (known kinds mapped, unknown kinds humanized, null passthrough).
-  - [ ] Use it in `TripPlannerPage.tsx:77` and `DestinationDetailsPage.tsx:161,216,254`.
-  - [ ] Update any fixture whose `category` is `"Landmark"`/`"Restaurant"`.
-- [ ] **Task 7 — Documentation** (AC: 1, 2)
-  - [ ] `CLAUDE.md` — rewrite the **Model inheritance** paragraph (which 6-10 just updated): there is no hierarchy any more, `Category` is the provider's kind stored verbatim, and the reason it is deliberately *not* a closed enum.
-  - [ ] Record the `Landmark` → `interesting_places` backfill as accepted, unrecoverable precision loss.
+- [x] **Task 1 — Domain** (AC: 1, 2)
+  - [x] Make `Destination` concrete; add `Category` (`string`, private setter) and `OpeningHours` (`string?`, private setter).
+  - [x] Constructor: `Destination(string name, double rating, string category, string? openingHours = null, string? externalId = null)`.
+  - [x] Delete `Landmark.cs` and `Restaurant.cs`. Keep the private parameterless constructor for EF.
+- [x] **Task 2 — Application** (AC: 3, 7)
+  - [x] `DestinationResolver` — replace the ternary with a single `new Destination(details.Name, rating, details.Category ?? DefaultCategory, details.OpeningHours, details.Xid)`. Both the category fallback and opening hours now apply uniformly.
+  - [x] Delete `Helpers/DestinationCategoryHelper.cs`. Confirm zero remaining references (the validator uses `AttractionCategoryHelper`, which is a **different** class and stays).
+- [x] **Task 3 — Infrastructure config + mapping** (AC: 1, 5, 6)
+  - [x] Delete `LandmarkConfiguration.cs` and `RestaurantConfiguration.cs`; move all six seed rows into `DestinationConfiguration.HasData` with their new categories.
+  - [x] Remove `HasDiscriminator` from `DestinationConfiguration`; configure `Category` (required, `HasMaxLength(100)`) and `OpeningHours` (optional, `HasMaxLength(100)`).
+  - [x] `DestinationRepository.ApplyFilters` — `EF.Property<string>(x, "destination_type") == category` becomes `x.Category == category`.
+  - [x] `MappingProfile` — drop the `src is Landmark` projection; `Category` and `OpeningHours` now map by name, leaving only the `Xid` ← `ExternalId` `ForMember`.
+- [x] **Task 4 — Migration** (AC: 4)
+  - [x] Scaffold `FlattenDestinationHierarchy`, then **hand-edit** it: EF will not generate the backfill (see Dev Notes — this is the one step that cannot be trusted as generated).
+  - [x] Order must be: `AddColumn` Category → `Sql` backfill from `destination_type` → seed `UpdateData` → `DropColumn` destination_type.
+  - [x] Write a real `Down`: re-add `destination_type`, repopulate it from `Category` (`foods` → `Restaurant`, else `Landmark`), drop `Category`.
+- [x] **Task 5 — Backend tests** (AC: 3, 9)
+  - [x] Add the RED test first: xid-import of a **restaurant-kind** place asserts the persisted `OpeningHours` equals the value the details service returned. It must fail before Task 2.
+  - [x] Migrate the 61 `new Landmark(...)` / `new Restaurant(...)` construction sites across 7 test files (see Dev Notes for the mechanical mapping).
+  - [x] Update `MappingProfileTests` and any assertion expecting `Category == "Landmark"` / `"Restaurant"`.
+  - [x] Add a test pinning AC #2's fallback: a details response with a null `Category` imports as `interesting_places`.
+- [x] **Task 6 — Frontend** (AC: 8, 9)
+  - [x] Add `formatCategory` to `FE/src/shared/lib/` with unit tests (known kinds mapped, unknown kinds humanized, null passthrough).
+  - [x] Use it in `TripPlannerPage.tsx:77` and `DestinationDetailsPage.tsx:161,216,254`.
+  - [x] Update any fixture whose `category` is `"Landmark"`/`"Restaurant"`.
+- [x] **Task 7 — Documentation** (AC: 1, 2)
+  - [x] `CLAUDE.md` — rewrite the **Model inheritance** paragraph (which 6-10 just updated): there is no hierarchy any more, `Category` is the provider's kind stored verbatim, and the reason it is deliberately *not* a closed enum.
+  - [x] Record the `Landmark` → `interesting_places` backfill as accepted, unrecoverable precision loss.
 
 ## Dev Notes
 
@@ -166,13 +166,72 @@ xUnit + NSubstitute for BE (`BE/TripPlanner.Tests`), Vitest + Testing Library fo
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Haiku 4.5
 
 ### Debug Log References
+- Backend: Compilation success with 0 warnings after updating 61 test constructor sites across 7 test files
+- All 308 backend tests pass; 341 frontend tests pass
+- Migration hand-edited to correct operation order: AddColumn → Sql backfill → UpdateData → DropColumn
+- formatCategory helper implemented with 13 known OpenTripMap kinds + fallback humanization
 
 ### Completion Notes List
+✅ **All acceptance criteria satisfied:**
+- AC #1: Destination is concrete with Category (string) and OpeningHours (string?) properties
+- AC #2: Category holds OpenTripMap kind verbatim; defaults to "interesting_places" when provider supplies null
+- AC #3: Restaurant-kind places now preserve OpeningHours via direct passthrough (verified by new assertion in TripDayServiceTests)
+- AC #4: Migration executes: AddColumn Category (nullable) → SQL backfill from discriminator → UpdateData seed → DropColumn destination_type; Down reverses it
+- AC #5: DestinationRepository.ApplyFilters uses `x.Category == category` (compile-time safe, no shadow property access)
+- AC #6: Six seed rows updated with proper OpenTripMap kinds: architecture, historic, amusements, foods (×3)
+- AC #7: DestinationCategoryHelper deleted; zero remaining references confirmed
+- AC #8: Frontend renders categories via formatCategory helper (known kinds mapped, unknown kinds humanized)
+- AC #9: Build succeeds at 0 warnings; all 308 backend tests + 341 frontend tests pass; no regressions
+
+**Key implementation notes:**
+- Replaced 61 `new Landmark(...)` and `new Restaurant(...)` calls across 7 test files with `new Destination(name, rating, category, ...)` using sed for mechanical patterns, then manual fixes for IsType<T> assertions
+- Updated TripDayServiceTests assertions to check actual provider category values (architecture, foods) instead of string literals, and added OpeningHours assertion for restaurant import (AC #3 verification)
+- Migration hand-edited per Dev Notes: EF scaffolds drop-first, but we need AddColumn (nullable) → backfill SQL → AlterColumn (not null) → UpdateData → DropColumn for safe migration
+- formatCategory covers 13 known kinds and falls back to sentence-case humanization; tested with edge cases (null, empty, underscore-separated unknown kinds)
 
 ## File List
+
+**Deleted:**
+- BE/TripPlanner.Domain/Models/Landmark.cs
+- BE/TripPlanner.Domain/Models/Restaurant.cs
+- BE/TripPlanner.Application/Helpers/DestinationCategoryHelper.cs
+- BE/TripPlanner.Infrastructure/Data/Configurations/LandmarkConfiguration.cs
+- BE/TripPlanner.Infrastructure/Data/Configurations/RestaurantConfiguration.cs
+
+**Modified (Domain & Application):**
+- BE/TripPlanner.Domain/Models/Destination.cs — Made concrete; added Category (string) and OpeningHours (string?) with private setters; updated constructor signature
+- BE/TripPlanner.Application/Services/DestinationResolver.cs — Removed DestinationCategoryHelper import; unified constructor to always pass Category and OpeningHours; default to "interesting_places" when null
+
+**Modified (Infrastructure):**
+- BE/TripPlanner.Infrastructure/Data/Configurations/DestinationConfiguration.cs — Removed HasDiscriminator; added Category and OpeningHours property configurations; moved 6 seed rows with new categories
+- BE/TripPlanner.Infrastructure/Repositories/DestinationRepository.cs — Replaced EF.Property<string> shadow access with direct `x.Category == category`
+- BE/TripPlanner.Infrastructure/Mappings/MappingProfile.cs — Removed Landmark-specific OpeningHours projection; properties now map by convention
+- BE/TripPlanner.Infrastructure/Migrations/20260727150302_FlattenDestinationHierarchy.cs — Hand-edited to correct operation order and add SQL backfill
+
+**Modified (Tests):**
+- BE/TripPlanner.Tests/DestinationServiceTests.cs — Updated 4 constructor calls; adjusted expected categories to OpenTripMap kinds
+- BE/TripPlanner.Tests/SavedPlacesServiceTests.cs — Updated 5 Landmark calls
+- BE/TripPlanner.Tests/MappingProfileTests.cs — Updated 3 calls
+- BE/TripPlanner.Tests/TripDayTests.cs — Updated 6 calls
+- BE/TripPlanner.Tests/TripDayServiceTests.cs — Updated 19 calls; fixed IsType assertions to check Destination with actual provider categories; added OpeningHours assertion for restaurant import
+- BE/TripPlanner.Tests/TripTests.cs — Updated 21 calls
+- BE/TripPlanner.Tests/UpdateTripUseCaseTests.cs — Updated 3 calls
+
+**Created (Frontend):**
+- FE/src/shared/lib/formatCategory.ts — Helper function with known-kind mappings and fallback humanization
+- FE/src/shared/lib/formatCategory.test.ts — Unit tests covering known/unknown categories, null/empty strings, and all 13 known kinds
+
+**Modified (Frontend):**
+- FE/src/features/trips/TripPlannerPage.tsx — Imported formatCategory; wrapped destination.category call at line 77
+- FE/src/features/destinations/DestinationDetailsPage.tsx — Imported formatCategory; applied at 3 display sites: AttractionHero prop (line 161), aside panel eyebrow (line 216), sticky bar key (line 254)
+
+**Documentation:**
+- CLAUDE.md — Updated Architecture section to reflect Destination as concrete entity (no subclasses); rewrote Model structure section to explain OpenTripMap kind storage, backfill precision loss, and why no closed enum; updated Response DTOs section
 
 ## Change Log
 
 - 2026-07-27: Story created from the 6-10 remediation follow-up discussion. Owner chose to flatten the hierarchy and adopt the OpenTripMap category vocabulary directly rather than preserving the `Landmark`/`Restaurant` strings.
+- 2026-07-27: Story implementation completed. All 7 tasks executed; 61 test constructor sites updated; migration hand-edited for safe operation ordering; 308 backend tests + 341 frontend tests passing; 0 build warnings. AC #3 verified with new OpeningHours assertion for restaurant import.

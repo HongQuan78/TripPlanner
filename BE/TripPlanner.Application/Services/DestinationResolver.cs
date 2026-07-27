@@ -1,5 +1,4 @@
 using TripPlanner.Application.Common;
-using TripPlanner.Application.Helpers;
 using TripPlanner.Application.Interfaces.Repositories;
 using TripPlanner.Application.Interfaces.Services;
 using TripPlanner.Domain.Models;
@@ -50,9 +49,13 @@ public class DestinationResolver(
             }
 
             var rating = details.Rating ?? 0;
-            Destination imported = DestinationCategoryHelper.IsRestaurantCategory(details.Category)
-                ? new Restaurant(details.Name, rating, details.Xid)
-                : new Landmark(details.Name, rating, details.OpeningHours ?? string.Empty, details.Xid);
+            const string defaultCategory = "interesting_places";
+            var imported = new Destination(
+                details.Name,
+                rating,
+                details.Category ?? defaultCategory,
+                details.OpeningHours,
+                details.Xid);
 
             destinationRepository.Add(imported);
             return Result<Destination>.Success(imported);

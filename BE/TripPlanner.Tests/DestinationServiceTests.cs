@@ -23,13 +23,13 @@ public class DestinationServiceTests
     {
         var destinations = new List<Destination>
         {
-            new Landmark("Eiffel Tower", 4.8, "9am-11pm"),
-            new Restaurant("Le Jules Verne", 4.5)
+            new Destination("Eiffel Tower", 4.8, "architecture", "9am-11pm"),
+            new Destination("Le Jules Verne", 4.5, "foods")
         };
         var expected = new List<DestinationResponse>
         {
-            new DestinationResponse { Name = "Eiffel Tower", Category = "Landmark" },
-            new DestinationResponse { Name = "Le Jules Verne", Category = "Restaurant" }
+            new DestinationResponse { Name = "Eiffel Tower", Category = "architecture" },
+            new DestinationResponse { Name = "Le Jules Verne", Category = "foods" }
         };
         var filter = new DestinationFilterParameter();
         _destinationRepository.GetFilteredAsync(filter, Arg.Any<CancellationToken>()).Returns(destinations);
@@ -42,8 +42,8 @@ public class DestinationServiceTests
     }
 
     [Theory]
-    [InlineData("Landmark")]
-    [InlineData("Restaurant")]
+    [InlineData("architecture")]
+    [InlineData("foods")]
     public async Task GetAllDestinationsAsync_WithCategoryFilter_ReturnsSuccessResult(string category)
     {
         var filter = new DestinationFilterParameter { Category = category };
@@ -60,8 +60,8 @@ public class DestinationServiceTests
     [Fact]
     public async Task GetDestinationByIdAsync_ExistingId_ReturnsSuccessResult()
     {
-        var destination = new Landmark("Louvre", 4.9, "9am-6pm");
-        var expected = new DestinationResponse { Name = "Louvre", Category = "Landmark" };
+        var destination = new Destination("Louvre", 4.9, "cultural", "9am-6pm");
+        var expected = new DestinationResponse { Name = "Louvre", Category = "cultural" };
         _destinationRepository.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(destination);
         _mapper.MapToDestinationResponse(destination).Returns(expected);
 
@@ -87,7 +87,7 @@ public class DestinationServiceTests
     public async Task GetAllDestinationsAsync_WithSearchFilter_ReturnsSuccessResult()
     {
         var filter = new DestinationFilterParameter { Search = "Eiffel" };
-        var destinations = new List<Destination> { new Landmark("Eiffel Tower", 4.8, "9am-11pm") };
+        var destinations = new List<Destination> { new Destination("Eiffel Tower", 4.8, "cultural", "9am-11pm") };
         var expected = new List<DestinationResponse> { new DestinationResponse { Name = "Eiffel Tower" } };
         _destinationRepository.GetFilteredAsync(filter, Arg.Any<CancellationToken>()).Returns(destinations);
         _mapper.MapToDestinationResponseList(destinations).Returns(expected);

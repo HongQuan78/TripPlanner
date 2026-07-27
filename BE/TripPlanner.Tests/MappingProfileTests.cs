@@ -16,7 +16,7 @@ public class MappingProfileTests
     [Fact]
     public void Map_DestinationWithExternalId_PopulatesXid()
     {
-        var landmark = new Landmark("Eiffel Tower", 4.8, "9am-11pm", "xid123");
+        var landmark = new Destination("Eiffel Tower", 4.8, "cultural", "9am-11pm", "xid123");
 
         var response = Mapper.Map<DestinationResponse>(landmark);
 
@@ -26,7 +26,7 @@ public class MappingProfileTests
     [Fact]
     public void Map_DestinationWithoutExternalId_XidIsNull()
     {
-        var landmark = new Landmark("Eiffel Tower", 4.8, "9am-11pm");
+        var landmark = new Destination("Eiffel Tower", 4.8, "cultural", "9am-11pm");
 
         var response = Mapper.Map<DestinationResponse>(landmark);
 
@@ -37,7 +37,7 @@ public class MappingProfileTests
     public void Map_TripWithSavedPlaces_PopulatesSavedPlaces()
     {
         var trip = new Trip("Paris", new DateOnly(2024, 6, 1), new DateOnly(2024, 6, 1), 1);
-        trip.AddSavedPlace(new Landmark("Louvre", 4.9, "9am-6pm", "xid-louvre"));
+        trip.AddSavedPlace(new Destination("Louvre", 4.9, "cultural", "9am-6pm", "xid-louvre"));
 
         var response = Mapper.Map<TripResponse>(trip);
 

@@ -10,7 +10,7 @@ public class TripDayTests
     [Fact]
     public void AddDestination_SingleDestination_AppearsInList()
     {
-        var destination = new Landmark("Eiffel Tower", 4.8, "9am-11pm");
+        var destination = new Destination("Eiffel Tower", 4.8, "cultural", "9am-11pm");
 
         _tripDay.AddDestination(destination);
 
@@ -21,8 +21,8 @@ public class TripDayTests
     [Fact]
     public void AddDestination_MultipleDestinations_AllAppearInList()
     {
-        var landmark = new Landmark("Eiffel Tower", 4.8, "9am-11pm");
-        var restaurant = new Restaurant("Le Jules Verne", 4.5);
+        var landmark = new Destination("Eiffel Tower", 4.8, "cultural", "9am-11pm");
+        var restaurant = new Destination("Le Jules Verne", 4.5, "foods");
 
         _tripDay.AddDestination(landmark);
         _tripDay.AddDestination(restaurant);
@@ -35,7 +35,7 @@ public class TripDayTests
     [Fact]
     public void RemoveDestination_ExistingDestination_RemovesFromList()
     {
-        var destination = new Landmark("Eiffel Tower", 4.8, "9am-11pm");
+        var destination = new Destination("Eiffel Tower", 4.8, "cultural", "9am-11pm");
         _tripDay.AddDestination(destination);
 
         _tripDay.RemoveDestination(destination);
@@ -46,8 +46,8 @@ public class TripDayTests
     [Fact]
     public void RemoveDestination_OneOfMultiple_OnlyRemovesTarget()
     {
-        var landmark = new Landmark("Eiffel Tower", 4.8, "9am-11pm");
-        var restaurant = new Restaurant("Le Jules Verne", 4.5);
+        var landmark = new Destination("Eiffel Tower", 4.8, "cultural", "9am-11pm");
+        var restaurant = new Destination("Le Jules Verne", 4.5, "foods");
         _tripDay.AddDestination(landmark);
         _tripDay.AddDestination(restaurant);
 
