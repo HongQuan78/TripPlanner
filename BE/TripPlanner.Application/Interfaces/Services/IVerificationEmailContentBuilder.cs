@@ -5,7 +5,8 @@ public record VerificationEmailContent(
     string FromName,
     string ToEmail,
     string Subject,
-    string TextBody);
+    string TextBody,
+    string HtmlBody);
 
 public interface IVerificationEmailContentBuilder
 {

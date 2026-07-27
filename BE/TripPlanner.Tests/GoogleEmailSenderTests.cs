@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using MimeKit;
 using NSubstitute;
 using Xunit;
 using TripPlanner.Application.Interfaces.Services;
@@ -17,7 +18,10 @@ public class GoogleEmailSenderTests
         TextBody: "Welcome to TripPlanner!\n\n" +
             "Verify your email address by opening this link:\n" +
             "http://localhost:5000/api/auth/verify-email?token=raw-token\n\n" +
-            "This link expires in 24 hours. If you did not sign up, you can safely ignore this email.");
+            "This link expires in 24 hours. If you did not sign up, you can safely ignore this email.",
+        HtmlBody: "<!DOCTYPE html><html><body>" +
+            "<a href=\"http://localhost:5000/api/auth/verify-email?token=raw-token\">Verify email address</a>" +
+            "<p>This link expires in 24 hours.</p></body></html>");
 
     [Fact]
     public void BuildMessage_ReturnsExpectedShape()
@@ -32,6 +36,20 @@ public class GoogleEmailSenderTests
         Assert.Equal("Verify your email address", message.Subject);
         Assert.Contains("http://localhost:5000/api/auth/verify-email?token=raw-token", message.TextBody);
         Assert.Contains("24 hours", message.TextBody);
+    }
+
+    [Fact]
+    public void BuildMessage_ProducesHtmlAndTextAlternatives()
+    {
+        var content = CreateContent();
+
+        var message = GoogleEmailSender.BuildMessage(content);
+
+        Assert.NotNull(message.TextBody);
+        Assert.NotNull(message.HtmlBody);
+        Assert.Contains("http://localhost:5000/api/auth/verify-email?token=raw-token", message.HtmlBody);
+        var body = Assert.IsType<MultipartAlternative>(message.Body);
+        Assert.Equal("alternative", body.ContentType.MediaSubtype);
     }
 
     [Fact]

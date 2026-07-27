@@ -27,6 +27,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="ExternalServices\Email\Templates\verification-email.html" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="TripPlanner.Tests" />
   </ItemGroup>
 

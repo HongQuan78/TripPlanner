@@ -35,7 +35,8 @@ public class ResendEmailSender(
         message.Subject = content.Subject;
         message.Body = new BodyBuilder
         {
-            TextBody = content.TextBody
+            TextBody = content.TextBody,
+            HtmlBody = content.HtmlBody
         }.ToMessageBody();
 
         return message;
