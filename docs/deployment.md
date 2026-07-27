@@ -116,6 +116,34 @@ so `.env` survives every run.
 initialized. Changing them later yields `28P01` and an API crash loop — rotate with
 `ALTER ROLE` inside the `db` container instead.
 
+### Using an external / managed Postgres
+
+`POSTGRES_HOST` (default `db`) and `POSTGRES_PORT` (default `5432`) select the server the
+API connects to, and `POSTGRES_OPTIONS` appends extra Npgsql settings. Point them at RDS,
+Neon, Supabase or a database on another host without touching `docker-compose.yml`:
+
+```
+POSTGRES_HOST=tripplanner.abc123.eu-west-1.rds.amazonaws.com
+POSTGRES_PORT=5432
+POSTGRES_DB=tripplanner
+POSTGRES_USER=tripplanner
+POSTGRES_PASSWORD=<the remote role's password>
+POSTGRES_OPTIONS=SSL Mode=Require;Trust Server Certificate=true
+```
+
+`POSTGRES_OPTIONS` is a `;`-separated fragment with **no** leading `;`. Most managed
+providers reject plaintext connections, so the `SSL Mode` fragment is usually required.
+
+Two things to know:
+
+- **The bundled `db` container still runs.** It starts, initializes its own volume, and
+  `api` still waits on its healthcheck — the API just never connects to it. Run
+  `docker compose stop db` once the stack is up if you want it out of the way.
+- **`RunMigrationsOnStartup` still defaults to `true`**, so the API will apply EF Core
+  migrations to the *remote* database on first boot. Set it to `false` in `.env` if that
+  database is managed elsewhere and migrations should only run via
+  `dotnet ef database update`.
+
 ## HTTP or HTTPS
 
 The deploy picks its edge from a single repository **variable** (Settings → Secrets and

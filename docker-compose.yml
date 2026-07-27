@@ -37,7 +37,7 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-db};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};${POSTGRES_OPTIONS:-}"
       ConnectionStrings__Redis: "${ConnectionStrings__Redis:-redis:6379}"
       JwtSettings__SecretKey: ${JwtSettings__SecretKey}
       OpenTripMapSettings__ApiKey: ${OpenTripMapSettings__ApiKey}
