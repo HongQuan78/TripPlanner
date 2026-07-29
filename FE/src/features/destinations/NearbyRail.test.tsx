@@ -2,16 +2,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Attraction } from '@/shared/api/types';
+import type { Attraction } from '@/shared/api/models/destination/attraction';
 import NearbyRail from './NearbyRail';
 
-vi.mock('./api', () => ({
-  getAttractions: vi.fn(),
+vi.mock('./destinationService', () => ({
+  destinationService: {
+    getAttractions: vi.fn(),
+  },
 }));
 
-import { getAttractions } from './api';
+import { destinationService } from './destinationService';
 
-const getAttractionsMock = vi.mocked(getAttractions);
+const getAttractionsMock = vi.mocked(destinationService.getAttractions);
 
 function makeAttraction(overrides: Partial<Attraction> & { xid: string }): Attraction {
   return {

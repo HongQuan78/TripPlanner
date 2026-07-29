@@ -75,3 +75,18 @@ export function tripStatus(startDate: string, endDate: string, today: string): T
   const label = daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`;
   return { kind: 'upcoming', label };
 }
+
+export function isoToDate(iso: string): Date | undefined {
+  if (!iso) {
+    return undefined;
+  }
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+export function dateToISO(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}

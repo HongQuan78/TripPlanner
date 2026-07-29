@@ -1,14 +1,14 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Attraction } from '@/shared/api/types';
+import type { Attraction } from '@/shared/api/models/destination/attraction';
 import AttractionCard from './AttractionCard';
 
-vi.mock('@/features/trips/AddToTripContext', () => ({
+vi.mock('@/features/trips/useAddToTrip', () => ({
   useAddToTrip: vi.fn(),
 }));
 
-import { useAddToTrip } from '@/features/trips/AddToTripContext';
+import { useAddToTrip } from '@/features/trips/useAddToTrip';
 
 const useAddToTripMock = vi.mocked(useAddToTrip);
 

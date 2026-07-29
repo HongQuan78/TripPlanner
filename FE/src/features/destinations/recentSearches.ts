@@ -1,4 +1,4 @@
-import type { LocationSearchResult } from '@/shared/api/types';
+import type { LocationSearchResult } from '@/shared/api/models/destination/locationSearchResult';
 
 const RECENT_SEARCH_LIMIT = 5;
 

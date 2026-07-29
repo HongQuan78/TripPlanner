@@ -2,26 +2,30 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '@/shared/api/client';
-import type { DestinationDetails } from '@/shared/api/types';
+import { ApiError } from '@/shared/api/apiError';
+import type { DestinationDetails } from '@/shared/api/models/destination/destinationDetails';
 import DestinationDetailsPage from './DestinationDetailsPage';
 
-vi.mock('./api', () => ({
-  searchLocations: vi.fn(),
-  getAttractions: vi.fn(),
-  getDestinationDetails: vi.fn(),
+vi.mock('./destinationService', () => ({
+  destinationService: {
+    searchLocations: vi.fn(),
+    getAttractions: vi.fn(),
+    getDestinationDetails: vi.fn(),
+  },
 }));
 
-vi.mock('@/features/trips/api', () => ({
-  getTrips: vi.fn(),
-  getTrip: vi.fn(),
-  createTrip: vi.fn(),
-  updateTrip: vi.fn(),
-  addDestinationToDay: vi.fn(),
-  removeDestinationFromDay: vi.fn(),
+vi.mock('@/features/trips/tripService', () => ({
+  tripService: {
+    getAll: vi.fn(),
+    getById: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    addDestinationToDay: vi.fn(),
+    removeDestinationFromDay: vi.fn(),
+  },
 }));
 
-vi.mock('@/features/auth/AuthContext', () => ({
+vi.mock('@/features/auth/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 
@@ -30,14 +34,14 @@ vi.mock('./AttractionMap', () => ({
   default: ({ name }: { name: string }) => <div data-testid="map">{`Map: ${name}`}</div>,
 }));
 
-import { getAttractions, getDestinationDetails } from './api';
-import { getTrips } from '@/features/trips/api';
-import { useAuth } from '@/features/auth/AuthContext';
+import { destinationService } from './destinationService';
+import { tripService } from '@/features/trips/tripService';
+import { useAuth } from '@/features/auth/useAuth';
 import { AddToTripProvider } from '@/features/trips/AddToTripContext';
 
-const getDestinationDetailsMock = vi.mocked(getDestinationDetails);
-const getAttractionsMock = vi.mocked(getAttractions);
-const getTripsMock = vi.mocked(getTrips);
+const getDestinationDetailsMock = vi.mocked(destinationService.getDestinationDetails);
+const getAttractionsMock = vi.mocked(destinationService.getAttractions);
+const getTripsMock = vi.mocked(tripService.getAll);
 const useAuthMock = vi.mocked(useAuth);
 
 const fullDetails: DestinationDetails = {

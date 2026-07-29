@@ -1,16 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/features/auth/AuthContext';
+import { useAuth } from '@/features/auth/useAuth';
 import AddToTripDialog from './AddToTripDialog';
+import { AddToTripContext } from './useAddToTrip';
+import type { AddToTripContextValue } from './useAddToTrip';
 
 export const PENDING_ADD_KEY = 'tripplanner.pendingAdd';
-
-interface AddToTripContextValue {
-  requestAdd: (xid: string) => void;
-}
-
-const AddToTripContext = createContext<AddToTripContextValue | null>(null);
 
 export function AddToTripProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -52,12 +48,4 @@ export function AddToTripProvider({ children }: { children: ReactNode }) {
       )}
     </AddToTripContext.Provider>
   );
-}
-
-export function useAddToTrip(): AddToTripContextValue {
-  const value = useContext(AddToTripContext);
-  if (value === null) {
-    throw new Error('useAddToTrip must be used within an AddToTripProvider');
-  }
-  return value;
 }

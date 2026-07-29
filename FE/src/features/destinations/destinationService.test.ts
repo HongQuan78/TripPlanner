@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getAttractions, getDestinationDetails, searchLocations } from './api';
+import { HttpClient } from '@/shared/api/httpClient';
+import { DestinationService } from './destinationService';
 
 const fetchMock = vi.fn();
 
@@ -10,8 +11,11 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
+let service: DestinationService;
+
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
+  service = new DestinationService(new HttpClient(''));
 });
 
 afterEach(() => {
@@ -23,7 +27,7 @@ describe('searchLocations', () => {
   it('calls the search endpoint with the encoded query', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, []));
 
-    await searchLocations('New York');
+    await service.searchLocations('New York');
 
     expect(fetchMock.mock.calls[0][0]).toBe('/api/locations/search?query=New%20York');
   });
@@ -41,7 +45,7 @@ describe('searchLocations', () => {
     ];
     fetchMock.mockResolvedValue(jsonResponse(200, results));
 
-    const parsed = await searchLocations('Paris');
+    const parsed = await service.searchLocations('Paris');
 
     expect(parsed).toEqual(results);
   });
@@ -51,7 +55,7 @@ describe('getAttractions', () => {
   it('calls the attractions endpoint with the coordinates', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, []));
 
-    await getAttractions(48.8566, 2.3522);
+    await service.getAttractions(48.8566, 2.3522);
 
     expect(fetchMock.mock.calls[0][0]).toBe(
       '/api/locations/attractions?latitude=48.8566&longitude=2.3522',
@@ -61,7 +65,7 @@ describe('getAttractions', () => {
   it('appends kinds and minRate query params when filters are provided', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, []));
 
-    await getAttractions(48.8566, 2.3522, { kinds: ['cultural', 'historic'], minRate: 3 });
+    await service.getAttractions(48.8566, 2.3522, { kinds: ['cultural', 'historic'], minRate: 3 });
 
     expect(fetchMock.mock.calls[0][0]).toBe(
       '/api/locations/attractions?latitude=48.8566&longitude=2.3522&kinds=cultural%2Chistoric&minRate=3',
@@ -71,7 +75,7 @@ describe('getAttractions', () => {
   it('omits filter params when kinds are empty and minRate is null', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, []));
 
-    await getAttractions(48.8566, 2.3522, { kinds: [], minRate: null });
+    await service.getAttractions(48.8566, 2.3522, { kinds: [], minRate: null });
 
     expect(fetchMock.mock.calls[0][0]).toBe(
       '/api/locations/attractions?latitude=48.8566&longitude=2.3522',
@@ -81,7 +85,7 @@ describe('getAttractions', () => {
   it('appends the offset param when a page beyond the first is requested', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, []));
 
-    await getAttractions(48.8566, 2.3522, { kinds: ['cultural'], minRate: 2 }, 20);
+    await service.getAttractions(48.8566, 2.3522, { kinds: ['cultural'], minRate: 2 }, 20);
 
     expect(fetchMock.mock.calls[0][0]).toBe(
       '/api/locations/attractions?latitude=48.8566&longitude=2.3522&kinds=cultural&minRate=2&offset=20',
@@ -91,7 +95,7 @@ describe('getAttractions', () => {
   it('omits the offset param for the first page', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, []));
 
-    await getAttractions(48.8566, 2.3522, { kinds: [], minRate: null }, 0);
+    await service.getAttractions(48.8566, 2.3522, { kinds: [], minRate: null }, 0);
 
     expect(fetchMock.mock.calls[0][0]).toBe(
       '/api/locations/attractions?latitude=48.8566&longitude=2.3522',
@@ -111,7 +115,7 @@ describe('getAttractions', () => {
     ];
     fetchMock.mockResolvedValue(jsonResponse(200, attractions));
 
-    const parsed = await getAttractions(48.8566, 2.3522);
+    const parsed = await service.getAttractions(48.8566, 2.3522);
 
     expect(parsed).toEqual(attractions);
   });
@@ -121,7 +125,7 @@ describe('getDestinationDetails', () => {
   it('calls the details endpoint with the encoded xid', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, {}));
 
-    await getDestinationDetails('W/123');
+    await service.getDestinationDetails('W/123');
 
     expect(fetchMock.mock.calls[0][0]).toBe('/api/locations/W%2F123/details');
   });
@@ -141,7 +145,7 @@ describe('getDestinationDetails', () => {
     };
     fetchMock.mockResolvedValue(jsonResponse(200, details));
 
-    const parsed = await getDestinationDetails('W123');
+    const parsed = await service.getDestinationDetails('W123');
 
     expect(parsed).toEqual(details);
   });

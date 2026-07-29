@@ -2,8 +2,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { useEffect } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { request } from '@/shared/api/client';
-import { AUTH_STORAGE_KEY, AuthProvider, useAuth } from './AuthContext';
+import { httpClient } from '@/shared/api/httpClient';
+import { AUTH_STORAGE_KEY, AuthProvider } from './AuthContext';
+import { useAuth } from './useAuth';
 
 const fetchMock = vi.fn();
 
@@ -29,7 +30,7 @@ function LocationProbe() {
 
 function RequestOnMount() {
   useEffect(() => {
-    void request('/api/trips');
+    void httpClient.request('/api/trips');
   }, []);
   return null;
 }
@@ -96,7 +97,7 @@ describe('AuthProvider', () => {
 
     renderProvider();
     await act(async () => {
-      await request('/api/trips');
+      await httpClient.request('/api/trips');
     });
 
     const headers = fetchMock.mock.calls[0][1].headers as Headers;
@@ -162,7 +163,7 @@ describe('AuthProvider', () => {
 
     renderProvider(['/trips?view=all']);
     await act(async () => {
-      await request('/api/trips').catch(() => {});
+      await httpClient.request('/api/trips').catch(() => {});
     });
 
     expect(screen.getByTestId('authed').textContent).toBe('false');
@@ -179,7 +180,7 @@ describe('AuthProvider', () => {
 
     renderProvider(['/login']);
     await act(async () => {
-      await request('/api/auth/login', { method: 'POST' }).catch(() => {});
+      await httpClient.request('/api/auth/login', { method: 'POST' }).catch(() => {});
     });
 
     expect(screen.getByTestId('location').textContent).toBe('/login');

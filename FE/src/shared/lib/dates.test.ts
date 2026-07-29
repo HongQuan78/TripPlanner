@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  dateToISO,
   daysBetween,
   formatDate,
   formatDateRange,
   formatSegmentDate,
   formatShortDate,
+  isoToDate,
   pluralizeCount,
   todayISO,
   tripStatus,
@@ -124,5 +126,36 @@ describe('tripStatus', () => {
       kind: 'upcoming',
       label: 'In 27 days',
     });
+  });
+});
+
+describe('isoToDate', () => {
+  it('parses an ISO date as local midnight', () => {
+    const parsed = isoToDate('2026-08-12');
+
+    expect(parsed?.getFullYear()).toBe(2026);
+    expect(parsed?.getMonth()).toBe(7);
+    expect(parsed?.getDate()).toBe(12);
+    expect(parsed?.getHours()).toBe(0);
+  });
+
+  it('returns undefined for an empty string', () => {
+    expect(isoToDate('')).toBeUndefined();
+  });
+});
+
+describe('dateToISO', () => {
+  it('formats a local date as an ISO day string', () => {
+    expect(dateToISO(new Date(2026, 7, 12))).toBe('2026-08-12');
+  });
+
+  it('zero-pads single-digit months and days', () => {
+    expect(dateToISO(new Date(2026, 0, 5))).toBe('2026-01-05');
+  });
+
+  it('round-trips with isoToDate', () => {
+    const iso = '2026-12-31';
+
+    expect(dateToISO(isoToDate(iso) as Date)).toBe(iso);
   });
 });

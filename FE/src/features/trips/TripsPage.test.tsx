@@ -2,23 +2,25 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '@/shared/api/client';
-import type { Trip } from '@/shared/api/types';
+import { ApiError } from '@/shared/api/apiError';
+import type { Trip } from '@/shared/api/models/trip/trip';
 import TripsPage from './TripsPage';
 
-vi.mock('./api', () => ({
-  getTrips: vi.fn(),
-  getTrip: vi.fn(),
-  createTrip: vi.fn(),
-  updateTrip: vi.fn(),
-  addDestinationToDay: vi.fn(),
-  removeDestinationFromDay: vi.fn(),
+vi.mock('./tripService', () => ({
+  tripService: {
+    getAll: vi.fn(),
+    getById: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    addDestinationToDay: vi.fn(),
+    removeDestinationFromDay: vi.fn(),
+  },
 }));
 
-import { createTrip, getTrips } from './api';
+import { tripService } from './tripService';
 
-const getTripsMock = vi.mocked(getTrips);
-const createTripMock = vi.mocked(createTrip);
+const getTripsMock = vi.mocked(tripService.getAll);
+const createTripMock = vi.mocked(tripService.create);
 
 const trips: Trip[] = [
   {

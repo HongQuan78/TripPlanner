@@ -2,18 +2,20 @@ import { StrictMode } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '@/shared/api/client';
+import { ApiError } from '@/shared/api/apiError';
 import VerifyEmailPage from './VerifyEmailPage';
 
-vi.mock('./api', () => ({
-  verifyEmail: vi.fn(),
-  resendVerification: vi.fn(),
+vi.mock('./authService', () => ({
+  authService: {
+    verifyEmail: vi.fn(),
+    resendVerification: vi.fn(),
+  },
 }));
 
-import { resendVerification, verifyEmail } from './api';
+import { authService } from './authService';
 
-const verifyEmailMock = vi.mocked(verifyEmail);
-const resendVerificationMock = vi.mocked(resendVerification);
+const verifyEmailMock = vi.mocked(authService.verifyEmail);
+const resendVerificationMock = vi.mocked(authService.resendVerification);
 
 function renderPage(url: string) {
   return render(

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Attraction } from '@/shared/api/types';
+import type { Attraction } from '@/shared/api/models/destination/attraction';
 import { sortAttractions } from './attractionFilters';
 
 function attraction(xid: string, rating: string | null): Attraction {

@@ -1,4 +1,4 @@
-import type { LocationSearchResult } from '@/shared/api/types';
+import type { LocationSearchResult } from '@/shared/api/models/destination/locationSearchResult';
 import styles from './SuggestionDropdown.module.css';
 import { suggestionOptionId } from './suggestionOption';
 

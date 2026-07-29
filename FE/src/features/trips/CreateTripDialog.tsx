@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { ApiError } from '@/shared/api/client';
-import type { Trip } from '@/shared/api/types';
+import { ApiError } from '@/shared/api/apiError';
+import type { Trip } from '@/shared/api/models/trip/trip';
 import { todayISO } from '@/shared/lib/dates';
 import Modal from '@/shared/ui/Modal';
 import dialogStyles from '@/shared/ui/Dialog.module.css';

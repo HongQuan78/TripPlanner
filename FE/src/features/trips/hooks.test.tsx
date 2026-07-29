@@ -2,35 +2,25 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Trip } from '@/shared/api/types';
+import type { Trip } from '@/shared/api/models/trip/trip';
 
-vi.mock('./api', () => ({
-  getTrips: vi.fn(),
-  getTrip: vi.fn(),
-  createTrip: vi.fn(),
-  updateTrip: vi.fn(),
-  addDestinationToDay: vi.fn(),
-  removeDestinationFromDay: vi.fn(),
-  addToSavedPlaces: vi.fn(),
-  removeFromSavedPlaces: vi.fn(),
-  scheduleSavedPlace: vi.fn(),
-  reorderDayDestinations: vi.fn(),
-  moveDestinationBetweenDays: vi.fn(),
+vi.mock('./tripService', () => ({
+  tripService: {
+    getAll: vi.fn(),
+    getById: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    addDestinationToDay: vi.fn(),
+    removeDestinationFromDay: vi.fn(),
+    addToSavedPlaces: vi.fn(),
+    removeFromSavedPlaces: vi.fn(),
+    scheduleSavedPlace: vi.fn(),
+    reorderDayDestinations: vi.fn(),
+    moveDestinationBetweenDays: vi.fn(),
+  },
 }));
 
-import {
-  addDestinationToDay,
-  addToSavedPlaces,
-  createTrip,
-  getTrip,
-  getTrips,
-  moveDestinationBetweenDays,
-  removeDestinationFromDay,
-  removeFromSavedPlaces,
-  reorderDayDestinations,
-  scheduleSavedPlace,
-  updateTrip,
-} from './api';
+import { tripService } from './tripService';
 import {
   useAddDestinationToDay,
   useAddToSavedPlaces,
@@ -74,17 +64,17 @@ function createWrapper() {
 }
 
 beforeEach(() => {
-  vi.mocked(getTrips).mockReset();
-  vi.mocked(getTrip).mockReset();
-  vi.mocked(createTrip).mockReset();
-  vi.mocked(updateTrip).mockReset();
-  vi.mocked(addDestinationToDay).mockReset();
-  vi.mocked(removeDestinationFromDay).mockReset();
-  vi.mocked(addToSavedPlaces).mockReset();
-  vi.mocked(removeFromSavedPlaces).mockReset();
-  vi.mocked(scheduleSavedPlace).mockReset();
-  vi.mocked(reorderDayDestinations).mockReset();
-  vi.mocked(moveDestinationBetweenDays).mockReset();
+  vi.mocked(tripService.getAll).mockReset();
+  vi.mocked(tripService.getById).mockReset();
+  vi.mocked(tripService.create).mockReset();
+  vi.mocked(tripService.update).mockReset();
+  vi.mocked(tripService.addDestinationToDay).mockReset();
+  vi.mocked(tripService.removeDestinationFromDay).mockReset();
+  vi.mocked(tripService.addToSavedPlaces).mockReset();
+  vi.mocked(tripService.removeFromSavedPlaces).mockReset();
+  vi.mocked(tripService.scheduleSavedPlace).mockReset();
+  vi.mocked(tripService.reorderDayDestinations).mockReset();
+  vi.mocked(tripService.moveDestinationBetweenDays).mockReset();
 });
 
 const firstDest = {
@@ -107,7 +97,7 @@ const secondDest = {
 
 describe('useTrips', () => {
   it('fetches the trip list', async () => {
-    vi.mocked(getTrips).mockResolvedValue([trip]);
+    vi.mocked(tripService.getAll).mockResolvedValue([trip]);
     const { Wrapper } = createWrapper();
 
     const { result } = renderHook(() => useTrips(), { wrapper: Wrapper });
@@ -121,7 +111,7 @@ describe('useTrips', () => {
 
 describe('useTrip', () => {
   it('fetches a single trip by id', async () => {
-    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(tripService.getById).mockResolvedValue(trip);
     const { Wrapper } = createWrapper();
 
     const { result } = renderHook(() => useTrip(7), { wrapper: Wrapper });
@@ -129,7 +119,7 @@ describe('useTrip', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
-    expect(getTrip).toHaveBeenCalledWith(7);
+    expect(tripService.getById).toHaveBeenCalledWith(7);
     expect(result.current.data).toEqual(trip);
   });
 
@@ -139,13 +129,13 @@ describe('useTrip', () => {
     const { result } = renderHook(() => useTrip(Number.NaN), { wrapper: Wrapper });
 
     expect(result.current.fetchStatus).toBe('idle');
-    expect(getTrip).not.toHaveBeenCalled();
+    expect(tripService.getById).not.toHaveBeenCalled();
   });
 });
 
 describe('useCreateTrip', () => {
   it('creates a trip and invalidates the trip list', async () => {
-    vi.mocked(createTrip).mockResolvedValue(trip);
+    vi.mocked(tripService.create).mockResolvedValue(trip);
     const { queryClient, Wrapper } = createWrapper();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -165,7 +155,7 @@ describe('useCreateTrip', () => {
 
 describe('useUpdateTrip', () => {
   it('updates the trip and invalidates the list and the trip', async () => {
-    vi.mocked(updateTrip).mockResolvedValue(trip);
+    vi.mocked(tripService.update).mockResolvedValue(trip);
     const { queryClient, Wrapper } = createWrapper();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -180,7 +170,7 @@ describe('useUpdateTrip', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
-    expect(updateTrip).toHaveBeenCalledWith(7, {
+    expect(tripService.update).toHaveBeenCalledWith(7, {
       name: 'Paris getaway',
       startDate: '2026-08-01',
       endDate: '2026-08-02',
@@ -193,7 +183,7 @@ describe('useUpdateTrip', () => {
 
 describe('useAddDestinationToDay', () => {
   it('posts the destination and invalidates the list and the trip', async () => {
-    vi.mocked(addDestinationToDay).mockResolvedValue(trip.tripDays[0]);
+    vi.mocked(tripService.addDestinationToDay).mockResolvedValue(trip.tripDays[0]);
     const { queryClient, Wrapper } = createWrapper();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -203,7 +193,7 @@ describe('useAddDestinationToDay', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
-    expect(addDestinationToDay).toHaveBeenCalledWith(7, '2026-08-01', { xid: 'W123' });
+    expect(tripService.addDestinationToDay).toHaveBeenCalledWith(7, '2026-08-01', { xid: 'W123' });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['trips'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['trip', 7] });
   });
@@ -211,7 +201,7 @@ describe('useAddDestinationToDay', () => {
 
 describe('useRemoveDestinationFromDay', () => {
   it('deletes the destination and invalidates the list and the trip', async () => {
-    vi.mocked(removeDestinationFromDay).mockResolvedValue(undefined);
+    vi.mocked(tripService.removeDestinationFromDay).mockResolvedValue(undefined);
     const { queryClient, Wrapper } = createWrapper();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -221,7 +211,7 @@ describe('useRemoveDestinationFromDay', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
-    expect(removeDestinationFromDay).toHaveBeenCalledWith(7, '2026-08-01', 42);
+    expect(tripService.removeDestinationFromDay).toHaveBeenCalledWith(7, '2026-08-01', 42);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['trips'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['trip', 7] });
   });
@@ -229,7 +219,7 @@ describe('useRemoveDestinationFromDay', () => {
 
 describe('useAddToSavedPlaces', () => {
   it('adds a destination to the pool and invalidates the list and the trip', async () => {
-    vi.mocked(addToSavedPlaces).mockResolvedValue({ ...trip, savedPlaces: [savedPlace] });
+    vi.mocked(tripService.addToSavedPlaces).mockResolvedValue({ ...trip, savedPlaces: [savedPlace] });
     const { queryClient, Wrapper } = createWrapper();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -239,7 +229,7 @@ describe('useAddToSavedPlaces', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
-    expect(addToSavedPlaces).toHaveBeenCalledWith(7, { xid: 'W123' });
+    expect(tripService.addToSavedPlaces).toHaveBeenCalledWith(7, { xid: 'W123' });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['trips'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['trip', 7] });
   });
@@ -247,7 +237,7 @@ describe('useAddToSavedPlaces', () => {
 
 describe('useRemoveFromSavedPlaces', () => {
   it('removes a destination from the pool and invalidates the list and the trip', async () => {
-    vi.mocked(removeFromSavedPlaces).mockResolvedValue(undefined);
+    vi.mocked(tripService.removeFromSavedPlaces).mockResolvedValue(undefined);
     const { queryClient, Wrapper } = createWrapper();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -257,7 +247,7 @@ describe('useRemoveFromSavedPlaces', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
-    expect(removeFromSavedPlaces).toHaveBeenCalledWith(7, 99);
+    expect(tripService.removeFromSavedPlaces).toHaveBeenCalledWith(7, 99);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['trips'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['trip', 7] });
   });
@@ -265,7 +255,7 @@ describe('useRemoveFromSavedPlaces', () => {
 
 describe('useScheduleSavedPlace', () => {
   it('optimistically moves the place from the pool onto the day', async () => {
-    vi.mocked(scheduleSavedPlace).mockImplementation(
+    vi.mocked(tripService.scheduleSavedPlace).mockImplementation(
       () => new Promise(() => {}),
     );
     const { queryClient, Wrapper } = createWrapper();
@@ -282,7 +272,7 @@ describe('useScheduleSavedPlace', () => {
   });
 
   it('rolls back the optimistic move when the schedule fails', async () => {
-    vi.mocked(scheduleSavedPlace).mockRejectedValue(
+    vi.mocked(tripService.scheduleSavedPlace).mockRejectedValue(
       new Error('Destination already exists in this day.'),
     );
     const { queryClient, Wrapper } = createWrapper();
@@ -303,7 +293,7 @@ describe('useScheduleSavedPlace', () => {
 
 describe('useReorderDayDestinations', () => {
   it('optimistically reorders the day destinations in the cache', async () => {
-    vi.mocked(reorderDayDestinations).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(tripService.reorderDayDestinations).mockImplementation(() => new Promise(() => {}));
     const { queryClient, Wrapper } = createWrapper();
     queryClient.setQueryData(['trip', 7], {
       ...trip,
@@ -317,13 +307,13 @@ describe('useReorderDayDestinations', () => {
       const cached = queryClient.getQueryData<Trip>(['trip', 7]);
       expect(cached?.tripDays[0].destinations.map((d) => d.id)).toEqual([2, 1]);
     });
-    expect(reorderDayDestinations).toHaveBeenCalledWith(7, '2026-08-01', {
+    expect(tripService.reorderDayDestinations).toHaveBeenCalledWith(7, '2026-08-01', {
       destinationIds: [2, 1],
     });
   });
 
   it('rolls back the optimistic reorder when the request fails', async () => {
-    vi.mocked(reorderDayDestinations).mockRejectedValue(new Error('Reorder failed.'));
+    vi.mocked(tripService.reorderDayDestinations).mockRejectedValue(new Error('Reorder failed.'));
     const { queryClient, Wrapper } = createWrapper();
     queryClient.setQueryData(['trip', 7], {
       ...trip,
@@ -343,7 +333,7 @@ describe('useReorderDayDestinations', () => {
 
 describe('useMoveDestinationBetweenDays', () => {
   it('optimistically moves the destination from the source day to the end of the target day', async () => {
-    vi.mocked(moveDestinationBetweenDays).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(tripService.moveDestinationBetweenDays).mockImplementation(() => new Promise(() => {}));
     const { queryClient, Wrapper } = createWrapper();
     queryClient.setQueryData(['trip', 7], {
       ...trip,
@@ -361,13 +351,13 @@ describe('useMoveDestinationBetweenDays', () => {
       expect(cached?.tripDays[0].destinations.map((d) => d.id)).toEqual([]);
       expect(cached?.tripDays[1].destinations.map((d) => d.id)).toEqual([2, 1]);
     });
-    expect(moveDestinationBetweenDays).toHaveBeenCalledWith(7, '2026-08-01', 1, {
+    expect(tripService.moveDestinationBetweenDays).toHaveBeenCalledWith(7, '2026-08-01', 1, {
       toDate: '2026-08-02',
     });
   });
 
   it('removes from the source without duplicating when the target day already has the destination', async () => {
-    vi.mocked(moveDestinationBetweenDays).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(tripService.moveDestinationBetweenDays).mockImplementation(() => new Promise(() => {}));
     const { queryClient, Wrapper } = createWrapper();
     queryClient.setQueryData(['trip', 7], {
       ...trip,
@@ -388,7 +378,7 @@ describe('useMoveDestinationBetweenDays', () => {
   });
 
   it('rolls back the optimistic move when the request fails', async () => {
-    vi.mocked(moveDestinationBetweenDays).mockRejectedValue(new Error('Move failed.'));
+    vi.mocked(tripService.moveDestinationBetweenDays).mockRejectedValue(new Error('Move failed.'));
     const { queryClient, Wrapper } = createWrapper();
     queryClient.setQueryData(['trip', 7], {
       ...trip,

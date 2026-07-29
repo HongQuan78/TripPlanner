@@ -3,6 +3,8 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { DayPicker } from 'react-day-picker';
 import type { Matcher } from 'react-day-picker';
 import 'react-day-picker/style.css';
+import CalendarIcon from './CalendarIcon';
+import { dateToISO, isoToDate } from '@/shared/lib/dates';
 import styles from './DateField.module.css';
 
 const VIEWPORT_GUTTER = 8;
@@ -15,30 +17,6 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-function isoToDate(iso: string): Date | undefined {
-  if (!iso) {
-    return undefined;
-  }
-  const [year, month, day] = iso.split('-').map(Number);
-  return new Date(year, month - 1, day);
-}
-
-function dateToISO(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function CalendarIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="3" y="4.5" width="18" height="16" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M3 9h18" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M8 2.5v4M16 2.5v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 export default function DateField({
   id,

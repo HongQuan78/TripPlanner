@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ApiError } from '@/shared/api/client';
+import { ApiError } from '@/shared/api/apiError';
 import { useAddDestinationToDay, useAddToSavedPlaces, useTrips } from './hooks';
 import { formatDate, formatDateRange } from '@/shared/lib/dates';
 import Modal from '@/shared/ui/Modal';

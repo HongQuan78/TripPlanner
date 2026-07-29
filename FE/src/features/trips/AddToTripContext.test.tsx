@@ -2,30 +2,33 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Trip } from '@/shared/api/types';
-import { AddToTripProvider, PENDING_ADD_KEY, useAddToTrip } from './AddToTripContext';
+import type { Trip } from '@/shared/api/models/trip/trip';
+import { AddToTripProvider, PENDING_ADD_KEY } from './AddToTripContext';
+import { useAddToTrip } from './useAddToTrip';
 
-vi.mock('./api', () => ({
-  getTrips: vi.fn(),
-  getTrip: vi.fn(),
-  createTrip: vi.fn(),
-  updateTrip: vi.fn(),
-  addDestinationToDay: vi.fn(),
-  removeDestinationFromDay: vi.fn(),
-  addToSavedPlaces: vi.fn(),
-  removeFromSavedPlaces: vi.fn(),
-  scheduleSavedPlace: vi.fn(),
+vi.mock('./tripService', () => ({
+  tripService: {
+    getAll: vi.fn(),
+    getById: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    addDestinationToDay: vi.fn(),
+    removeDestinationFromDay: vi.fn(),
+    addToSavedPlaces: vi.fn(),
+    removeFromSavedPlaces: vi.fn(),
+    scheduleSavedPlace: vi.fn(),
+  },
 }));
 
-vi.mock('@/features/auth/AuthContext', () => ({
+vi.mock('@/features/auth/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 
-import { addDestinationToDay, getTrips } from './api';
-import { useAuth } from '@/features/auth/AuthContext';
+import { tripService } from './tripService';
+import { useAuth } from '@/features/auth/useAuth';
 
-const getTripsMock = vi.mocked(getTrips);
-const addDestinationToDayMock = vi.mocked(addDestinationToDay);
+const getTripsMock = vi.mocked(tripService.getAll);
+const addDestinationToDayMock = vi.mocked(tripService.addDestinationToDay);
 const useAuthMock = vi.mocked(useAuth);
 
 const trips: Trip[] = [

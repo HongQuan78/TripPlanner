@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Attraction } from '@/shared/api/types';
+import type { Attraction } from '@/shared/api/models/destination/attraction';
 import { useNearbyAttractions } from './hooks';
 import styles from './NearbyRail.module.css';
 
