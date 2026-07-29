@@ -91,7 +91,7 @@ export async function chooseSuggestion(query: string, optionName: RegExp) {
     const listbox = screen.getByRole('listbox', { name: /location suggestions/i });
     option = within(listbox).getByRole('option', { name: optionName });
   });
-  fireEvent.mouseDown(option!);
+  fireEvent.click(option!);
 }
 
 export function sleep(ms: number) {

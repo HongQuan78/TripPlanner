@@ -1,9 +1,13 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PopularTile from './PopularTile';
+import tileStyles from './PopularTile.module.css';
 import { POPULAR_CITIES } from './popularCities';
+import { TILE_GRADIENTS } from './landingContent';
 import { resetSearchState } from './searchState';
 import { clearRecentSearches } from './recentSearches';
+
+const hiddenImageClass = tileStyles.tileImageHidden;
 
 vi.mock('./destinationService', () => ({
   destinationService: {
@@ -40,7 +44,7 @@ beforeEach(() => {
 });
 describe('SearchPage', () => {
   describe('landing body', () => {
-    const tileCities = ['Đà Nẵng', 'Paris', 'Tokyo', 'Rome', 'Barcelona', 'New York'];
+    const tileCities = POPULAR_CITIES.map((city) => city.name);
 
     it('renders the hero headline, tagline, a wordless input, and the search landmark', () => {
       renderPage();
@@ -70,10 +74,40 @@ describe('SearchPage', () => {
     it('renders a photograph on every configured tile, pointing at that city image', () => {
       renderPage();
 
-      for (const city of POPULAR_CITIES) {
+      const configured = POPULAR_CITIES.filter((city) => city.imageUrl !== null);
+      expect(configured.length).toBeGreaterThan(0);
+      for (const city of configured) {
         const tile = screen.getByRole('button', { name: city.name });
         const image = within(tile).getByTestId('tile-image');
-        expect(image).toHaveAttribute('src', city.imageUrl!);
+        expect(image).toHaveAttribute('src', city.imageUrl);
+      }
+    });
+
+    it('carries a gradient underlay on every shipped tile, not just a hand-built one', () => {
+      renderPage();
+
+      expect(TILE_GRADIENTS.length).toBeGreaterThan(0);
+      for (const gradient of TILE_GRADIENTS) {
+        expect(gradient).toBeTruthy();
+      }
+      POPULAR_CITIES.forEach((city, index) => {
+        const tile = screen.getByRole('button', { name: city.name });
+        expect(tile.className).toContain(TILE_GRADIENTS[index % TILE_GRADIENTS.length]);
+      });
+    });
+
+    it('credits every tile photograph with its author and licence', () => {
+      renderPage();
+
+      for (const city of POPULAR_CITIES) {
+        if (city.credit === null) {
+          continue;
+        }
+        const credit = screen.getByRole('link', { name: city.credit.author });
+        expect(credit).toHaveAttribute('href', city.credit.sourceUrl);
+        expect(screen.getAllByRole('link', { name: city.credit.license }).length).toBeGreaterThan(
+          0,
+        );
       }
     });
 
@@ -90,53 +124,80 @@ describe('SearchPage', () => {
     it('holds the photograph hidden over the gradient until it finishes loading', () => {
       renderPage();
 
+      const romeIndex = POPULAR_CITIES.findIndex((city) => city.name === 'Rome');
+      const romeGradient = TILE_GRADIENTS[romeIndex % TILE_GRADIENTS.length];
       const tile = screen.getByRole('button', { name: 'Rome' });
-      const gradientBefore = tile.className;
       const image = within(tile).getByTestId('tile-image');
       expect(image).toHaveAttribute('data-loaded', 'false');
+      expect(image.className).toContain(hiddenImageClass);
+      expect(tile.className).toContain(romeGradient);
 
       fireEvent.load(image);
 
-      expect(within(tile).getByTestId('tile-image')).toHaveAttribute('data-loaded', 'true');
-      expect(tile.className).toBe(gradientBefore);
+      const afterLoad = within(tile).getByTestId('tile-image');
+      expect(afterLoad).toHaveAttribute('data-loaded', 'true');
+      expect(afterLoad.className).not.toContain(hiddenImageClass);
+      expect(tile.className).toContain(romeGradient);
     });
 
     it('drops a failed photograph and leaves the tile on its gradient alone', () => {
       renderPage();
 
+      const parisIndex = POPULAR_CITIES.findIndex((city) => city.name === 'Paris');
+      const parisGradient = TILE_GRADIENTS[parisIndex % TILE_GRADIENTS.length];
       const tile = screen.getByRole('button', { name: 'Paris' });
-      const gradientBefore = tile.className;
 
       fireEvent.error(within(tile).getByTestId('tile-image'));
 
       expect(within(tile).queryByTestId('tile-image')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Paris' })).toBeInTheDocument();
-      expect(tile.className).toBe(gradientBefore);
+      expect(tile.className).toContain(parisGradient);
+    });
+
+    it('defers offscreen tile photographs instead of loading all six eagerly', () => {
+      renderPage();
+
+      const tile = screen.getByRole('button', { name: 'Tokyo' });
+      const image = within(tile).getByTestId('tile-image');
+      expect(image).toHaveAttribute('loading', 'lazy');
+      expect(image).toHaveAttribute('decoding', 'async');
     });
 
     it('shows a cache-hit photograph without waiting for a load event', () => {
-      const completeSpy = vi
-        .spyOn(HTMLImageElement.prototype, 'complete', 'get')
-        .mockReturnValue(true);
+      vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(true);
 
       renderPage();
 
       const tile = screen.getByRole('button', { name: 'Barcelona' });
-      expect(within(tile).getByTestId('tile-image')).toHaveAttribute('data-loaded', 'true');
-
-      completeSpy.mockRestore();
+      const image = within(tile).getByTestId('tile-image');
+      expect(image).toHaveAttribute('data-loaded', 'true');
+      expect(image.className).not.toContain(hiddenImageClass);
     });
 
     it('renders no photograph for a city with no configured image', () => {
       render(
         <PopularTile
-          city={{ name: 'Nowhere', imageUrl: null }}
+          city={{ name: 'Nowhere', imageUrl: null, credit: null }}
           gradientClass="grad"
           onSelect={() => {}}
         />,
       );
 
       const tile = screen.getByRole('button', { name: 'Nowhere' });
+      expect(within(tile).queryByTestId('tile-image')).not.toBeInTheDocument();
+      expect(tile.className).toContain('grad');
+    });
+
+    it('treats a blank configured image the same as no image at all', () => {
+      render(
+        <PopularTile
+          city={{ name: 'Blankville', imageUrl: '', credit: null }}
+          gradientClass="grad"
+          onSelect={() => {}}
+        />,
+      );
+
+      const tile = screen.getByRole('button', { name: 'Blankville' });
       expect(within(tile).queryByTestId('tile-image')).not.toBeInTheDocument();
       expect(tile.className).toContain('grad');
     });
@@ -200,13 +261,14 @@ describe('SearchPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Tokyo' }));
 
       expect(searchbox()).toHaveValue('Tokyo');
+      expect(searchbox()).toHaveFocus();
       await waitFor(() => {
         expect(searchLocationsMock).toHaveBeenCalledWith('Tokyo');
       });
 
       const listbox = await findDropdown();
       const option = within(listbox).getByRole('option', { name: /Tokyo/ });
-      fireEvent.mouseDown(option);
+      fireEvent.click(option);
 
       await waitFor(() => {
         expect(screen.getByText('Louvre Museum')).toBeInTheDocument();
@@ -249,6 +311,32 @@ describe('SearchPage', () => {
       });
       expect(queryDropdown()).not.toBeInTheDocument();
       expect(searchLocationsMock.mock.calls.length).toBe(callsBefore);
+    });
+
+    it('lists every recent search newest-first, one chip per stored city', async () => {
+      getAttractionsMock.mockResolvedValue([louvre]);
+
+      searchLocationsMock.mockResolvedValue([parisCity]);
+      renderPage();
+      await chooseSuggestion('pa', /Paris/);
+      await waitFor(() => {
+        expect(screen.getByText('Attractions near Paris')).toBeInTheDocument();
+      });
+
+      searchLocationsMock.mockResolvedValue([tokyoCity]);
+      fireEvent.click(screen.getByRole('button', { name: /clear search/i }));
+      await chooseSuggestion('to', /Tokyo/);
+      await waitFor(() => {
+        expect(screen.getByText('Attractions near Tokyo')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /clear search/i }));
+
+      const recentSection = screen.getByText('Recent searches').closest('section')!;
+      const chips = within(recentSection)
+        .getAllByRole('button')
+        .filter((button) => button.getAttribute('aria-label') !== 'Clear recent searches');
+      expect(chips.map((chip) => chip.textContent)).toEqual(['Tokyo', 'Paris']);
     });
 
     it('erases the history when "Clear recent searches" is activated', async () => {

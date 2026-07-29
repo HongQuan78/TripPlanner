@@ -82,7 +82,7 @@ describe('SearchPage', () => {
       const listbox = queryDropdown();
       expect(listbox).toBeInTheDocument();
       expect(within(listbox!).getAllByRole('option')).toHaveLength(1);
-      expect(screen.queryByText('No attractions found.')).not.toBeInTheDocument();
+      expect(screen.queryByText('No matching locations found.')).not.toBeInTheDocument();
     });
 
     it('supports keyboard navigation with ArrowDown/ArrowUp and Enter selection', async () => {
@@ -118,12 +118,13 @@ describe('SearchPage', () => {
       const input = searchbox();
       expect(input).toHaveAttribute('aria-autocomplete', 'list');
       expect(input).toHaveAttribute('aria-expanded', 'false');
-      expect(input).toHaveAttribute('aria-controls', 'location-suggestions');
+      expect(input).not.toHaveAttribute('aria-controls');
       expect(input).toHaveAccessibleDescription(/arrow keys/i);
 
       typeInput('pa');
       const listbox = await findDropdown();
       expect(searchbox()).toHaveAttribute('aria-expanded', 'true');
+      expect(searchbox()).toHaveAttribute('aria-controls', 'location-suggestions');
       for (const option of within(listbox).getAllByRole('option')) {
         expect(option).not.toHaveAttribute('tabindex');
       }
@@ -174,19 +175,65 @@ describe('SearchPage', () => {
       expect(screen.queryByText('Paris selected.')).not.toBeInTheDocument();
     });
 
+    it('reopens the dismissed dropdown on ArrowDown without altering the query', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity]);
+      renderPage();
+
+      typeInput('pa');
+      await findDropdown();
+
+      fireEvent.keyDown(searchbox(), { key: 'Escape' });
+      expect(queryDropdown()).not.toBeInTheDocument();
+
+      fireEvent.keyDown(searchbox(), { key: 'ArrowDown' });
+
+      await findDropdown();
+      expect(searchbox()).toHaveValue('pa');
+    });
+
+    it('announces the no-match message through a live region rather than an empty listbox', async () => {
+      searchLocationsMock.mockResolvedValue([]);
+      renderPage();
+
+      typeInput('xyzzy');
+
+      await waitFor(() => {
+        expect(screen.getByRole('status')).toHaveTextContent('No matching locations found.');
+      });
+      expect(queryDropdown()).not.toBeInTheDocument();
+      expect(searchbox()).not.toHaveAttribute('aria-controls');
+    });
+
+    it('omits the country pill when the provider supplies no country code', async () => {
+      searchLocationsMock.mockResolvedValue([{ ...parisCity, countryCode: '' }]);
+      renderPage();
+
+      typeInput('pa');
+      const listbox = await findDropdown();
+
+      const option = within(listbox).getByRole('option');
+      expect(option).toHaveTextContent('Paris');
+      expect(option).toHaveTextContent('City');
+      expect(option.textContent).not.toContain('FR');
+      expect(within(option).getAllByText(/^(City|Country)$/)).toHaveLength(1);
+    });
+
     it('re-announces the same city when it is chosen twice in a row', async () => {
       searchLocationsMock.mockResolvedValue([parisCity]);
       getAttractionsMock.mockResolvedValue([louvre]);
       renderPage();
 
       await chooseSuggestion('pa', /Paris/);
-      const region = screen.getByText('Paris selected.');
-      const first = region.textContent;
+      const first = screen.getByText(/Paris selected\./).textContent ?? '';
 
       fireEvent.click(screen.getByRole('button', { name: /clear search/i }));
       await chooseSuggestion('pa', /Paris/);
 
-      expect(screen.getByText('Paris selected.').textContent).not.toBe(first);
+      const second = screen.getByText(/Paris selected\./).textContent ?? '';
+      expect(second).toContain('Paris selected.');
+      expect(second).not.toBe(first);
+      const collapse = (text: string) => text.replace(/\s+/g, ' ').trim();
+      expect(collapse(second)).not.toBe(collapse(first));
     });
   });
 
