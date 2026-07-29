@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Layout
 
-The .NET solution lives entirely under `BE/` (`BE/TripPlanner.slnx`). The frontend web app (React + TypeScript + Vite) lives under `FE/`. The repo root also contains `epic/` and `requirement/` (feature docs and source requirements — both version-controlled, so requirements-verification stories can cite them at a pinned commit; only the generated `requirement/resources/sheet.css` is ignored) and `docs/`.
+The .NET solution lives entirely under `BE/` (`BE/TripPlanner.slnx`). The frontend web app (React + TypeScript + Vite) lives under `FE/`. The repo root also contains `epic/` and `requirement/` (feature docs and source requirements — both version-controlled, so requirements-verification stories can cite them at a pinned commit; only the generated `requirement/resources/sheet.css` is ignored), `docs/`, and `_bmad-output/` (version-controlled BMAD workflow output: per-story implementation artifacts and `implementation-artifacts/sprint-status.yaml`).
 
 ## Commands
 
@@ -43,17 +43,25 @@ npm run dev        # start the Vite dev server (http://localhost:5173)
 npm run build      # type-check and build for production
 npm test           # run unit tests (Vitest)
 npm run lint       # run Oxlint
+
+# Run a single test file, or a single test by name
+npx vitest run src/features/trips/tripService.test.ts
+npx vitest run -t "creates a trip"
 ```
 
 The frontend reads the API base URL from `VITE_API_BASE_URL` (`FE/.env.development`, default `http://localhost:5000`). See `FE/README.md` for details.
 
-Environment variables are loaded via **DotNetEnv**: at startup `Program.cs` walks up from the working directory until it finds a `.env` file (see `BE/.env.example`). Required variables:
+Environment variables are loaded via **DotNetEnv**: at startup `Program.cs` walks up from the working directory until it finds a `.env` file. **`BE/.env.example` is the authoritative, annotated list** — copy it rather than reconstructing the set from here. The variables without a usable default are:
 
 ```
 ConnectionStrings__DefaultConnection=<postgres-connection-string>
 JwtSettings__SecretKey=<hs256-secret-key>
 OpenTripMapSettings__ApiKey=<opentripmap-api-key>
+EmailSettings__FromAddress=<sender-address>
+EmailSettings__VerificationUrlBase=<spa-verify-email-url>
 ```
+
+The two `EmailSettings` entries are enforced by `ValidateOnStart()`, so a missing one is a startup failure, not a latent bug. `OpenTripMapSettings__ApiKey` is the **only** third-party key the app needs: Photon, Overpass and Wikipedia are all keyless (see External services below). `ConnectionStrings__Redis` is optional and may be blank — see the Redis note under Docker.
 
 Email verification is sent via Resend's SMTP relay (`smtp.resend.com`, username `resend`, password = the Resend API key), configured through the `ResendSettings` section. `appsettings.json` leaves `ApiKey` blank for local dev; override via `ResendSettings__*` variables for real delivery.
 
@@ -95,13 +103,13 @@ Workflows live in `.github/workflows/` — **this directory is version-controlle
 
 Images are built on the runner, never on the instance — `docker compose build` compiles the .NET solution and the Vite bundle, which OOMs a 2 GiB box. Deploy secrets (`EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, optional `EC2_APP_DIR`) and the one-time server preparation are documented in **`docs/deployment.md`**; GHCR auth uses the built-in `GITHUB_TOKEN`, so no PAT is required and packages can stay private.
 
-## Architecture
+## Architecture (backend)
 
 This is a **Clean Architecture** ASP.NET Core 10.0 solution with five projects:
 
-- **`TripPlanner.Domain`** — Entity models only; no dependencies. Contains `Trip`, `TripDay`, `Destination` (concrete entity), and `User`.
+- **`TripPlanner.Domain`** — Entity models only (in `Domain/Models/`, not `Entities/`); no dependencies. Contains `Trip`, `TripDay`, `TripDayDestination`, `Destination` (concrete entity), and `User`.
 - **`TripPlanner.Application`** — Use cases, interfaces, DTOs, and the Result pattern. Its only framework dependencies are the two contract-only abstraction packages `Microsoft.Extensions.Logging.Abstractions` and `Microsoft.Extensions.DependencyInjection.Abstractions` (the latter solely so the layer can own its own composition root — see `AddApplicationUseCases` below). Neither pulls in an implementation; do not add a package that does.
-- **`TripPlanner.Infrastructure`** — EF Core (PostgreSQL), repositories, Mapperly mapping, JWT token service, password hasher, verification token service, Resend SMTP email sender, and external HTTP service clients (OpenTripMap). Implements interfaces defined in Application.
+- **`TripPlanner.Infrastructure`** — EF Core (PostgreSQL), repositories, Mapperly mapping, JWT token service, password hasher, verification token service, SMTP email senders, the response cache, and external HTTP service clients (OpenTripMap, Photon, Overpass, Wikipedia). Implements interfaces defined in Application.
 - **`TripPlanner.API`** — HTTP layer: Minimal API endpoints, validators, middleware, and DI wiring. No business logic.
 - **`TripPlanner.Tests`** — xUnit unit tests using NSubstitute for mocking.
 
@@ -124,21 +132,44 @@ Nothing in Application or Domain may reference API or Infrastructure types.
 Application/UseCases/
   Trip/        — ICreateTripUseCase, IGetTripUseCase, IGetAllTripsUseCase, IUpdateTripUseCase
   Destination/ — IGetAllDestinationsUseCase, IGetDestinationByIdUseCase
-  TripDay/     — IAddDestinationToTripDayUseCase, IRemoveDestinationFromTripDayUseCase
+  TripDay/     — IAddDestinationToTripDayUseCase, IRemoveDestinationFromTripDayUseCase,
+                 IReorderDayDestinationsUseCase, IMoveDestinationBetweenDaysUseCase
+  SavedPlaces/ — IAddDestinationToSavedPlacesUseCase, IRemoveDestinationFromSavedPlacesUseCase,
+                 IScheduleSavedPlaceUseCase
   Auth/        — IRegisterUserUseCase, ILoginUserUseCase, ILogoutUseCase,
                  IVerifyEmailUseCase, IResendVerificationEmailUseCase
   Location/    — ISearchLocationsUseCase, IGetAttractionsForLocationUseCase, IGetDestinationDetailsUseCase
 ```
 
+`AddApplicationUseCases` also registers one non-use-case Application service, `IDestinationResolver` → `DestinationResolver` (`Application/Services/`). It is the shared "get me a persisted `Destination` from either an internal id or a provider `xid`, importing it on first sight" step, used by `AddDestinationToTripDayUseCase` and `AddDestinationToSavedPlacesUseCase`. New use cases that accept a destination reference should call it rather than re-implementing the id/xid branch.
+
 **Result pattern:** Use cases return `Result<T>` or `Result` (sealed records in `TripPlanner.Application.Common`). Always check `IsSuccess` before accessing `Data`. Errors carry an `ErrorType` enum value (`BadRequest`, `Unauthorized`, `NotFound`, `Conflict`, `ServiceUnavailable`) and a message string. `ResultExtension.ToResponse()` maps error results to HTTP responses in endpoints.
 
-**Trip ownership:** Trips carry a `UserId`. Trip and TripDay use cases take the authenticated user's id (extracted via `ClaimsPrincipalExtension`) and repository queries are scoped by it — a user can never read or modify another user's trips (a foreign trip id behaves as `NotFound`). Preserve this scoping in any new trip-related query or use case.
+**Trip ownership:** Trips carry a `UserId`. Trip, TripDay and SavedPlaces use cases take the authenticated user's id (extracted via `ClaimsPrincipalExtension`) and repository queries are scoped by it — a user can never read or modify another user's trips (a foreign trip id behaves as `NotFound`). Preserve this scoping in any new trip-related query or use case.
 
-**External services:** Application defines service interfaces (`IGeocodingService`, `IAttractionSearchService`, `IDestinationDetailsService` in `Application/Interfaces/Services/`); Infrastructure implements them against the OpenTripMap API in `Infrastructure/ExternalServices/OpenTripMap/`. Clients are registered via `AddHttpClient<TInterface, TImplementation>` with `OpenTripMapSettings` (bound from configuration) providing base URL, API key, and timeout. External API failures surface as `ErrorType.ServiceUnavailable` results, not exceptions. Follow this pattern for any new third-party API integration. `IDestinationImageProvider` (implemented by `WikipediaImageProvider` in `Infrastructure/ExternalServices/Wikipedia/`, via Wikipedia's public REST summary API — no API key involved, unlike the OpenTripMap/Resend integrations) is the sole source of destination images, consumed by both `OpenTripMapAttractionSearchService` and `OpenTripMapDestinationDetailsService`; OpenTripMap's own `preview`/`image` fields are ignored because its dev-tier image URLs are unusable. Swapping to a different image approach requires only a new `IDestinationImageProvider` implementation plus the one DI registration change, mirroring the `IEmailSender` provider-swap convention.
+**A trip has two destination collections.** `Trip.SavedPlaces` is a flat "shortlist" of destinations not yet on any day; `Trip.Days[].Destinations` are the scheduled ones. `Trip.ScheduleFromSavedPlaces` moves a destination from the former to the latter atomically (it removes *and* adds), which is why scheduling is a domain method rather than two use-case calls. `Trip.MoveDestinationBetweenDays` is idempotent on the target day — it will not duplicate a destination that is already there. Mutating either collection from a use case should go through these `Trip`/`TripDay` methods, not through the exposed `IReadOnlyList`s.
+
+The full authenticated surface is `/api/trips`: list, get, create, update, plus `days/{date}/destinations` (add/remove), `days/{date}/destinations/order` (reorder within a day), `days/{date}/destinations/{destinationId}/move` (move across days), `saved-places` (add/remove), and `days/{date}/schedule` (promote a saved place onto a day).
+
+**External services:** Application defines the ports in `Application/Interfaces/Services/`; Infrastructure implements each against a **different** third-party API, one folder per provider under `Infrastructure/ExternalServices/`. The provider behind a port is an implementation detail — do not assume "external data" means OpenTripMap:
+
+| Port | Implementation | Provider | Key? |
+| --- | --- | --- | --- |
+| `IGeocodingService` | `PhotonGeocodingService` | Photon (Komoot) | no |
+| `IAttractionSearchService` | `OpenTripMapAttractionSearchService` | OpenTripMap | **yes** |
+| `IDestinationDetailsService` | `OpenTripMapDestinationDetailsService` | OpenTripMap | **yes** |
+| `IOpeningHoursProvider` | `OverpassOpeningHoursProvider` | OSM Overpass | no |
+| `IDestinationImageProvider` | `WikipediaImageProvider` | Wikipedia REST | no |
+
+Each has its own `*Settings` class (base URL, timeout, cache minutes) bound and — except `OpenTripMapSettings` — `ValidateOnStart()`-validated, and is registered via `AddHttpClient<TInterface, TImplementation>`. External API failures surface as `ErrorType.ServiceUnavailable` results or `null`, never exceptions. Follow this pattern for any new third-party API integration.
+
+Two of these deserve note. **Geocoding moved off OpenTripMap to Photon** — location search hits `PhotonGeocodingService`, so an OpenTripMap outage or missing key does not break search. **`IOpeningHoursProvider` works because OpenTripMap xids are OSM ids**: `OverpassOpeningHoursProvider` parses the xid into an OSM element type + id and queries Overpass for the `opening_hours` tag, which is how *any* destination type (not just landmarks) gets opening hours. `IDestinationImageProvider` is the sole source of destination images, consumed by both OpenTripMap services; OpenTripMap's own `preview`/`image` fields are ignored because its dev-tier image URLs are unusable. Swapping any provider requires only a new implementation plus the one DI registration change, mirroring the `IEmailSender` provider-swap convention.
+
+**Response caching is Infrastructure-internal, and it is a cache of *providers*, not of endpoints.** `IResponseCache` (`Infrastructure/Caching/`) is `internal` and deliberately **not** an Application port — no use case knows caching exists. `RedisResponseCache` implements it over `IDistributedCache`, which is Redis when `ConnectionStrings:Redis` is set and an in-process memory cache when it is blank (see the Redis note under Docker), so the same code path works with no Redis running. All four keyless/keyed provider clients (`OpenTripMapPlaceClient`, `PhotonGeocodingService`, `OverpassOpeningHoursProvider`, `WikipediaImageProvider`) cache their own responses; TTL comes from that provider's settings and defaults to 1440 minutes. The one asymmetry is load-bearing: `OverpassOpeningHoursProvider` caches a **definitive** answer (including a definitive "no hours") for the full TTL but a *failed* lookup for only `FailureCacheMinutes` (5), so a transient Overpass 5xx or timeout is not negative-cached for a day. Preserve that split in any new cached provider — cache the answer long, the failure short.
 
 **Repository pattern:** `IRepository<T>` is the generic base and carries exactly two members — `GetByIdAsync` and `Add`. All three specialized repositories (`ITripRepository`, `IDestinationRepository`, `IUserRepository`) extend it and add domain-specific queries; all three implementations derive from `Repository<T>`. Keep the base minimal: a member belongs there only while at least one repository actually uses it (a `Remove` that no caller ever invoked was removed for this reason). `IUnitOfWork` wraps `SaveChangesAsync` for explicit transaction control. All interfaces live in `Application/Interfaces/`; implementations live in `Infrastructure/Repositories/`.
 
-`TripRepository` reaches `TripDay`'s **private** `_items` backing field through a string include path, exposed as the constant `TripRepository.DayDestinationsIncludePath` (`"Days._items.Destination"`) — a string is the only way EF can traverse a backing field. Renaming `_items` in the domain still compiles, so `TripRepositoryIncludePathTests` guards it: it walks the path against `DbContext.Model`, asserts the query translates to SQL touching `trip_days`/`trip_day_destinations`/`destinations`, and pins that an unresolvable path throws. Those tests build the context with `UseNpgsql` and only call `ToQueryString()`, so they need no running database.
+`TripRepository` reaches `TripDay`'s **private** `_items` backing field through a string include path, exposed as the constant `TripRepository.DayDestinationsIncludePath` (`"Days._items.Destination"`) — a string is the only way EF can traverse a backing field. Trip queries pair it with a typed `.Include(t => t.SavedPlaces)`; both are needed for a complete trip, so a new trip query that loads one without the other returns a half-populated aggregate. Renaming `_items` in the domain still compiles, so `TripRepositoryIncludePathTests` guards it: it walks the path against `DbContext.Model`, asserts the query translates to SQL touching `trip_days`/`trip_day_destinations`/`destinations`, and pins that an unresolvable path throws. Those tests build the context with `UseNpgsql` and only call `ToQueryString()`, so they need no running database.
 
 **Validation:** FluentValidation validators auto-run on endpoint parameters via `SharpGrip.FluentValidation.AutoValidation.Endpoints`. Add validators to the DI container via `AddValidatorsFromAssembly` and they apply automatically.
 
@@ -150,6 +181,8 @@ Application/UseCases/
 
 Two rules keep this honest. **Unmapped source members are silenced individually, never wholesale.** `Trip.UserId`, `TripDay.Id`, and `TripDay.TripId` have no response counterpart and each carries an explicit `[MapperIgnoreSource(...)]`; RMG020 is a real warning in this configuration (verified by deleting one attribute and watching the build fail its 0-warning bar), so a `NoWarn` or an `.editorconfig` severity override would silently absorb a *future* unmapped member that actually matters. And `ApplicationMapperTests` exercises the **real** `ApplicationMapper` rather than a substitute — every other test class mocks `IApplicationMapper`, so those 13 cases are the only behavioural coverage of the wire projection, including that `TripDayResponse.Destinations` preserves the `Position` ordering of `TripDay.Destinations`.
 
+**Ordering within a day is an explicit join entity.** `TripDay` holds `List<TripDayDestination> _items`, where `TripDayDestination` carries `Position` alongside the `Destination`; `TripDay.Destinations` is a computed projection that sorts by `Position` and drops the join. So a day's order is persisted data, not insertion order or an EF quirk, and `ApplicationMapperTests` pins that `TripDayResponse.Destinations` preserves it. `TripDay` keeps positions contiguous itself: `AddDestination` appends at `_items.Count`, `ReorderDestinations` rewrites positions from a caller-supplied id order, and `RemoveDestination` calls a private `Renumber()` so a removal never leaves a gap. Keep that invariant in any new mutation — do not assign positions from outside the entity.
+
 **Model structure:** `Destination` is a concrete entity with a `Category` property holding the OpenTripMap provider kind **verbatim** (e.g., `"foods"`, `"historic"`, `"museums"`). `Category` is **not** constrained to a closed enum — the provider vocabulary is open-ended, and narrowing it would discard real data. It is backfilled from the database discriminator when migrating from the older subclass schema, but all new imports source it directly from the provider. When the provider supplies no kind, `Category` defaults to `"interesting_places"` (OpenTripMap's own root kind). The second property, `OpeningHours`, is genuinely sourced from Overpass for **any** destination type — the prior split (Landmark-only) lost that data for restaurants at import time. Both properties are required in the schema; `OpeningHours` is nullable at the property level (`string?`) but not at the database level (PostgreSQL `text` columns are nullable, not constrained to non-null for subclass properties). The `DestinationResolver` imports both uniformly: `new Destination(details.Name, rating, details.Category ?? defaultCategory, details.OpeningHours, details.Xid)`. Do not re-introduce inheritance or category enums unless a provider that genuinely varies the data arrives.
 
 **JWT authentication:** `POST /api/auth/login` returns an `AuthResponse` containing a Bearer token; `POST /api/auth/logout` revokes the current token by adding its `jti` claim to `ITokenBlacklist` (in-memory singleton), and `JwtExtension` rejects blacklisted tokens on validation. The `/api/trips` group requires authorization (`RequireAuthorization()`); `/api/locations` and `/api/destinations` are anonymous. JWT is configured in `JwtExtension.AddJwtAuthentication()` using `JwtSettings` bound from configuration.
@@ -158,9 +191,27 @@ Two rules keep this honest. **Unmapped source members are silenced individually,
 
 **Middleware:** `ExceptionHandlingMiddleware` implements `IExceptionHandler` and returns structured ProblemDetails with a correlation ID. `LoggingMiddleware` logs all requests and responses and generates the correlation ID. Both are registered in `Program.cs`.
 
+## Architecture (frontend)
+
+**`FE/README.md` is the authoritative frontend guide and is kept current — read it before touching `FE/`.** It documents the folder conventions, the import rules, and the API layer in detail. The load-bearing points:
+
+**Feature-sliced layout.** `src/app/` is the composition root (entry, `routes.tsx`, `AppLayout`); `src/features/{auth,destinations,trips}/` each co-locate their pages, components, `hooks.ts`, service and tests; `src/shared/` holds `api/`, `lib/` (non-rendering utilities) and `ui/` (generic presentational primitives). Cross-folder imports use the `@/` alias, same-folder imports stay `./`. Features never import from `app/`. A component reaching into another feature's folder is the signal to promote it to `shared/`, not to add the import.
+
+**The API layer is three tiers and nothing skips one:**
+
+```
+component  →  hooks.ts (TanStack Query)  →  <name>Service  →  HttpClient  →  fetch
+```
+
+A component never calls `fetch`; a service never touches TanStack Query. `shared/api/httpClient.ts` is the **only** place `fetch` is called — it owns the base URL, headers, bearer-token injection, ProblemDetails→`ApiError` parsing, and empty/204 bodies. Services (`features/*/…Service.ts`) own the URL, verb and types for one feature, as a class taking `HttpClient` through its constructor and exported alongside a singleton bound to the shared client; the constructor exists so service tests can `new TripService(new HttpClient(''))` against a stubbed `fetch` with **no module mocking**. Models (`shared/api/models/<domain>/`) are one type-only interface per file, requests and responses together in the domain folder — never add a class or method there.
+
+Note two non-obvious constraints, both of which produce silent breakage rather than a red build: `tsconfig.app.json` sets `erasableSyntaxOnly`, so TypeScript **parameter properties** (`constructor(private http: HttpClient)`) are a compile error — assign the field explicitly. And `vi.mock('…')` path strings are **not** type-checked, so when moving or renaming a module you must grep for its old path or a mock will quietly stop matching while the suite stays green.
+
+**One component per `.tsx`**, with data, hooks and helpers in plain `.ts` siblings — this is enforced by `react/only-export-components`, not taste. A context provider therefore splits into the provider `.tsx` plus a `.ts` sibling holding the context and its `use*` hook, and that sibling must not differ from the `.tsx` by case alone (on Windows/macOS Vite would resolve `./AuthContext` to the wrong file). There are deliberately **no barrel (`index.ts`) files** — `destinations` and `trips` import from each other, so barrels would form a real cycle.
+
 ## Feature Docs
 
-Requirements are tracked as epic documents in the `epic/` folder (`epic-1-destination-suggestion.md` through `epic-5-frontend-web-app.md`), each with user stories, acceptance criteria, and per-story status notes; `requirement/Sheet1.html` is the authoritative source they derive from. Both are version-controlled. Consult these files before starting work on a feature to check its scope and status. Where an epic and the sheet disagree (e.g. epic-2 places US4 under "Out of scope" while the sheet marks it `Selected = Yes`), the sheet is authoritative and the divergence is worth recording.
+Requirements are tracked as epic documents in the `epic/` folder (`epic-1-destination-suggestion.md` through `epic-5-frontend-web-app.md`), each with user stories, acceptance criteria, and per-story status notes; `requirement/Sheet1.html` is the authoritative source they derive from. Both are version-controlled. Consult these files before starting work on a feature to check its scope and status. Delivered work is additionally written up per story under `_bmad-output/implementation-artifacts/<epic>-<story>-<slug>.md`, with `sprint-status.yaml` tracking state — check there for why something was built the way it was before re-litigating a decision. Where an epic and the sheet disagree (e.g. epic-2 places US4 under "Out of scope" while the sheet marks it `Selected = Yes`), the sheet is authoritative and the divergence is worth recording.
 
 ## Code Style
 
