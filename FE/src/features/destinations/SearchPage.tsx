@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FocusEvent, FormEvent, KeyboardEvent } from 'react';
-import { ApiError } from '@/shared/api/client';
-import type { LocationSearchResult } from '@/shared/api/types';
+import type { LocationSearchResult } from '@/shared/api/models/destination/locationSearchResult';
 import AttractionCard from './AttractionCard';
 import AttractionControls from './AttractionControls';
 import { dedupeAttractions, sortAttractions } from './attractionFilters';
@@ -9,6 +8,9 @@ import type { AttractionSort } from './attractionFilters';
 import skeletonStyles from '@/shared/ui/Skeleton.module.css';
 import PopularTile from './PopularTile';
 import { POPULAR_CITIES } from './popularCities';
+import { HOW_IT_WORKS, TILE_GRADIENTS } from './landingContent';
+import { errorMessage } from './errorMessage';
+import { HistoryGlyph, SearchGlyph } from './searchIcons';
 import SuggestionDropdown from './SuggestionDropdown';
 import { suggestionOptionId } from './suggestionOption';
 import { useAttractions, useLocationSearch, useLocationSuggestions } from './hooks';
@@ -23,62 +25,6 @@ const keyboardHintId = 'location-search-keyboard-hint';
 const ATTRACTION_SKELETON_COUNT = 4;
 const SUGGESTION_LIMIT = 5;
 const MIN_QUERY_LENGTH = 2;
-
-
-const TILE_GRADIENTS = [
-  styles.tileA,
-  styles.tileB,
-  styles.tileC,
-  styles.tileD,
-  styles.tileE,
-  styles.tileF,
-];
-
-const HOW_IT_WORKS = [
-  { heading: 'Search a city', body: 'Anywhere in the world, by name.' },
-  {
-    heading: "See what's there",
-    body: 'Attractions with ratings, heritage marks, and distance from the centre.',
-  },
-  {
-    heading: 'Build the days',
-    body: 'Drop places into a day-by-day itinerary and move them as plans change.',
-  },
-];
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.status !== 503 && error.status !== 0) {
-    return error.message;
-  }
-  return 'Service unavailable — please try again.';
-}
-
-function SearchGlyph() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="11" cy="11" r="7" />
-      <path d="M20 20l-4.3-4.3" />
-    </svg>
-  );
-}
-
-function HistoryGlyph() {
-  return (
-    <span className={styles.recentGlyph} aria-hidden="true">
-      <svg
-        width="12"
-        height="12"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <path d="M3 12a9 9 0 1 0 3-6.7" />
-        <path d="M3 4v5h5" />
-      </svg>
-    </span>
-  );
-}
 
 export default function SearchPage() {
   const restored = getSearchState();

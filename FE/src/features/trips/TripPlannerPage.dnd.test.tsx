@@ -3,7 +3,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DragEndEvent } from '@dnd-kit/core';
-import type { Trip } from '@/shared/api/types';
+import type { Trip } from '@/shared/api/models/trip/trip';
 import TripPlannerPage from './TripPlannerPage';
 
 let capturedDragEnd: ((event: DragEndEvent) => void) | undefined;
@@ -51,25 +51,27 @@ vi.mock('@dnd-kit/sortable', async (importOriginal) => {
   };
 });
 
-vi.mock('./api', () => ({
-  getTrips: vi.fn(),
-  getTrip: vi.fn(),
-  createTrip: vi.fn(),
-  updateTrip: vi.fn(),
-  addDestinationToDay: vi.fn(),
-  removeDestinationFromDay: vi.fn(),
-  addToSavedPlaces: vi.fn(),
-  removeFromSavedPlaces: vi.fn(),
-  scheduleSavedPlace: vi.fn(),
-  reorderDayDestinations: vi.fn(),
-  moveDestinationBetweenDays: vi.fn(),
+vi.mock('./tripService', () => ({
+  tripService: {
+    getAll: vi.fn(),
+    getById: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    addDestinationToDay: vi.fn(),
+    removeDestinationFromDay: vi.fn(),
+    addToSavedPlaces: vi.fn(),
+    removeFromSavedPlaces: vi.fn(),
+    scheduleSavedPlace: vi.fn(),
+    reorderDayDestinations: vi.fn(),
+    moveDestinationBetweenDays: vi.fn(),
+  },
 }));
 
-import { getTrip, moveDestinationBetweenDays, reorderDayDestinations } from './api';
+import { tripService } from './tripService';
 
-const getTripMock = vi.mocked(getTrip);
-const moveDestinationBetweenDaysMock = vi.mocked(moveDestinationBetweenDays);
-const reorderDayDestinationsMock = vi.mocked(reorderDayDestinations);
+const getTripMock = vi.mocked(tripService.getById);
+const moveDestinationBetweenDaysMock = vi.mocked(tripService.moveDestinationBetweenDays);
+const reorderDayDestinationsMock = vi.mocked(tripService.reorderDayDestinations);
 
 const louvre = {
   id: 42,

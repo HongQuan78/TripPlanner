@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { getAttractions, getDestinationDetails, searchLocations } from './api';
-import type { AttractionFilters, LocationSearchResult } from '@/shared/api/types';
+import { destinationService } from './destinationService';
+import type { AttractionFilters } from '@/shared/api/models/destination/attractionFilters';
+import type { LocationSearchResult } from '@/shared/api/models/destination/locationSearchResult';
 
 const locationStaleTime = 5 * 60 * 1000;
 
@@ -12,7 +13,7 @@ export const LOCATION_QUERY_MIN_LENGTH = 2;
 export function useLocationSearch(query: string) {
   return useQuery({
     queryKey: ['locationSearch', query],
-    queryFn: () => searchLocations(query),
+    queryFn: () => destinationService.searchLocations(query),
     enabled: query.length >= LOCATION_QUERY_MIN_LENGTH,
     retry: false,
     staleTime: locationStaleTime,
@@ -25,7 +26,7 @@ export function useLocationSuggestions(query: string) {
   const trimmed = query.trim();
   return useQuery({
     queryKey: ['locationSearch', trimmed],
-    queryFn: () => searchLocations(trimmed),
+    queryFn: () => destinationService.searchLocations(trimmed),
     enabled: trimmed.length >= LOCATION_QUERY_MIN_LENGTH,
     retry: false,
     staleTime: locationStaleTime,
@@ -48,8 +49,8 @@ export function useAttractions(
     ],
     queryFn: ({ pageParam }) =>
       pageParam > 0
-        ? getAttractions(location!.latitude, location!.longitude, filters, pageParam)
-        : getAttractions(location!.latitude, location!.longitude, filters),
+        ? destinationService.getAttractions(location!.latitude, location!.longitude, filters, pageParam)
+        : destinationService.getAttractions(location!.latitude, location!.longitude, filters),
     initialPageParam: 0,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       const nextOffset = lastPageParam + ATTRACTIONS_PAGE_SIZE;
@@ -73,7 +74,7 @@ export function useNearbyAttractions(
 ) {
   return useQuery({
     queryKey: ['nearbyAttractions', latitude, longitude],
-    queryFn: () => getAttractions(latitude!, longitude!),
+    queryFn: () => destinationService.getAttractions(latitude!, longitude!),
     enabled: latitude !== null && longitude !== null,
     retry: false,
     staleTime: locationStaleTime,
@@ -86,7 +87,7 @@ export function useNearbyAttractions(
 export function useDestinationDetails(xid: string) {
   return useQuery({
     queryKey: ['destinationDetails', xid],
-    queryFn: () => getDestinationDetails(xid),
+    queryFn: () => destinationService.getDestinationDetails(xid),
     enabled: xid.length > 0,
     retry: false,
     staleTime: locationStaleTime,

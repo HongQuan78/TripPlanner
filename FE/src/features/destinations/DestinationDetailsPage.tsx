@@ -1,69 +1,19 @@
 import { useEffect, useRef } from 'react';
-import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ApiError } from '@/shared/api/client';
-import type { DestinationDetails } from '@/shared/api/types';
-import { useAuth } from '@/features/auth/AuthContext';
+import { ApiError } from '@/shared/api/apiError';
+import type { DestinationDetails } from '@/shared/api/models/destination/destinationDetails';
+import { useAuth } from '@/features/auth/useAuth';
 import AttractionHero from './AttractionHero';
 import AttractionMap from './AttractionMap';
 import NearbyRail from './NearbyRail';
 import { useDestinationDetails } from './hooks';
-import { useAddToTrip } from '@/features/trips/AddToTripContext';
+import { useAddToTrip } from '@/features/trips/useAddToTrip';
+import OpenNowBadge from './OpenNowBadge';
+import InfoRow from './InfoRow';
 import { parseOpenNow } from './openNow';
 import { formatCategory } from '@/shared/lib/formatCategory';
 import styles from './DestinationDetailsPage.module.css';
 import stateStyles from '@/shared/ui/PageState.module.css';
-
-function OpenNowBadge({ openingHours }: { openingHours: string | null }) {
-  const result = parseOpenNow(openingHours);
-  if (result === null) {
-    return null;
-  }
-  if (result.status === 'open') {
-    return (
-      <span className={styles.openBadge}>
-        <span className={styles.openDot} aria-hidden="true" />
-        Open now
-      </span>
-    );
-  }
-  return <span className={styles.closedBadge}>Closed</span>;
-}
-
-function InfoRow({
-  label,
-  value,
-  href,
-  badge,
-  emptyLabel = 'Not available',
-}: {
-  label: string;
-  value: string | null;
-  href?: string;
-  badge?: ReactNode;
-  emptyLabel?: string;
-}) {
-  return (
-    <div className={styles.infoRow}>
-      <span className={styles.infoKey}>{label}</span>
-      <span className={styles.infoVal}>
-        {value === null ? (
-          <span className={styles.na}>{emptyLabel}</span>
-        ) : href ? (
-          <a className={styles.website} href={href} target="_blank" rel="noopener noreferrer">
-            {value}
-            <span className={styles.visuallyHidden}> (opens in new tab)</span>
-          </a>
-        ) : (
-          <span className={styles.hoursLine}>
-            {value}
-            {badge}
-          </span>
-        )}
-      </span>
-    </div>
-  );
-}
 
 export default function DestinationDetailsPage({
   onAddToTrip,

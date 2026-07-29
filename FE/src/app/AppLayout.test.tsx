@@ -4,13 +4,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AUTH_STORAGE_KEY, AuthProvider } from '@/features/auth/AuthContext';
 import AppLayout from './AppLayout';
 
-vi.mock('@/features/auth/api', () => ({
-  logout: vi.fn(),
+vi.mock('@/features/auth/authService', () => ({
+  authService: {
+    logout: vi.fn(),
+  },
 }));
 
-import { logout } from '@/features/auth/api';
+import { authService } from '@/features/auth/authService';
 
-const logoutMock = vi.mocked(logout);
+const logoutMock = vi.mocked(authService.logout);
 
 const session = { id: 1, email: 'user@example.com', role: 'User', token: 'jwt-token' };
 

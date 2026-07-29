@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { login as loginRequest } from './api';
-import { ApiError } from '@/shared/api/client';
-import { useAuth } from './AuthContext';
+import { authService } from './authService';
+import { ApiError } from '@/shared/api/apiError';
+import { useAuth } from './useAuth';
 import AuthShell from './AuthShell';
 import { MailIcon } from './authIcons';
 import PasswordField from './PasswordField';
@@ -26,7 +26,7 @@ export default function LoginPage() {
     setFormError(null);
     setPending(true);
     try {
-      const session = await loginRequest({ email, password });
+      const session = await authService.login({ email, password });
       login(session);
       const returnTo = searchParams.get('returnTo');
       navigate(returnTo && returnTo.startsWith('/') ? returnTo : '/trips', { replace: true });

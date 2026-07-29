@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { register } from './api';
-import { ApiError } from '@/shared/api/client';
+import { authService } from './authService';
+import { ApiError } from '@/shared/api/apiError';
 import AuthShell from './AuthShell';
 import { MailIcon } from './authIcons';
 import PasswordField from './PasswordField';
@@ -47,7 +47,7 @@ export default function RegisterPage() {
 
     setPending(true);
     try {
-      const response = await register({ email, password });
+      const response = await authService.register({ email, password });
       setSuccessMessage(response.message);
     } catch (error) {
       if (error instanceof ApiError) {

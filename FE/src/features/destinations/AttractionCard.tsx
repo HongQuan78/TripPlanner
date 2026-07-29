@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Attraction } from '@/shared/api/types';
-import { useAddToTrip } from '@/features/trips/AddToTripContext';
-import StarRating from './StarRating';
+import type { Attraction } from '@/shared/api/models/destination/attraction';
+import { useAddToTrip } from '@/features/trips/useAddToTrip';
+import StarRating from '@/shared/ui/StarRating';
+import { useImageLoaded } from '@/shared/lib/useImageLoaded';
 import styles from './AttractionCard.module.css';
 
 function formatDistance(meters: number): string {
@@ -14,16 +15,10 @@ function formatDistance(meters: number): string {
 
 export default function AttractionCard({ attraction }: { attraction: Attraction }) {
   const { requestAdd } = useAddToTrip();
-  const imgRef = useRef<HTMLImageElement>(null);
+  const { imgRef, loaded: imageLoaded, markLoaded } = useImageLoaded(attraction.imageUrl);
   const [imageFailed, setImageFailed] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
   const showImage = attraction.imageUrl !== null && !imageFailed;
 
-  useEffect(() => {
-    if (imgRef.current?.complete) {
-      setImageLoaded(true);
-    }
-  }, [attraction.imageUrl]);
   const ratingLevel = attraction.rating === null ? null : Number.parseInt(attraction.rating, 10);
   const isRated = ratingLevel !== null && ratingLevel >= 1 && ratingLevel <= 3;
   const isHeritage = attraction.rating?.endsWith('h') ?? false;
@@ -47,7 +42,7 @@ export default function AttractionCard({ attraction }: { attraction: Attraction 
                 className={imageLoaded ? styles.image : `${styles.image} ${styles.imageHidden}`}
                 src={attraction.imageUrl ?? undefined}
                 alt={attraction.name}
-                onLoad={() => setImageLoaded(true)}
+                onLoad={markLoaded}
                 onError={() => setImageFailed(true)}
               />
             </>

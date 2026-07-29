@@ -2,42 +2,36 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '@/shared/api/client';
-import type { Trip } from '@/shared/api/types';
+import { ApiError } from '@/shared/api/apiError';
+import type { Trip } from '@/shared/api/models/trip/trip';
 import TripPlannerPage from './TripPlannerPage';
 import { resolveDragAction } from './dragActions';
 
-vi.mock('./api', () => ({
-  getTrips: vi.fn(),
-  getTrip: vi.fn(),
-  createTrip: vi.fn(),
-  updateTrip: vi.fn(),
-  addDestinationToDay: vi.fn(),
-  removeDestinationFromDay: vi.fn(),
-  addToSavedPlaces: vi.fn(),
-  removeFromSavedPlaces: vi.fn(),
-  scheduleSavedPlace: vi.fn(),
-  reorderDayDestinations: vi.fn(),
-  moveDestinationBetweenDays: vi.fn(),
+vi.mock('./tripService', () => ({
+  tripService: {
+    getAll: vi.fn(),
+    getById: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    addDestinationToDay: vi.fn(),
+    removeDestinationFromDay: vi.fn(),
+    addToSavedPlaces: vi.fn(),
+    removeFromSavedPlaces: vi.fn(),
+    scheduleSavedPlace: vi.fn(),
+    reorderDayDestinations: vi.fn(),
+    moveDestinationBetweenDays: vi.fn(),
+  },
 }));
 
-import {
-  getTrip,
-  moveDestinationBetweenDays,
-  removeDestinationFromDay,
-  removeFromSavedPlaces,
-  reorderDayDestinations,
-  scheduleSavedPlace,
-  updateTrip,
-} from './api';
+import { tripService } from './tripService';
 
-const getTripMock = vi.mocked(getTrip);
-const removeDestinationFromDayMock = vi.mocked(removeDestinationFromDay);
-const removeFromSavedPlacesMock = vi.mocked(removeFromSavedPlaces);
-const scheduleSavedPlaceMock = vi.mocked(scheduleSavedPlace);
-const reorderDayDestinationsMock = vi.mocked(reorderDayDestinations);
-const moveDestinationBetweenDaysMock = vi.mocked(moveDestinationBetweenDays);
-const updateTripMock = vi.mocked(updateTrip);
+const getTripMock = vi.mocked(tripService.getById);
+const removeDestinationFromDayMock = vi.mocked(tripService.removeDestinationFromDay);
+const removeFromSavedPlacesMock = vi.mocked(tripService.removeFromSavedPlaces);
+const scheduleSavedPlaceMock = vi.mocked(tripService.scheduleSavedPlace);
+const reorderDayDestinationsMock = vi.mocked(tripService.reorderDayDestinations);
+const moveDestinationBetweenDaysMock = vi.mocked(tripService.moveDestinationBetweenDays);
+const updateTripMock = vi.mocked(tripService.update);
 
 const savedLouvre = {
   id: 99,

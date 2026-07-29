@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { PopularCity } from './popularCities';
-import styles from './SearchPage.module.css';
+import { useImageLoaded } from '@/shared/lib/useImageLoaded';
+import styles from './PopularTile.module.css';
 
 export default function PopularTile({
   city,
@@ -11,16 +12,9 @@ export default function PopularTile({
   gradientClass: string;
   onSelect: () => void;
 }) {
-  const imgRef = useRef<HTMLImageElement>(null);
+  const { imgRef, loaded, markLoaded } = useImageLoaded(city.imageUrl);
   const [failed, setFailed] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const showImage = city.imageUrl !== null && !failed;
-
-  useEffect(() => {
-    if (imgRef.current?.complete) {
-      setLoaded(true);
-    }
-  }, [city.imageUrl]);
 
   return (
     <button type="button" className={`${styles.tile} ${gradientClass}`} onClick={onSelect}>
@@ -33,7 +27,7 @@ export default function PopularTile({
           aria-hidden="true"
           data-testid="tile-image"
           data-loaded={loaded}
-          onLoad={() => setLoaded(true)}
+          onLoad={markLoaded}
           onError={() => setFailed(true)}
         />
       )}

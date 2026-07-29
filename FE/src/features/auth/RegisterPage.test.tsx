@@ -1,16 +1,18 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '@/shared/api/client';
+import { ApiError } from '@/shared/api/apiError';
 import RegisterPage from './RegisterPage';
 
-vi.mock('./api', () => ({
-  register: vi.fn(),
+vi.mock('./authService', () => ({
+  authService: {
+    register: vi.fn(),
+  },
 }));
 
-import { register } from './api';
+import { authService } from './authService';
 
-const registerMock = vi.mocked(register);
+const registerMock = vi.mocked(authService.register);
 
 function renderPage() {
   return render(

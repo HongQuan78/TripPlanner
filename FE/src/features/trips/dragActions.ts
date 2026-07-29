@@ -1,5 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import type { TripDay } from '@/shared/api/types';
+import type { TripDay } from '@/shared/api/models/trip/tripDay';
 
 export function parseDestId(id: string): { date: string; destinationId: number } {
   const rest = id.slice('dest-'.length);

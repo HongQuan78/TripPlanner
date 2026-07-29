@@ -37,6 +37,113 @@ project: tripplanner
 
 last_updated: 2026-07-28
 
+# 2026-07-28: added + implemented 5-23-frontend-model-and-service-layer — the user judged 5-22
+# insufficient and asked for two specific things: every model class in its own .ts file, and a
+# PROPER, explicit service layer. 5-22 had fixed component structure but deliberately left the data
+# layer untouched, so all 22 DTOs sat in one 112-line shared/api/types.ts and "service" was just a
+# naming convention over three api.ts files of loose functions calling a module-level request().
+# THREE DECISIONS WERE PUT TO THE USER FIRST, because the readings diverge materially. (1) Models:
+# RUNTIME CLASSES WERE COSTED AND REJECTED by the user in favour of one interface per file — a real
+# class would force mapping every JSON response into an instance and make TanStack Query cache
+# instances rather than plain data, i.e. a behaviour change. Verified after the fact: bundle went
+# 1138 -> 1139 modules with size unmoved at 670 kB, consistent with 19 type-only modules emitting no
+# JS. (2) Services: class + INJECTED HttpClient (chosen) over class + singleton-only or a bare file
+# rename. (3) Recorded as a NEW story rather than reopening 5-22, so each diff stays reviewable.
+# FOLLOW-UP IN THE SAME STORY (D7): the first pass left the 19 model files FLAT in models/, and the
+# user asked for clearer folder division. Three layouts were costed and the two aggressive ones were
+# presented WITH THE CONFLICT STATED — epic-5-context.md is the only normative statement on FE
+# organization and mandates feature-based layout under features/*, and a full return to type-based
+# folders (models/ services/ pages/ components/ hooks/) would reverse story 5-17 outright. THE USER
+# CHOSE the conservative option: keep feature-based, give models/ internal structure only. So models
+# are now grouped auth/ (4), destination/ (5), trip/ (9), common/ (1), with requests and responses
+# deliberately NOT split into requests//responses/ — a model is looked up by the domain it belongs to.
+# One placement recorded for the next person: destination.ts sits in destination/ even though trip/
+# consumes it (trip.ts and tripDay.ts import ../destination/destination), because a model is filed
+# where it is DEFINED, not where it is used. Both consumer sweeps (flat, then grouped) were scripted
+# across the same 37 files and verified by grepping for leftover flat paths returning empty.
+# Shipped: 19 model files under shared/api/models/, ApiError in its own module, request() and its
+# module-level state replaced by an HttpClient CLASS (the only fetch call site in the codebase) with
+# a shared httpClient singleton, and AuthService/DestinationService/TripService each taking the
+# client through its constructor and exporting a singleton. All three api.ts and both client.ts /
+# types.ts are deleted. Layering is now component -> hooks.ts -> service -> HttpClient -> fetch.
+# THE DI CHOICE REMOVED A TEST WORKAROUND RATHER THAN ADDING ONE: the old module-scoped baseUrl meant
+# the three base-URL tests could only observe a change via vi.stubEnv + vi.resetModules + a dynamic
+# import(); they are now plain `new HttpClient('http://api.example.com/')` assertions, with a separate
+# env-default group still pinning the empty/undefined -> relative-path contract that FE/README.md
+# calls load-bearing for the container's same-origin model. Service tests now construct
+# `new XService(new HttpClient(''))` against a stubbed fetch with NO module mocking; AuthService,
+# previously untested, gained 7 cases.
+# THE MOCK MIGRATION WAS DESIGNED SO NO ASSERTION MOVED. 19 vi.mock factories changed shape
+# ({ getTrip: vi.fn() } -> { tripService: { getById: vi.fn() } }) and four trip methods were renamed
+# (getTrips->getAll, getTrip->getById, createTrip->create, updateTrip->update), but each file's local
+# mock VARIABLE kept its old name by re-deriving it (const getTripMock = vi.mocked(tripService.getById)),
+# so not one expect() inside a test body was rewritten for the shape change. The only assertion-line
+# edits were 8 expect(bareFn) -> expect(tripService.method) in hooks.test.tsx, where the identifier
+# itself ceased to exist. Two pre-existing api.test.ts files found mid-task became the DI showcase:
+# ported to service tests with EVERY URL/verb/body assertion byte-identical, which is the strongest
+# evidence the wire contract did not move. tsconfig's erasableSyntaxOnly forbids TS parameter
+# properties, so services assign the field explicitly — caught by reading the config, not a red build.
+# FE 359/359 across 35 files (+9), lint 0 warnings, build clean. FE/README.md gained an "API layer"
+# section documenting the three tiers, the one-model-per-file rule, the DI-vs-module-mocking test
+# split, and the erasableSyntaxOnly trap. FLAGGED FOR REVIEW as the most arguable call: 19 model files
+# mean a consumer needing five DTOs writes five import lines, and a type-only models/index.ts barrel
+# would collapse that with none of the cycle risk that motivated 5-22's no-barrels rule — it was
+# deliberately NOT added, because carving out an exception days after documenting the rule as
+# load-bearing would make it advisory; it deserves its own decision. Also flagged: no live browser
+# pass, and since EVERY http call in the app now flows through rewritten code this is the story that
+# most needs one — particularly the 401 path, whose unauthorized handler moved from module state to
+# instance state on the singleton. Status: review.
+
+# 2026-07-28: 5-22-frontend-structure-audit-and-component-split implemented — all 10 tasks done,
+# behavior frozen. THE HEADLINE: the lint gate every story since 5-8 has reported against
+# ("exactly 2 pre-existing warnings") is now ZERO. Both warnings were closed by splitting the two
+# provider files so the component and its hook no longer share a module. The next story should read
+# 0 as correct, not as a measurement error, and treat any warning as a regression.
+# THREE CORRECTIONS TO THE STORY'S OWN SPEC, all recorded as deviations. (1) AC 4's mandated sibling
+# filenames CANNOT WORK on this platform: `authContext.ts` beside `AuthContext.tsx` differs only by
+# case, Windows/macOS filesystems are case-insensitive, and Vite resolves `.ts` before `.tsx` — so
+# every `from './AuthContext'` resolved to the hook module and 46 tests across 7 files died with
+# "Element type is invalid ... got: undefined". Renamed the siblings to useAuth.ts / useAddToTrip.ts
+# (the .tsx files and their test files keep their names, and AC 4's partition is otherwise exact);
+# the hazard is now written into FE/README.md so it is not re-attempted. (2) AC 13's baseline of 10
+# cross-feature references is a MISCOUNT — git grep at e128b0a returns 15 (5 source + 10 test); the
+# story's test list omitted 4 refs. Measured per-category as the AC asks: SOURCE 5 → 4, down by
+# exactly the intended StarRating edge; TEST refs 10 → 14, the entire +4 being Task 8 replicating
+# the useAddToTrip vi.mock into the 5 split files, which AC 16 mandates and AC 13 predicts. No new
+# KIND of edge exists. (3) Three imports the story expected to survive went dangling and were
+# removed — noUnusedLocals caught each as a hard error, exactly as AC 3 anticipated; notably
+# SearchPage.tsx's ApiError, which AC 7 predicted would still be needed (errorMessage was its only
+# consumer). parseOpenNow was RETAINED in DestinationDetailsPage.tsx — it has a second call site in
+# the page body independent of the extracted OpenNowBadge.
+# EVIDENCE THE FREEZE HELD, which matters more than the green count: NOT ONE pre-existing assertion
+# or beforeEach body was edited anywhere. Test files changed only imports and file organization —
+# the AC 2 contract. Both TripPlannerPage test files (incl. the dnd one, the only guard on the
+# move-vs-reorder branch) passed with ZERO edits of any kind, because the three extracted components
+# were file-local. AC 11's two 5-14 cache-hit regression tests passed UNEDITED, one of them after
+# Task 8 relocated it. The useImageLoaded hook is a literal relocation — same imgRef.current
+# ?.complete check, same [imageUrl] dep, and deliberately NO reset of loaded on url change, matching
+# both original sites; grep -rn "\.complete" src/ now returns exactly one hit and AttractionHero was
+# not touched. The one assertion that WAS corrected lived in a brand-new test file (my own probe
+# asserted pending for a null url; jsdom reports complete===true for a src-less <img>, and both real
+# call sites gate the <img> behind showImage).
+# Sizes: TripPlannerPage 640→344 (AC allowed ≤360), SearchPage.tsx 534→480 (AC's expected ≈482),
+# DestinationDetailsPage 293→243, DateField 204→182, SearchPage.module.css 573→501, and the
+# 1298-line SearchPage.test.tsx split into 5 files (largest 399) + searchPageTestUtils.tsx with all
+# 67 it blocks preserved verbatim. Test lines rose only +164 vs the predicted +300–500 because
+# helpers were shared and per-file imports were compiler-trimmed. Only non-test files over 400 lines
+# are the documented exceptions: SearchPage.tsx (awaiting the deferred useLocationCombobox story)
+# and three CSS modules. Zero barrels, still by design — a destinations barrel and a trips barrel
+# would form a real import cycle, and FE/README.md now records that rationale along with the @/ vs
+# ./ rule, one-component-per-file, the .ts-sibling rule, and the vi.mock-strings-are-not-typechecked
+# trap. FE 350/350 across 34 files (+9: 5 date-converter, 4 image-hook), lint 0 warnings, build
+# clean. NOTED FOR REVIEW: no live browser smoke pass was performed (stated plainly, per the Dev
+# Notes' record that jsdom twice missed defects in this repo) — highest-risk surfaces are the
+# PopularTile stylesheet split (the only change altering generated CSS hashes; verified no compound
+# .tile.tileA selectors exist and tileA–tileF correctly stayed behind) and the now-three-file
+# drag-and-drop. The uncommitted SearchPage.module.css hero-banner edit was neither adopted nor
+# reverted, and spec-5-19-attempted-implementation.patch is now definitively dead. Status: review.
+
+
 # 2026-07-27: added 6-12-replace-automapper-with-mapperly — user asked to drop AutoMapper for
 # Mapperly or Mapster without breaking anything and while keeping Clean Architecture intact.
 # Scoping found the surface is SIX files: the Infrastructure csproj, MappingProfile.cs (deleted),
@@ -1105,6 +1212,51 @@ last_updated: 2026-07-28
 # bind/validate rule from 7-3 (only the chosen provider's transport settings are
 # validated at startup) is a preserved invariant, not a refactor target.
 
+# 2026-07-28: added 5-22-frontend-structure-audit-and-component-split — user asked for an audit of
+# the FE project structure, component separation, and maintainability. dev-story HALTED first
+# because no story covered it (the only ready-for-dev stories were backend 6-11 and 8-5) and the
+# user chose to author one properly rather than let the workflow silently develop 6-11.
+# The audit measured a NEW baseline that supersedes the numbers later stories cite: FE 341 tests /
+# 29 files (5-21 and the BE architecture audit both say 335/28 — stale), exactly 2 lint warnings,
+# build clean at a single 670 kB chunk, 101 files under FE/src, 12 files over 200 lines.
+# Scope is the follow-through on 5-17: that story moved files WITHOUT changing their contents by
+# design, so the folder skeleton is right but still holds pre-restructure component shapes — four
+# page files carry 2-4 React components each. This story splits them, promotes StarRating to
+# shared/ui (which also removes the trips->destinations import leg), de-duplicates the 2-site
+# image-load guard, gives PopularTile its own stylesheet, splits the 1298-line SearchPage.test.tsx,
+# and takes lint to ZERO warnings for the first time by splitting the two provider+hook files.
+# NOTE FOR EVERY LATER STORY: the "exactly 2 warnings" regression gate every story since 5-8 has
+# reported against becomes 0 after this lands — do not read 0 as a measurement error.
+# THREE THINGS THE ADVERSARIAL VALIDATION PASS CAUGHT AND FIXED before the story was finalized,
+# recorded because they are the traps a dev agent would actually hit. (1) The first draft demanded
+# SearchPage.tsx < 400 lines; the extractions it authorizes total 55 lines out of 534, landing at
+# ~482, and the ONLY route to 400 was extracting the combobox block the same story lists as out of
+# scope — an AC contradicting its own scope section. The numeric target was REMOVED and ~482 is now
+# written in as the expected, correct outcome. (2) TripPlannerPage's "< 350" resolved to exactly
+# 350 after unused-import removal, i.e. failing by one line, with no Prettier config in FE/ to make
+# the multi-line import formatting deterministic — relaxed to <= 360. (3) AC 11 claimed the
+# imgRef.complete cache-hit guard was triplicated including AttractionHero; grep proves only TWO
+# sites (AttractionCard:23, PopularTile:20) — AttractionHero is a multi-image carousel using
+# per-URL loadedImages/failedImages arrays with no imgRef at all, so routing it through the hook
+# would have been a behavior change violating the story's own AC 1. Now explicitly ring-fenced.
+# ALSO load-bearing: the story enumerates 16 reference sites for the context split, of which SIX
+# are vi.mock path strings that TypeScript does NOT check — the exact 5-17 trap that once failed
+# 118 tests. One of them is in SearchPage.test.tsx:18, a 1298-line file whose subject is unrelated
+# to auth or trips and which the first draft never mentioned. Two more findings worth keeping:
+# adding barrel index.ts files would create a REAL import cycle (destinations barrel -> AttractionCard
+# -> trips/AddToTripContext, vs trips barrel -> TripPlannerPage -> destinations/StarRating), so the
+# absence of barrels is load-bearing and AC 10 must land before any future barrel story; and
+# oxlint's only-export-components with allowConstantExport permits a .tsx to co-export only LITERAL
+# constants, not arrays/objects/hooks — which is why 5-20 was forced to split popularCities.ts and
+# is the repo's real, linter-enforced module-splitting law, written into FE/README.md by AC 15.
+# Deliberately out of scope with reasons in the story: the searchState.ts collapse (deferred-work #1,
+# a behavior change), promoting AuthContext to shared/, code-splitting the 670 kB bundle, adding
+# max-lines/import-cycle lint rules, and the larger hook extractions. Also noted: an unrelated
+# uncommitted SearchPage.module.css hero-banner edit is in the working tree and must be left alone
+# (it contradicts epic-5-context.md's "photography has not shipped" and is covered by no story),
+# and Tasks 5/8 will invalidate 5-19's spec-5-19-attempted-implementation.patch, which is pinned to
+# c44def9 and warned it would need rebasing if features/destinations moved. ready-for-dev.
+
 development_status:
   epic-1: in-progress
   1-4-filter-and-sort-attractions: done
@@ -1165,6 +1317,8 @@ development_status:
   5-19-landing-page-framed-editorial: review
   5-20-popular-search-tile-images: review
   5-21-create-trip-dialog: review
+  5-22-frontend-structure-audit-and-component-split: review
+  5-23-frontend-model-and-service-layer: review
   epic-10: in-progress
   10-1-redis-response-caching: review
   10-2-redis-connection-string-in-env: review

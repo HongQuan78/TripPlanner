@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { LocationSearchResult } from '@/shared/api/types';
+import type { LocationSearchResult } from '@/shared/api/models/destination/locationSearchResult';
 import { addRecentSearch, clearRecentSearches, getRecentSearches } from './recentSearches';
 
 function city(name: string, latitude: number, longitude: number): LocationSearchResult {

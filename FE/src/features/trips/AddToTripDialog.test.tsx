@@ -2,27 +2,29 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '@/shared/api/client';
-import type { Trip } from '@/shared/api/types';
+import { ApiError } from '@/shared/api/apiError';
+import type { Trip } from '@/shared/api/models/trip/trip';
 import AddToTripDialog from './AddToTripDialog';
 
-vi.mock('./api', () => ({
-  getTrips: vi.fn(),
-  getTrip: vi.fn(),
-  createTrip: vi.fn(),
-  updateTrip: vi.fn(),
-  addDestinationToDay: vi.fn(),
-  removeDestinationFromDay: vi.fn(),
-  addToSavedPlaces: vi.fn(),
-  removeFromSavedPlaces: vi.fn(),
-  scheduleSavedPlace: vi.fn(),
+vi.mock('./tripService', () => ({
+  tripService: {
+    getAll: vi.fn(),
+    getById: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    addDestinationToDay: vi.fn(),
+    removeDestinationFromDay: vi.fn(),
+    addToSavedPlaces: vi.fn(),
+    removeFromSavedPlaces: vi.fn(),
+    scheduleSavedPlace: vi.fn(),
+  },
 }));
 
-import { addDestinationToDay, addToSavedPlaces, getTrips } from './api';
+import { tripService } from './tripService';
 
-const getTripsMock = vi.mocked(getTrips);
-const addDestinationToDayMock = vi.mocked(addDestinationToDay);
-const addToSavedPlacesMock = vi.mocked(addToSavedPlaces);
+const getTripsMock = vi.mocked(tripService.getAll);
+const addDestinationToDayMock = vi.mocked(tripService.addDestinationToDay);
+const addToSavedPlacesMock = vi.mocked(tripService.addToSavedPlaces);
 
 const trips: Trip[] = [
   {

@@ -4,13 +4,15 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { routes } from './routes';
 
-vi.mock('@/features/destinations/api', () => ({
-  searchLocations: vi.fn(),
-  getAttractions: vi.fn(),
-  getDestinationDetails: vi.fn(),
+vi.mock('@/features/destinations/destinationService', () => ({
+  destinationService: {
+    searchLocations: vi.fn(),
+    getAttractions: vi.fn(),
+    getDestinationDetails: vi.fn(),
+  },
 }));
 
-import { getDestinationDetails } from '@/features/destinations/api';
+import { destinationService } from '@/features/destinations/destinationService';
 
 function renderAt(path: string) {
   const queryClient = new QueryClient({
@@ -37,7 +39,7 @@ describe('routes', () => {
   });
 
   it('renders the destination details page at /attractions/:xid', async () => {
-    vi.mocked(getDestinationDetails).mockResolvedValue({
+    vi.mocked(destinationService.getDestinationDetails).mockResolvedValue({
       xid: 'W123',
       name: 'Louvre Museum',
       category: null,

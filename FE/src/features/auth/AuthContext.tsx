@@ -1,9 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { logout as logoutRequest } from './api';
-import { setOnUnauthorized, setTokenProvider } from '@/shared/api/client';
-import type { AuthResponse } from '@/shared/api/types';
+import { authService } from './authService';
+import { AuthContext } from './useAuth';
+import type { AuthContextValue } from './useAuth';
+import { httpClient } from '@/shared/api/httpClient';
+import type { AuthResponse } from '@/shared/api/models/auth/authResponse';
 
 export const AUTH_STORAGE_KEY = 'tripplanner.auth';
 
@@ -12,16 +14,6 @@ export interface AuthUser {
   email: string;
   role: string;
 }
-
-interface AuthContextValue {
-  user: AuthUser | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  login: (session: AuthResponse) => void;
-  logout: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
 
 function readStoredSession(): AuthResponse | null {
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -50,8 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const locationRef = useRef(location);
   locationRef.current = location;
 
-  setTokenProvider(() => sessionRef.current?.token ?? null);
-  setOnUnauthorized(() => {
+  httpClient.setTokenProvider(() => sessionRef.current?.token ?? null);
+  httpClient.setOnUnauthorized(() => {
     if (!sessionRef.current) {
       return;
     }
@@ -65,8 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     return () => {
-      setTokenProvider(() => null);
-      setOnUnauthorized(null);
+      httpClient.setTokenProvider(() => null);
+      httpClient.setOnUnauthorized(null);
     };
   }, []);
 
@@ -76,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await logoutRequest().catch(() => undefined);
+    await authService.logout().catch(() => undefined);
     sessionRef.current = null;
     setSession(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -94,12 +86,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, login, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 }

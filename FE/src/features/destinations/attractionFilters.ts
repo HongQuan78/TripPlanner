@@ -1,4 +1,4 @@
-import type { Attraction } from '@/shared/api/types';
+import type { Attraction } from '@/shared/api/models/destination/attraction';
 
 export type AttractionSort = 'recommended' | 'rating';
 

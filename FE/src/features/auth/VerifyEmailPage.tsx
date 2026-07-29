@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { resendVerification, verifyEmail } from './api';
-import { ApiError } from '@/shared/api/client';
+import { authService } from './authService';
+import { ApiError } from '@/shared/api/apiError';
 import { CheckCircleIcon, MailIcon } from './authIcons';
 import styles from './VerifyEmailPage.module.css';
 
@@ -39,7 +39,8 @@ export default function VerifyEmailPage() {
       return;
     }
     verifyFired.current = true;
-    verifyEmail(token)
+    authService
+      .verifyEmail(token)
       .then((response) => {
         setVerifyState({ kind: 'verified', message: response.message });
       })
@@ -56,7 +57,7 @@ export default function VerifyEmailPage() {
     setResendError(null);
     setResendPending(true);
     try {
-      const response = await resendVerification({ email: resendEmail });
+      const response = await authService.resendVerification({ email: resendEmail });
       setResendMessage(response.message);
     } catch (error) {
       const message =

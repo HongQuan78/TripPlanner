@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { Trip } from '@/shared/api/types';
+import type { Trip } from '@/shared/api/models/trip/trip';
 import CreateTripDialog from './CreateTripDialog';
 import skeletonStyles from '@/shared/ui/Skeleton.module.css';
 import { useTrips } from './hooks';

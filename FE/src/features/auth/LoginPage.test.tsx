@@ -1,18 +1,20 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '@/shared/api/client';
+import { ApiError } from '@/shared/api/apiError';
 import { AUTH_STORAGE_KEY, AuthProvider } from './AuthContext';
 import LoginPage from './LoginPage';
 
-vi.mock('./api', () => ({
-  login: vi.fn(),
-  logout: vi.fn(),
+vi.mock('./authService', () => ({
+  authService: {
+    login: vi.fn(),
+    logout: vi.fn(),
+  },
 }));
 
-import { login } from './api';
+import { authService } from './authService';
 
-const loginMock = vi.mocked(login);
+const loginMock = vi.mocked(authService.login);
 
 const session = { id: 1, email: 'user@example.com', role: 'User', token: 'jwt-token' };
 
