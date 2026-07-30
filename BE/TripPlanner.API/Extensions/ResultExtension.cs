@@ -1,0 +1,54 @@
+using TripPlanner.Application.Common;
+
+namespace TripPlanner.API.Extensions;
+
+public static class ResultExtension
+{
+    public static IResult ToResponse<T>(this Result<T> result, Func<T, IResult> onSuccess)
+    {
+        if (!result.IsSuccess)
+        {
+            return Results.Problem(
+                statusCode: ToStatusCode(result.Error!.ErrorType),
+                title: ToTitle(result.Error!.ErrorType),
+                detail: result.Error!.Description
+            );
+        }
+
+        return onSuccess(result.Data!);
+    }
+
+    public static IResult ToResponse(this Result result, Func<IResult> onSuccess)
+    {
+        if (!result.IsSuccess)
+        {
+            return Results.Problem(
+                statusCode: ToStatusCode(result.Error!.ErrorType),
+                title: ToTitle(result.Error!.ErrorType),
+                detail: result.Error!.Description
+            );
+        }
+
+        return onSuccess();
+    }
+
+    private static int ToStatusCode(ErrorType errorType) => errorType switch
+    {
+        ErrorType.BadRequest         => StatusCodes.Status400BadRequest,
+        ErrorType.Unauthorized       => StatusCodes.Status401Unauthorized,
+        ErrorType.NotFound           => StatusCodes.Status404NotFound,
+        ErrorType.Conflict           => StatusCodes.Status409Conflict,
+        ErrorType.ServiceUnavailable => StatusCodes.Status503ServiceUnavailable,
+        _                            => StatusCodes.Status500InternalServerError
+    };
+
+    private static string ToTitle(ErrorType errorType) => errorType switch
+    {
+        ErrorType.BadRequest         => "Bad Request",
+        ErrorType.Unauthorized       => "Unauthorized",
+        ErrorType.NotFound           => "Not Found",
+        ErrorType.Conflict           => "Conflict",
+        ErrorType.ServiceUnavailable => "Service Unavailable",
+        _                            => "Internal Server Error"
+    };
+}

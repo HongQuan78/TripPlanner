@@ -1,0 +1,240 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Repository Layout
+
+The .NET solution lives entirely under `BE/` (`BE/TripPlanner.slnx`). The frontend web app (React + TypeScript + Vite) lives under `FE/`. The repo root also contains `epic/` and `requirement/` (feature docs and source requirements — both version-controlled, so requirements-verification stories can cite them at a pinned commit; only the generated `requirement/resources/sheet.css` is ignored), `docs/`, and `_bmad-output/` (version-controlled BMAD workflow output: per-story implementation artifacts and `implementation-artifacts/sprint-status.yaml`).
+
+## Commands
+
+Run all `dotnet` commands from the `BE/` directory (or pass `BE/...` paths from the root):
+
+```bash
+# Build the solution
+dotnet build BE
+
+# Run the API
+dotnet run --project BE/TripPlanner.API
+
+# Run with hot reload
+dotnet watch --project BE/TripPlanner.API
+
+# Run all tests
+dotnet test BE
+
+# Run a single test class or test
+dotnet test BE --filter "FullyQualifiedName~UpdateTripUseCaseTests"
+
+# Add a new EF Core migration
+dotnet ef migrations add <MigrationName> --project BE/TripPlanner.Infrastructure --startup-project BE/TripPlanner.API
+
+# Apply migrations to the database
+dotnet ef database update --project BE/TripPlanner.Infrastructure --startup-project BE/TripPlanner.API
+```
+
+The API exposes Swagger UI at `/swagger` when running in Development mode.
+
+Frontend commands run from the `FE/` directory:
+
+```bash
+npm install        # install dependencies
+npm run dev        # start the Vite dev server (http://localhost:5173)
+npm run build      # type-check and build for production
+npm test           # run unit tests (Vitest)
+npm run lint       # run Oxlint
+
+# Run a single test file, or a single test by name
+npx vitest run src/features/trips/tripService.test.ts
+npx vitest run -t "creates a trip"
+```
+
+The frontend reads the API base URL from `VITE_API_BASE_URL` (`FE/.env.development`, default `http://localhost:5000`). See `FE/README.md` for details.
+
+Environment variables are loaded via **DotNetEnv**: at startup `Program.cs` walks up from the working directory until it finds a `.env` file. **`BE/.env.example` is the authoritative, annotated list** — copy it rather than reconstructing the set from here. The variables without a usable default are:
+
+```
+ConnectionStrings__DefaultConnection=<postgres-connection-string>
+JwtSettings__SecretKey=<hs256-secret-key>
+OpenTripMapSettings__ApiKey=<opentripmap-api-key>
+EmailSettings__FromAddress=<sender-address>
+EmailSettings__VerificationUrlBase=<spa-verify-email-url>
+```
+
+The two `EmailSettings` entries are enforced by `ValidateOnStart()`, so a missing one is a startup failure, not a latent bug. `OpenTripMapSettings__ApiKey` is the **only** third-party key the app needs: Photon, Overpass and Wikipedia are all keyless (see External services below). `ConnectionStrings__Redis` is optional and may be blank — see the Redis note under Docker.
+
+Email verification is sent via Resend's SMTP relay (`smtp.resend.com`, username `resend`, password = the Resend API key), configured through the `ResendSettings` section. `appsettings.json` leaves `ApiKey` blank for local dev; override via `ResendSettings__*` variables for real delivery.
+
+## Docker / Production Deployment
+
+The whole stack is containerized and orchestrated by the root `docker-compose.yml` (services `db`, `api`, `web`):
+
+```bash
+cp .env.production.example .env   # then fill in real secrets (kept out of git)
+docker compose build
+docker compose up
+```
+
+The app is served at `http://localhost:8080` (the `web`/nginx service is the only host-facing port, mapped `8080:8080`). nginx serves the built SPA and reverse-proxies `/api/` to the `api` container on port 8080, so the browser talks to a single same-origin — the backend's loopback-only CORS policy is never a factor and needs no widening.
+
+Key mechanics:
+
+- **Backend image** (`BE/Dockerfile`): multi-stage .NET 10 SDK build → ASP.NET runtime, publishes `TripPlanner.API` in Release, runs as a non-root user, listens on `http://+:8080`. The runtime stage installs `curl` (for the compose healthcheck) and `libgssapi-krb5-2` (Npgsql probes for GSSAPI at startup; without it the boot log opens with a misleading `Cannot load library libgssapi_krb5.so.2` error that is harmless but misdirects debugging).
+- **Frontend image** (`FE/Dockerfile`): multi-stage Node build (`npm run build`) → `nginxinc/nginx-unprivileged` serving `dist/` with SPA history-fallback, as a non-root user on port 8080. It is built with `VITE_API_BASE_URL` **empty** so the SPA issues relative, same-origin requests (Vite bakes this at build time). See `FE/nginx.conf`.
+- **nginx routing.** The proxy prefixes are declared `location ^~ /api/` and `^~ /swagger`; the `^~` is load-bearing. Without it the regex static-asset location (`~* \.(js|css|svg|…)$`) takes precedence over a plain prefix location in nginx, and any proxied path ending in one of those extensions is served from disk (404) instead of being forwarded. `proxy_pass` goes through `resolver 127.0.0.11` and a variable (`$api_upstream$request_uri`) rather than a literal hostname, so nginx re-resolves the `api` address instead of caching it for the process lifetime — and `nginx -t` works without the `api` container being up.
+- **`/swagger` is proxied but inert in production.** The nginx block forwards correctly, and the API returns 404 for it: `Program.cs` maps Swagger only when `IsDevelopment()`, while the container runs `ASPNETCORE_ENVIRONMENT=Production`. The route only becomes live if you override the environment to Development.
+- **Config/secrets** are injected at run time as environment variables via the `Section__Key` convention (Compose auto-loads the host-side `.env` for `${...}` substitution); nothing is baked into an image.
+- **The Postgres server is env-selectable.** The compose connection string is assembled as `Host=${POSTGRES_HOST:-db};Port=${POSTGRES_PORT:-5432};Database=…;Password=${POSTGRES_PASSWORD};${POSTGRES_OPTIONS:-}`, so an operator points the API at a managed/external Postgres from the host `.env` alone. Defaults reproduce the in-network `db` service exactly. Three things are load-bearing: the `:-` form (a bare `${...}` expands to empty when unset, yielding `Host=;Port=;` and breaking every default `up`); the always-emitted `;` before `${POSTGRES_OPTIONS:-}` (Compose's `:+` alternate-value form is outside the documented interpolation set, so the separator cannot be made conditional — the resulting trailing `;` on the default path is harmless, as `DbConnectionStringBuilder` ignores empty segments); and `POSTGRES_OPTIONS` itself, which is how a TLS-requiring cloud Postgres gets `SSL Mode=Require;Trust Server Certificate=true` without editing a version-controlled file. `ComposeConnectionStringTemplateTests` expands the template straight out of `docker-compose.yml` and validates it through `NpgsqlConnectionStringBuilder`, so dropping `POSTGRES_HOST` is a red test. Note the caveat: overriding the host does **not** stop the bundled `db` service — it still starts and `api` still gates on its healthcheck; it is simply unused. Making it conditional would need Compose profiles or a `!reset` override and would change default `up` semantics, so it was left alone deliberately.
+- **Redis is optional and env-sourced.** The `redis` service (`redis:7-alpine`, `redisdata` volume, `redis-cli ping` healthcheck) backs the cache of external-provider responses; it is in-network only and never published to the host. The API reads `ConnectionStrings:Redis` (env `ConnectionStrings__Redis`), which compose supplies as `${ConnectionStrings__Redis:-redis:6379}` — the `:-` form is load-bearing, since a bare `${...}` would expand to empty when unset and silently downgrade every default `up` to a per-process cache while the `redis` container still starts and reports healthy. An **empty** value is a supported configuration, not an error: `AddInfrastructureServices` falls back to `AddDistributedMemoryCache()` rather than failing startup (an empty string reaching `AddStackExchangeRedisCache` would throw `ArgumentException: is empty`), which is why `BE/.env.example` can ship the variable blank for local dev and no test needs a running Redis.
+- **Migrations** apply automatically on API startup: `Program.cs` runs `Database.Migrate()` before serving, gated by the `RunMigrationsOnStartup` config flag (default `true` when unset or unparseable; only the literal `false` disables it), so a fresh Postgres volume is schema-ready on first boot. The call is wrapped in a bounded retry (10 attempts, 3s apart) and logs a `Critical` message naming the connection string before rethrowing, so an unreachable DB fails fast with a clear reason instead of a bare stack trace in a crash loop. EF Core takes an `ACCESS EXCLUSIVE` lock on `__EFMigrationsHistory`, so concurrent instances serialize rather than collide. Note the default applies to plain `dotnet run` too — see `BE/.env.example`.
+- **Readiness.** `api` has a healthcheck against `/health` (`AddHealthChecks`/`MapHealthChecks`) and `web` waits on `condition: service_healthy`, so nginx does not accept traffic and return 502s while the API is still migrating or starting.
+- **Postgres credentials are init-only.** `POSTGRES_DB/USER/PASSWORD` are honored only when the `pgdata` volume is first initialized. Editing them later does not rotate anything — the role keeps its old password while the API connects with the new one (`28P01`). Rotate with `ALTER ROLE` inside the db container, or destroy the volume (which erases all data).
+- **DataProtection keys** are persisted to the `dpkeys` named volume; without it ASP.NET warns on every boot and any DataProtection-backed payload would break on redeploy. (JWTs are unaffected — they are signed with the configured HS256 key.)
+- **TLS** is expected to terminate at an upstream proxy/load balancer; the containers serve plain HTTP. `UseHttpsRedirection()` is a no-op with no configured HTTPS port. nginx forwards `X-Forwarded-*`, but the API does not call `UseForwardedHeaders`, so `Request.Scheme` stays `http` — do not configure an HTTPS port on the container without adding forwarded-headers handling, or the redirect will loop.
+
+## CI/CD
+
+Workflows live in `.github/workflows/` — **this directory is version-controlled on purpose**; root `.gitignore` used to ignore it, which silently disabled Actions for everyone but the local maintainer (GitHub only runs committed workflows). Do not re-add that ignore entry.
+
+- **`ci.yml`** (push to `master`/`quanhvo`, PR to `master`) — three parallel jobs: backend `dotnet build`/`test`, frontend `lint`/`test`/`build`, and a `containers` job that validates `docker compose config` (against `.env.production.example`) plus `nginx -t`, then builds both images without pushing.
+- **`deploy.yml`** (manual `workflow_dispatch`) — builds and pushes `tripplanner-api`/`tripplanner-web` to GHCR, then deploys over SSH to a single EC2 host: pins the checkout to the deployed SHA, `docker pull`s the two images, `docker compose … up -d --no-build`, waits for every service to report healthy, and smoke-tests the public URL. `docker-compose.deploy.yml` swaps `build:` for registry `image:` refs.
+
+**Edge mode is chosen by the `DOMAIN` repository variable.** Unset → `docker-compose.http.yml`, publishing nginx on host port 80. Set → `docker-compose.tls.yml`, running Caddy on 80/443 with automatic Let's Encrypt certificates (`Caddyfile`, certs persisted in the `caddydata` volume) and proxying to `web:8080`. The workflow's smoke test follows the same switch (`http://$EC2_HOST/` vs `https://$DOMAIN/`). TLS **must** terminate at the edge: `Program.cs` never calls `UseForwardedHeaders`, so configuring an HTTPS port on the container would make `UseHttpsRedirection()` redirect to a scheme it cannot see and loop forever.
+
+Images are built on the runner, never on the instance — `docker compose build` compiles the .NET solution and the Vite bundle, which OOMs a 2 GiB box. Deploy secrets (`EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, optional `EC2_APP_DIR`) and the one-time server preparation are documented in **`docs/deployment.md`**; GHCR auth uses the built-in `GITHUB_TOKEN`, so no PAT is required and packages can stay private.
+
+## Architecture (backend)
+
+This is a **Clean Architecture** ASP.NET Core 10.0 solution with five projects:
+
+- **`TripPlanner.Domain`** — Entity models only (in `Domain/Models/`, not `Entities/`); no dependencies. Contains `Trip`, `TripDay`, `TripDayDestination`, `Destination` (concrete entity), and `User`.
+- **`TripPlanner.Application`** — Use cases, interfaces, DTOs, and the Result pattern. Its only framework dependencies are the two contract-only abstraction packages `Microsoft.Extensions.Logging.Abstractions` and `Microsoft.Extensions.DependencyInjection.Abstractions` (the latter solely so the layer can own its own composition root — see `AddApplicationUseCases` below). Neither pulls in an implementation; do not add a package that does.
+- **`TripPlanner.Infrastructure`** — EF Core (PostgreSQL), repositories, Mapperly mapping, JWT token service, password hasher, verification token service, SMTP email senders, the response cache, and external HTTP service clients (OpenTripMap, Photon, Overpass, Wikipedia). Implements interfaces defined in Application.
+- **`TripPlanner.API`** — HTTP layer: Minimal API endpoints, validators, middleware, and DI wiring. No business logic.
+- **`TripPlanner.Tests`** — xUnit unit tests using NSubstitute for mocking.
+
+### Dependency Direction
+
+```
+API → Infrastructure → Application → Domain
+Tests → API, Infrastructure, Application, Domain
+```
+
+Nothing in Application or Domain may reference API or Infrastructure types.
+
+## Key Patterns
+
+**Minimal APIs (no controllers):** Routes are defined in static endpoint classes (`TripEndpoints`, `DestinationEndpoints`, `AuthEndpoints`, `LocationEndpoints`) using `MapGroup`/`RouteGroupBuilder`. Endpoint handlers receive dependencies via method parameters resolved by DI. All endpoint groups are registered in `RouteExtension.AddRoute()`.
+
+**Use Case / Interactor pattern:** Each application operation is a dedicated class with a single `ExecuteAsync` method. Use cases implement an `I<Name>UseCase` interface defined in the same folder. Register new use cases in `ApplicationServicesExtension.AddApplicationUseCases()` (in the **Application** project, mirroring `AddInfrastructureServices` — each layer owns its own composition root; the API only composes the two). `ApplicationServicesRegistrationTests` reflects over every public `I*UseCase` interface under `TripPlanner.Application.UseCases` and fails if one is missing a registration, so a forgotten line is a red test rather than a runtime resolution error.
+
+```
+Application/UseCases/
+  Trip/        — ICreateTripUseCase, IGetTripUseCase, IGetAllTripsUseCase, IUpdateTripUseCase
+  Destination/ — IGetAllDestinationsUseCase, IGetDestinationByIdUseCase
+  TripDay/     — IAddDestinationToTripDayUseCase, IRemoveDestinationFromTripDayUseCase,
+                 IReorderDayDestinationsUseCase, IMoveDestinationBetweenDaysUseCase
+  SavedPlaces/ — IAddDestinationToSavedPlacesUseCase, IRemoveDestinationFromSavedPlacesUseCase,
+                 IScheduleSavedPlaceUseCase
+  Auth/        — IRegisterUserUseCase, ILoginUserUseCase, ILogoutUseCase,
+                 IVerifyEmailUseCase, IResendVerificationEmailUseCase
+  Location/    — ISearchLocationsUseCase, IGetAttractionsForLocationUseCase, IGetDestinationDetailsUseCase
+```
+
+`AddApplicationUseCases` also registers one non-use-case Application service, `IDestinationResolver` → `DestinationResolver` (`Application/Services/`). It is the shared "get me a persisted `Destination` from either an internal id or a provider `xid`, importing it on first sight" step, used by `AddDestinationToTripDayUseCase` and `AddDestinationToSavedPlacesUseCase`. New use cases that accept a destination reference should call it rather than re-implementing the id/xid branch.
+
+**Result pattern:** Use cases return `Result<T>` or `Result` (sealed records in `TripPlanner.Application.Common`). Always check `IsSuccess` before accessing `Data`. Errors carry an `ErrorType` enum value (`BadRequest`, `Unauthorized`, `NotFound`, `Conflict`, `ServiceUnavailable`) and a message string. `ResultExtension.ToResponse()` maps error results to HTTP responses in endpoints.
+
+**Trip ownership:** Trips carry a `UserId`. Trip, TripDay and SavedPlaces use cases take the authenticated user's id (extracted via `ClaimsPrincipalExtension`) and repository queries are scoped by it — a user can never read or modify another user's trips (a foreign trip id behaves as `NotFound`). Preserve this scoping in any new trip-related query or use case.
+
+**A trip has two destination collections.** `Trip.SavedPlaces` is a flat "shortlist" of destinations not yet on any day; `Trip.Days[].Destinations` are the scheduled ones. `Trip.ScheduleFromSavedPlaces` moves a destination from the former to the latter atomically (it removes *and* adds), which is why scheduling is a domain method rather than two use-case calls. `Trip.MoveDestinationBetweenDays` is idempotent on the target day — it will not duplicate a destination that is already there. Mutating either collection from a use case should go through these `Trip`/`TripDay` methods, not through the exposed `IReadOnlyList`s.
+
+The full authenticated surface is `/api/trips`: list, get, create, update, plus `days/{date}/destinations` (add/remove), `days/{date}/destinations/order` (reorder within a day), `days/{date}/destinations/{destinationId}/move` (move across days), `saved-places` (add/remove), and `days/{date}/schedule` (promote a saved place onto a day).
+
+**External services:** Application defines the ports in `Application/Interfaces/Services/`; Infrastructure implements each against a **different** third-party API, one folder per provider under `Infrastructure/ExternalServices/`. The provider behind a port is an implementation detail — do not assume "external data" means OpenTripMap:
+
+| Port | Implementation | Provider | Key? |
+| --- | --- | --- | --- |
+| `IGeocodingService` | `PhotonGeocodingService` | Photon (Komoot) | no |
+| `IAttractionSearchService` | `OpenTripMapAttractionSearchService` | OpenTripMap | **yes** |
+| `IDestinationDetailsService` | `OpenTripMapDestinationDetailsService` | OpenTripMap | **yes** |
+| `IOpeningHoursProvider` | `OverpassOpeningHoursProvider` | OSM Overpass | no |
+| `IDestinationImageProvider` | `WikipediaImageProvider` | Wikipedia REST | no |
+
+Each has its own `*Settings` class (base URL, timeout, cache minutes) bound and — except `OpenTripMapSettings` — `ValidateOnStart()`-validated, and is registered via `AddHttpClient<TInterface, TImplementation>`. External API failures surface as `ErrorType.ServiceUnavailable` results or `null`, never exceptions. Follow this pattern for any new third-party API integration.
+
+One port is not an HTTP client at all: **`ITimeZoneResolver` → `GeoTimeZoneResolver`** (`Infrastructure/ExternalServices/TimeZones/`) is an offline lat/long → IANA-zone lookup over the **GeoTimeZone** package, registered as a singleton and needing no network, key or settings class. It exists because Open/Closed is meaningless without the *destination's* timezone — evaluating hours against the viewer's browser clock is wrong for every non-local user — so `DestinationDetailsResponse` carries `TimeZone` alongside the hours string.
+
+**`IOpeningHoursProvider` returns a tri-state, not a `string?`.** `OpeningHoursResult` pairs an `OpeningHoursAvailability` (`Available` | `KnownAbsent` | `Unavailable`) with the value, and that distinction rides all the way to the wire so the SPA can tell "this place publishes no hours" from "the lookup failed". Collapsing it back to a nullable string would make a transient Overpass outage read to users as a definitive "Opening hours not available", which is the AC2 literal and means something different. Note the enum is serialized **by name**: `Program.cs` adds a `JsonStringEnumConverter` via `ConfigureHttpJsonOptions`, so the wire value is `"KnownAbsent"`, not `1`.
+
+Two of these deserve note. **Geocoding moved off OpenTripMap to Photon** — location search hits `PhotonGeocodingService`, so an OpenTripMap outage or missing key does not break search. **`IOpeningHoursProvider` works because OpenTripMap xids are OSM ids**: `OverpassOpeningHoursProvider` parses the xid into an OSM element type + id and queries Overpass for the `opening_hours` tag, which is how *any* destination type (not just landmarks) gets opening hours. `IDestinationImageProvider` is the sole source of destination images, consumed by both OpenTripMap services; OpenTripMap's own `preview`/`image` fields are ignored because its dev-tier image URLs are unusable. Swapping any provider requires only a new implementation plus the one DI registration change, mirroring the `IEmailSender` provider-swap convention.
+
+**Response caching is Infrastructure-internal, and it is a cache of *providers*, not of endpoints.** `IResponseCache` (`Infrastructure/Caching/`) is `internal` and deliberately **not** an Application port — no use case knows caching exists. `RedisResponseCache` implements it over `IDistributedCache`, which is Redis when `ConnectionStrings:Redis` is set and an in-process memory cache when it is blank (see the Redis note under Docker), so the same code path works with no Redis running. All four keyless/keyed provider clients (`OpenTripMapPlaceClient`, `PhotonGeocodingService`, `OverpassOpeningHoursProvider`, `WikipediaImageProvider`) cache their own responses; TTL comes from that provider's settings and defaults to 1440 minutes. The one asymmetry is load-bearing: `OverpassOpeningHoursProvider` caches a **definitive** answer (including a definitive "no hours") for the full TTL but a *failed* lookup for only `FailureCacheMinutes` (5), so a transient Overpass 5xx or timeout is not negative-cached for a day. Preserve that split in any new cached provider — cache the answer long, the failure short.
+
+Two Overpass details make that split actually hold, and both are easy to undo by accident. **The cache entry stores the `Definitive` flag, not just the value** — without it a short-TTL cached *failure* reads back as an indistinguishable `null` and gets reported as a definitive "no hours" for its whole TTL, silently defeating the tri-state. And **Overpass reports runtime errors with HTTP 200**, returning `{"elements":[],"remark":"runtime error: …"}` rather than a 5xx; `OverpassResponseModel` therefore models `remark`, and an empty element list is treated as a *failure* when a remark is present and a definitive absence only when it is not. Dropping the `remark` field compiles, passes a naive reading, and negative-caches every Overpass overload for 24 hours.
+
+**Repository pattern:** `IRepository<T>` is the generic base and carries exactly two members — `GetByIdAsync` and `Add`. All three specialized repositories (`ITripRepository`, `IDestinationRepository`, `IUserRepository`) extend it and add domain-specific queries; all three implementations derive from `Repository<T>`. Keep the base minimal: a member belongs there only while at least one repository actually uses it (a `Remove` that no caller ever invoked was removed for this reason). `IUnitOfWork` wraps `SaveChangesAsync` for explicit transaction control. All interfaces live in `Application/Interfaces/`; implementations live in `Infrastructure/Repositories/`.
+
+`TripRepository` reaches `TripDay`'s **private** `_items` backing field through a string include path, exposed as the constant `TripRepository.DayDestinationsIncludePath` (`"Days._items.Destination"`) — a string is the only way EF can traverse a backing field. Trip queries pair it with a typed `.Include(t => t.SavedPlaces)`; both are needed for a complete trip, so a new trip query that loads one without the other returns a half-populated aggregate. Renaming `_items` in the domain still compiles, so `TripRepositoryIncludePathTests` guards it: it walks the path against `DbContext.Model`, asserts the query translates to SQL touching `trip_days`/`trip_day_destinations`/`destinations`, and pins that an unresolvable path throws. Those tests build the context with `UseNpgsql` and only call `ToQueryString()`, so they need no running database.
+
+**Validation:** FluentValidation validators auto-run on endpoint parameters via `SharpGrip.FluentValidation.AutoValidation.Endpoints`. Add validators to the DI container via `AddValidatorsFromAssembly` and they apply automatically.
+
+**Response DTOs serve three roles — an accepted, deliberate trade-off.** The records in `Application/DTOs/Responses/` are simultaneously (1) the HTTP response body, (2) the return type of the external-provider ports (`DestinationDetailsResponse` ← `IDestinationDetailsService`, `AttractionResponse` ← `IAttractionSearchService`, `LocationSearchResultResponse` ← `IGeocodingService`), and (3) the source for domain imports — `DestinationResolver` builds a `Destination` straight out of `DestinationDetailsResponse`. The consequence is real and must be kept in mind: **renaming or reshaping a field for the frontend is not a presentation-only change** — it forces matching edits in the OpenTripMap adapters and in the import path, and can change what gets persisted. The canonical fix (separate provider-facing models in Application, mapped to `*Response` at the use-case boundary) costs ~1 day across 3 ports, 3 adapters and ~10 test files, and was consciously declined: it is worth paying only once the wire contract and the provider contracts actually start diverging. Until then, do not "clean this up" piecemeal — a half-split is worse than either end state.
+
+**Mapping behind an interface:** Application defines `IApplicationMapper` with typed mapping methods (`MapToTripResponse`, `MapToTripResponseList`, etc.); Infrastructure implements it in `ApplicationMapper`. **The port is the load-bearing part, not the library** — Application and API must never reference the mapping library directly, so the engine behind the port can be swapped without touching a use case (AutoMapper was replaced by Mapperly this way, with zero changes above Infrastructure).
+
+`ApplicationMapper` **is** the mapper: a `[Mapper]`-attributed `partial class` whose five method bodies are generated at compile time by **Riok.Mapperly** (a source generator — `Riok.Mapperly` is referenced by `TripPlanner.Infrastructure` only). There is no runtime configuration graph, no reflection, and no `Profile` class; a renamed or removed member is a **build error or an `RMG*` warning**, not a runtime mapping exception. Only two mappings are not by-name and carry attributes: `Destination.ExternalId → DestinationResponse.Xid` and `Trip.Days → TripResponse.TripDays`. Nested maps (`Trip → TripDay → Destination`) are discovered from the declared partial methods and reused automatically.
+
+Two rules keep this honest. **Unmapped source members are silenced individually, never wholesale.** `Trip.UserId`, `TripDay.Id`, and `TripDay.TripId` have no response counterpart and each carries an explicit `[MapperIgnoreSource(...)]`; RMG020 is a real warning in this configuration (verified by deleting one attribute and watching the build fail its 0-warning bar), so a `NoWarn` or an `.editorconfig` severity override would silently absorb a *future* unmapped member that actually matters. And `ApplicationMapperTests` exercises the **real** `ApplicationMapper` rather than a substitute — every other test class mocks `IApplicationMapper`, so those 13 cases are the only behavioural coverage of the wire projection, including that `TripDayResponse.Destinations` preserves the `Position` ordering of `TripDay.Destinations`.
+
+**Ordering within a day is an explicit join entity.** `TripDay` holds `List<TripDayDestination> _items`, where `TripDayDestination` carries `Position` alongside the `Destination`; `TripDay.Destinations` is a computed projection that sorts by `Position` and drops the join. So a day's order is persisted data, not insertion order or an EF quirk, and `ApplicationMapperTests` pins that `TripDayResponse.Destinations` preserves it. `TripDay` keeps positions contiguous itself: `AddDestination` appends at `_items.Count`, `ReorderDestinations` rewrites positions from a caller-supplied id order, and `RemoveDestination` calls a private `Renumber()` so a removal never leaves a gap. Keep that invariant in any new mutation — do not assign positions from outside the entity.
+
+**Model structure:** `Destination` is a concrete entity with a `Category` property holding the OpenTripMap provider kind **verbatim** (e.g., `"foods"`, `"historic"`, `"museums"`). `Category` is **not** constrained to a closed enum — the provider vocabulary is open-ended, and narrowing it would discard real data. It is backfilled from the database discriminator when migrating from the older subclass schema, but all new imports source it directly from the provider. When the provider supplies no kind, `Category` defaults to `"interesting_places"` (OpenTripMap's own root kind). The second property, `OpeningHours`, is genuinely sourced from Overpass for **any** destination type — the prior split (Landmark-only) lost that data for restaurants at import time. Both properties are required in the schema; `OpeningHours` is nullable at the property level (`string?`) but not at the database level (PostgreSQL `text` columns are nullable, not constrained to non-null for subclass properties). The `DestinationResolver` imports both uniformly: `new Destination(details.Name, rating, details.Category ?? defaultCategory, details.OpeningHours, details.Xid)`. Do not re-introduce inheritance or category enums unless a provider that genuinely varies the data arrives.
+
+**JWT authentication:** `POST /api/auth/login` returns an `AuthResponse` containing a Bearer token; `POST /api/auth/logout` revokes the current token by adding its `jti` claim to `ITokenBlacklist` (in-memory singleton), and `JwtExtension` rejects blacklisted tokens on validation. The `/api/trips` group requires authorization (`RequireAuthorization()`); `/api/locations` and `/api/destinations` are anonymous. JWT is configured in `JwtExtension.AddJwtAuthentication()` using `JwtSettings` bound from configuration.
+
+**Email verification:** `POST /api/auth/register` does not return a token — it returns a generic `MessageResponse` (identical for fresh and duplicate emails, to avoid account enumeration) and sends a verification email. Login is rejected with `Unauthorized` (401) until the email is verified, carrying the distinct message `Your email address is not verified. Please check your inbox.` The verification check runs **after** the password verifies (`LoginUserUseCase.cs`), so the distinct message can only reach a caller who already supplied correct credentials — wrong-password and unknown-email failures both keep the generic `Invalid email or password.` (both literals are named constants on `LoginUserUseCase`). Preserve that ordering: hoisting the verification check above the password guard would make a *single* login attempt an account-enumeration oracle. Note the narrower disclosure that remains and is **accepted**: because `RegisterUserUseCase` no-ops on a duplicate email without touching the existing password, a register-then-login *pair* with a caller-chosen password distinguishes a free address (distinct not-verified message) from a registered one (generic message). That is inherent to disclosing the unverified state at all — see `deferred-work.md` — so do not "fix" it by reverting the message; the endpoint has no rate limiting yet, which is the tracked mitigation. `GET /api/auth/verify-email` consumes the token; `POST /api/auth/resend-verification` reissues it, subject to a per-user 60-second cooldown during which the generic success is returned without regenerating the token or sending an email. `IVerificationTokenService` generates 32-byte base64url tokens stored SHA-256-hashed at rest; `IEmailSender` has two transport implementations — `ResendEmailSender` in `Infrastructure/ExternalServices/Resend/` (SMTP relay `smtp.resend.com`, auth user `resend`) and `GoogleEmailSender` in `Infrastructure/ExternalServices/Google/` (Gmail SMTP `smtp.gmail.com`, auth via a Google App Password) — selected at startup by `EmailSettings:Provider` (`Resend` default | `Google`). Provider selection goes through an explicit registry rather than an `if/else`: each provider owns an `IEmailProviderModule` in `Infrastructure/ExternalServices/Email/Providers/` (`ResendEmailProviderModule`, `GoogleEmailProviderModule`) whose `Register` performs that provider's `AddOptions<TSettings>` bind/validate plus its `AddScoped<IEmailSender, …>`, and `EmailProviderRegistry` is the single source of truth mapping key → module (`DefaultProviderKey` `"Resend"`, case-insensitive match, blank/absent → default, `InvalidOperationException` listing `SupportedKeys` for anything else). `AddInfrastructureServices` holds **zero** provider literals — even the `EmailSettings:Provider` validation delegates to `EmailProviderRegistry.IsSupported` with a message built from `SupportedKeys` — and calls `EmailProviderRegistry.Resolve(...).Register(services, configuration)`. Only the selected provider's transport settings (`ResendSettings` or `GoogleSmtpSettings`) are bound and validated with `ValidateOnStart()`, so blank credentials for the unused provider never fail startup; note an unknown provider value now throws during `AddInfrastructureServices` instead of falling through to Resend. Registration persists the user and sends the verification email inside a single database transaction (`IUnitOfWork.ExecuteInTransactionAsync`): if the email send throws, the transaction is rolled back so no account is created and the endpoint returns `ServiceUnavailable` (503) instead of the generic success — registration is not allowed unless the verification email is dispatched. A concurrent-duplicate `UniqueConstraintViolationException` still rolls back and returns the generic success (no email leak). Email content (subject/link/body) and transport are separate seams: `IVerificationEmailContentBuilder` (implemented by `VerificationEmailContentBuilder` in `Infrastructure/ExternalServices/Email/`, reading `EmailSettings`) builds the provider-agnostic content, while `IEmailSender` implementations handle only transport. The email is sent as `multipart/alternative`: `VerificationEmailContent` carries both `TextBody` (the original plain text, unchanged, and the fallback part) and `HtmlBody`, a branded HTML message rendered from the embedded-resource template `Infrastructure/ExternalServices/Email/Templates/verification-email.html` (manifest name `TripPlanner.Infrastructure.ExternalServices.Email.Templates.verification-email.html`, loaded once by `VerificationEmailTemplate`). `VerificationEmailContentBuilder` substitutes exactly `{{BrandName}}`, `{{ToEmail}}`, `{{VerificationLink}}`, `{{ExpiryHours}}`, each value passed through `WebUtility.HtmlEncode` first — `TextBody` keeps the raw, non-encoded link, since `Uri.EscapeDataString` on the token and HTML-encoding of the rendered link are different escapings at different layers. The template is deliberately email-client-safe (table layout, all critical styling inline, hardcoded Horizon hex values rather than CSS custom properties, a text wordmark instead of a remote image, no JavaScript or webfonts); edit the `.html` file, not a C# string. To add a new provider, implement `IEmailSender` using the existing `IVerificationEmailContentBuilder` for content plus a new provider-specific settings class for transport, add an `IEmailProviderModule` for it and list that module in `EmailProviderRegistry` — `AddInfrastructureServices` needs no edit.
+
+**Middleware:** `ExceptionHandlingMiddleware` implements `IExceptionHandler` and returns structured ProblemDetails with a correlation ID. `LoggingMiddleware` logs all requests and responses and generates the correlation ID. Both are registered in `Program.cs`.
+
+## Architecture (frontend)
+
+**`FE/README.md` is the authoritative frontend guide and is kept current — read it before touching `FE/`.** It documents the folder conventions, the import rules, and the API layer in detail. The load-bearing points:
+
+**Feature-sliced layout.** `src/app/` is the composition root (entry, `routes.tsx`, `AppLayout`); `src/features/{auth,destinations,trips}/` each co-locate their pages, components, `hooks.ts`, service and tests; `src/shared/` holds `api/`, `lib/` (non-rendering utilities) and `ui/` (generic presentational primitives). Cross-folder imports use the `@/` alias, same-folder imports stay `./`. Features never import from `app/`. A component reaching into another feature's folder is the signal to promote it to `shared/`, not to add the import.
+
+**The API layer is three tiers and nothing skips one:**
+
+```
+component  →  hooks.ts (TanStack Query)  →  <name>Service  →  HttpClient  →  fetch
+```
+
+A component never calls `fetch`; a service never touches TanStack Query. `shared/api/httpClient.ts` is the **only** place `fetch` is called — it owns the base URL, headers, bearer-token injection, ProblemDetails→`ApiError` parsing, and empty/204 bodies. Services (`features/*/…Service.ts`) own the URL, verb and types for one feature, as a class taking `HttpClient` through its constructor and exported alongside a singleton bound to the shared client; the constructor exists so service tests can `new TripService(new HttpClient(''))` against a stubbed `fetch` with **no module mocking**. Models (`shared/api/models/<domain>/`) are one type-only interface per file, requests and responses together in the domain folder — never add a class or method there.
+
+Note two non-obvious constraints, both of which produce silent breakage rather than a red build: `tsconfig.app.json` sets `erasableSyntaxOnly`, so TypeScript **parameter properties** (`constructor(private http: HttpClient)`) are a compile error — assign the field explicitly. And `vi.mock('…')` path strings are **not** type-checked, so when moving or renaming a module you must grep for its old path or a mock will quietly stop matching while the suite stays green.
+
+**One component per `.tsx`**, with data, hooks and helpers in plain `.ts` siblings — this is enforced by `react/only-export-components`, not taste. A context provider therefore splits into the provider `.tsx` plus a `.ts` sibling holding the context and its `use*` hook, and that sibling must not differ from the `.tsx` by case alone (on Windows/macOS Vite would resolve `./AuthContext` to the wrong file). There are deliberately **no barrel (`index.ts`) files** — `destinations` and `trips` import from each other, so barrels would form a real cycle.
+
+## Feature Docs
+
+Requirements are tracked as epic documents in the `epic/` folder (`epic-1-destination-suggestion.md` through `epic-5-frontend-web-app.md`), each with user stories, acceptance criteria, and per-story status notes; `requirement/Sheet1.html` is the authoritative source they derive from. Both are version-controlled. Consult these files before starting work on a feature to check its scope and status. Delivered work is additionally written up per story under `_bmad-output/implementation-artifacts/<epic>-<story>-<slug>.md`, with `sprint-status.yaml` tracking state — check there for why something was built the way it was before re-litigating a decision. Where an epic and the sheet disagree (e.g. epic-2 places US4 under "Out of scope" while the sheet marks it `Selected = Yes`), the sheet is authoritative and the divergence is worth recording.
+
+## Code Style
+
+Curly braces are **required** for all control flow statements (`if`, `else`, `for`, `foreach`, `while`, `using`, etc.). Never omit braces, even for a single-statement body. Single-line conditionals without braces are forbidden.
+
+```csharp
+// Forbidden
+if (success)
+    return;
+
+// Required
+if (success)
+{
+    return;
+}
+```
+
+Do not add comments to code — no XML docs, inline, or block comments.
+
+`BE/.editorconfig` plus `BE/Directory.Build.props` promote **IDE0005** (unnecessary `using`), **IDE0051** (unused private member) and **IDE0052** (unread private member) to build warnings, so dead usings and dead private helpers cannot silently reappear. Two properties make that work and are load-bearing: `EnforceCodeStyleInBuild` (IDE analyzers do not run at build without it) and `GenerateDocumentationFile` (IDE0005 specifically reports nothing unless doc generation is on). Because the latter would otherwise demand XML docs on every public member — directly contradicting the no-comments rule above — `CS1591` is suppressed via `NoWarn`. Generated `Infrastructure/Migrations/*.cs` files are exempted from all three rules in their own `.editorconfig` section; note the section glob is relative to the `.editorconfig`'s own directory (`TripPlanner.Infrastructure/Migrations/*.cs`, **not** `BE/...`), and a wrong prefix silently matches nothing. The build is expected to stay at **0 warnings**.

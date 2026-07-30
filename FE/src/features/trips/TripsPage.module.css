@@ -1,0 +1,336 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 2rem;
+  color: var(--color-on-surface);
+}
+
+.newTrip {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
+}
+
+.newTrip:hover {
+  background: var(--color-primary-container);
+}
+
+.newTrip:active {
+  transform: scale(0.98);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+.pass {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: var(--color-on-surface);
+  transition:
+    transform var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-fast) ease;
+  animation: trip-pass-enter var(--duration-slow) var(--ease-spring) both;
+}
+
+.pass::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: linear-gradient(var(--color-primary), var(--color-tertiary));
+}
+
+.passPast::before {
+  background: var(--color-outline-variant);
+}
+
+.pass:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+@keyframes trip-pass-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pass:nth-child(1) {
+  animation-delay: calc(1 * 40ms);
+}
+
+.pass:nth-child(2) {
+  animation-delay: calc(2 * 40ms);
+}
+
+.pass:nth-child(3) {
+  animation-delay: calc(3 * 40ms);
+}
+
+.pass:nth-child(4) {
+  animation-delay: calc(4 * 40ms);
+}
+
+.pass:nth-child(5) {
+  animation-delay: calc(5 * 40ms);
+}
+
+.pass:nth-child(6) {
+  animation-delay: calc(6 * 40ms);
+}
+
+.pass:nth-child(7) {
+  animation-delay: calc(7 * 40ms);
+}
+
+.pass:nth-child(8) {
+  animation-delay: calc(8 * 40ms);
+}
+
+.pass:nth-child(9) {
+  animation-delay: calc(9 * 40ms);
+}
+
+.pass:nth-child(n + 10) {
+  animation-delay: calc(10 * 40ms);
+}
+
+.passTop {
+  padding: 0.9rem 1rem 0.75rem 1.25rem;
+}
+
+.passHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.passName {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--color-on-surface);
+}
+
+.status {
+  flex: none;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  font-size: 0.6375rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.statusUpcoming {
+  background: var(--color-secondary-container);
+  color: var(--color-on-secondary-container);
+}
+
+.statusOngoing {
+  background: var(--color-success-container);
+  color: var(--color-success);
+}
+
+.statusPast {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-variant);
+}
+
+.route {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+
+.routeLine {
+  position: relative;
+  flex: 1;
+  height: 0;
+  border-top: 1.6px dashed var(--color-outline-variant);
+}
+
+.routeLine::after {
+  content: '✈';
+  position: absolute;
+  right: -3px;
+  top: -0.7rem;
+  color: var(--color-primary);
+  font-size: 0.85rem;
+}
+
+.perf {
+  position: relative;
+  border-top: 1.6px dashed var(--color-outline-variant);
+  background: var(--color-surface-container-low);
+}
+
+.perf::before,
+.perf::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+}
+
+.perf::before {
+  left: -7px;
+}
+
+.perf::after {
+  right: -7px;
+}
+
+.stubs {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.7rem 1.25rem;
+}
+
+.stub {
+  display: flex;
+  flex-direction: column;
+}
+
+.stubValue {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-on-surface);
+  line-height: 1.2;
+}
+
+.stubLabel {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+
+.skeletonPass {
+  height: 8.5rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-container-low) 25%,
+    var(--color-surface-container-lowest) 50%,
+    var(--color-surface-container-low) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pass-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pass-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.retry {
+  padding: 0.5rem 1.4rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
+}
+
+.retry:hover {
+  background: var(--color-surface-container-low);
+}
+
+.retry:active {
+  transform: scale(0.98);
+}
+
+.emptyAction {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition:
+    background var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
+}
+
+.emptyAction:hover {
+  background: var(--color-primary-container);
+}
+
+.emptyAction:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeletonPass {
+    animation: none;
+    background: var(--color-surface-container-low);
+  }
+}

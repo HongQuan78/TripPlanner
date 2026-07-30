@@ -1,0 +1,253 @@
+.hero {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  background: var(--az-canvas);
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    height: 360px;
+  }
+}
+
+.photo {
+  position: absolute;
+  inset: 0;
+}
+
+.photo:focus-visible {
+  outline: var(--az-focus-width) solid var(--az-focus-ring);
+  outline-offset: calc(-1 * var(--az-focus-width) - 2px);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imageHidden {
+  opacity: 0;
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #eef4f9 25%, #f7fafd 50%, #eef4f9 75%);
+  background-size: 200% 100%;
+  animation: hero-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes hero-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: repeating-linear-gradient(45deg, #eef4f9, #eef4f9 11px, #e2ebf3 11px, #e2ebf3 22px);
+}
+
+.placeholderLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--az-na);
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    180deg,
+    var(--az-scrim-top) 0%,
+    var(--az-scrim-soft) 32%,
+    var(--az-scrim-soft) 52%,
+    var(--az-scrim-strong) 100%
+  );
+  pointer-events: none;
+}
+
+.back {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--az-touch-min);
+  padding: 7px 12px;
+  border: none;
+  border-radius: var(--az-radius-sm);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--az-ink);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 37, 64, 0.12);
+}
+
+.credit {
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  z-index: 4;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: var(--az-hero-text-shadow);
+}
+
+.control {
+  position: absolute;
+  top: 50%;
+  z-index: 4;
+  transform: translateY(-50%);
+  display: none;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--az-radius-full);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--az-ink);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(15, 37, 64, 0.3);
+}
+
+.prev {
+  left: 16px;
+}
+
+.next {
+  right: 16px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero:hover .control {
+    display: inline-flex;
+  }
+}
+
+.control:focus-visible {
+  display: inline-flex;
+}
+
+.dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  z-index: 4;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--az-radius-full);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.dotActive {
+  background: #ffffff;
+}
+
+.overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  max-width: var(--az-page-max);
+  margin: 0 auto;
+  padding: 0 16px 16px;
+}
+
+@media (min-width: 1024px) {
+  .overlay {
+    padding: 0 40px 26px;
+  }
+}
+
+.overlayInner {
+  max-width: 760px;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 4px 9px;
+  border: 1px solid var(--az-hero-eyebrow-border);
+  border-radius: var(--az-radius-sm);
+  background: var(--az-hero-eyebrow-bg);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: var(--az-hero-text-shadow);
+}
+
+.title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  text-shadow: var(--az-hero-text-shadow);
+}
+
+@media (min-width: 1024px) {
+  .title {
+    font-size: 42px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+}
+
+.location {
+  margin: 10px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-weight: 500;
+  text-shadow: var(--az-hero-text-shadow);
+}
+
+@media (min-width: 1024px) {
+  .location {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading {
+    animation: none;
+    background: #eef4f9;
+  }
+}

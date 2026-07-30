@@ -1,0 +1,83 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./BE
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-db};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};${POSTGRES_OPTIONS:-}"
+      ConnectionStrings__Redis: "${ConnectionStrings__Redis:-redis:6379}"
+      JwtSettings__SecretKey: ${JwtSettings__SecretKey}
+      OpenTripMapSettings__ApiKey: ${OpenTripMapSettings__ApiKey}
+      EmailSettings__Provider: ${EmailSettings__Provider}
+      EmailSettings__FromAddress: ${EmailSettings__FromAddress}
+      EmailSettings__FromName: ${EmailSettings__FromName}
+      EmailSettings__VerificationUrlBase: ${EmailSettings__VerificationUrlBase}
+      EmailSettings__TokenExpiryHours: ${EmailSettings__TokenExpiryHours}
+      ResendSettings__ApiKey: ${ResendSettings__ApiKey:-}
+      GoogleSmtpSettings__Username: ${GoogleSmtpSettings__Username:-}
+      GoogleSmtpSettings__AppPassword: ${GoogleSmtpSettings__AppPassword:-}
+    volumes:
+      - dpkeys:/home/app/.aspnet/DataProtection-Keys
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./FE
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  dpkeys:

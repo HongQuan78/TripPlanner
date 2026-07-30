@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/TripPlanner.API/">
+    <Project Path="TripPlanner.API/TripPlanner.API.csproj" />
+  </Folder>
+  <Folder Name="/TripPlanner.Application/">
+    <Project Path="TripPlanner.Application/TripPlanner.Application.csproj" />
+  </Folder>
+  <Folder Name="/TripPlanner.Domain/">
+    <Project Path="TripPlanner.Domain/TripPlanner.Domain.csproj" />
+  </Folder>
+  <Folder Name="/TripPlanner.Infrastructure/">
+    <Project Path="TripPlanner.Infrastructure/TripPlanner.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/TripPlanner.Tests/">
+    <Project Path="TripPlanner.Tests/TripPlanner.Tests.csproj" />
+  </Folder>
+</Solution>

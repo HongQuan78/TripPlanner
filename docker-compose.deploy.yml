@@ -1,0 +1,6 @@
+services:
+  api:
+    image: ghcr.io/${GHCR_OWNER}/tripplanner-api:${IMAGE_TAG:-latest}
+
+  web:
+    image: ghcr.io/${GHCR_OWNER}/tripplanner-web:${IMAGE_TAG:-latest}
