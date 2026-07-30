@@ -76,14 +76,14 @@ describe('SearchPage', () => {
       expect(screen.queryByText('City 6')).not.toBeInTheDocument();
     });
 
-    it('keeps the dropdown open showing "No attractions found." when nothing matches', async () => {
+    it('keeps the dropdown open showing "No matching locations found." when nothing matches', async () => {
       searchLocationsMock.mockResolvedValue([]);
       renderPage();
 
       submitSearch('xyzzy');
 
       await waitFor(() => {
-        expect(screen.getByText('No attractions found.')).toBeInTheDocument();
+        expect(screen.getByText('No matching locations found.')).toBeInTheDocument();
       });
       expect(searchbox()).toHaveValue('xyzzy');
       expect(screen.getByText('Popular searches')).toBeInTheDocument();
@@ -217,7 +217,7 @@ describe('SearchPage', () => {
 
       typeInput('pa');
       const listbox = await findDropdown();
-      fireEvent.mouseDown(within(listbox).getByRole('option'));
+      fireEvent.click(within(listbox).getByRole('option'));
 
       expect(queryDropdown()).not.toBeInTheDocument();
       expect(searchbox()).toHaveValue('Paris');
@@ -249,11 +249,30 @@ describe('SearchPage', () => {
 
       typeInput('pa');
       const listbox = await findDropdown();
-      fireEvent.mouseDown(within(listbox).getByRole('option'));
+      fireEvent.click(within(listbox).getByRole('option'));
 
       await sleep(500);
 
       expect(queryDropdown()).not.toBeInTheDocument();
+    });
+
+    it('keeps a submitted-but-unchosen search alive across unmount and remount', async () => {
+      searchLocationsMock.mockResolvedValue([parisCity]);
+      const { unmount } = renderPage();
+
+      submitSearch('paris');
+      await waitFor(() => {
+        expect(searchLocationsMock).toHaveBeenCalledWith('paris');
+      });
+
+      unmount();
+      searchLocationsMock.mockClear();
+      renderPage();
+
+      expect(searchbox()).toHaveValue('paris');
+      await waitFor(() => {
+        expect(searchLocationsMock).toHaveBeenCalledWith('paris');
+      });
     });
 
     it('issues no further location search when an option is chosen before the debounce settles', async () => {
@@ -265,7 +284,7 @@ describe('SearchPage', () => {
 
       typeInput('Tok');
       const listbox = await findDropdown();
-      fireEvent.mouseDown(within(listbox).getByRole('option'));
+      fireEvent.click(within(listbox).getByRole('option'));
 
       await sleep(500);
 

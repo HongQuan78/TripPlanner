@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { FocusEvent, FormEvent, KeyboardEvent } from 'react';
 import type { LocationSearchResult } from '@/shared/api/models/destination/locationSearchResult';
 import AttractionCard from './AttractionCard';
@@ -22,15 +22,22 @@ import { addRecentSearch, clearRecentSearches, getRecentSearches } from './recen
 
 const suggestionListId = 'location-suggestions';
 const keyboardHintId = 'location-search-keyboard-hint';
+const recentLabelId = 'recent-searches-label';
+const popularLabelId = 'popular-searches-label';
+
+const TILE_CREDITS = POPULAR_CITIES.flatMap((city) =>
+  city.credit === null ? [] : [{ name: city.name, credit: city.credit }],
+);
 const ATTRACTION_SKELETON_COUNT = 4;
 const SUGGESTION_LIMIT = 5;
 const MIN_QUERY_LENGTH = 2;
 
 export default function SearchPage() {
-  const restored = getSearchState();
-  const [input, setInput] = useState(restored.input);
-  const [submittedQuery, setSubmittedQuery] = useState(restored.submittedQuery);
-  const [selected, setSelected] = useState<LocationSearchResult | null>(restored.selected);
+  const [input, setInput] = useState(() => getSearchState().input);
+  const [submittedQuery, setSubmittedQuery] = useState(() => getSearchState().submittedQuery);
+  const [selected, setSelected] = useState<LocationSearchResult | null>(
+    () => getSearchState().selected,
+  );
   const [activeSearch, setActiveSearch] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [recents, setRecents] = useState<LocationSearchResult[]>(() => getRecentSearches());
@@ -44,7 +51,7 @@ export default function SearchPage() {
 
   function announce(message: string) {
     announceCount.current += 1;
-    setAnnouncement(announceCount.current % 2 === 0 ? `${message} ` : message);
+    setAnnouncement(announceCount.current % 2 === 0 ? `${message}\u200B` : message);
   }
 
   useEffect(() => {
@@ -93,14 +100,16 @@ export default function SearchPage() {
   const optionSource = submittedMatchesInput ? search : suggestionsSource;
   const options = (optionSource.data ?? []).slice(0, SUGGESTION_LIMIT);
   const optionsResolved = optionSource.isSuccess && !optionSource.isFetching;
+  const optionsMatchInput = submittedMatchesInput || trimmedDebounced === trimmedInput;
   const dropdownOpen =
     activeSearch &&
+    optionsMatchInput &&
     trimmedInput.length >= MIN_QUERY_LENGTH &&
     (options.length > 0 || optionsResolved);
 
   useEffect(() => {
     setActiveIndex(-1);
-  }, [trimmedDebounced]);
+  }, [trimmedInput]);
 
   useEffect(() => {
     if (!dropdownOpen) {
@@ -141,8 +150,18 @@ export default function SearchPage() {
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Escape') {
+      event.preventDefault();
       setActiveSearch(false);
       setActiveIndex(-1);
+      return;
+    }
+    if (
+      event.key === 'ArrowDown' &&
+      !activeSearch &&
+      trimmedInput.length >= MIN_QUERY_LENGTH
+    ) {
+      event.preventDefault();
+      setActiveSearch(true);
       return;
     }
     if (!dropdownOpen || options.length === 0) {
@@ -153,7 +172,7 @@ export default function SearchPage() {
       setActiveIndex((index) => (index + 1) % options.length);
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      setActiveIndex((index) => (index <= 0 ? options.length - 1 : (index - 1) % options.length));
+      setActiveIndex((index) => (index <= 0 ? options.length - 1 : index - 1));
     } else if (event.key === 'Enter') {
       if (activeIndex >= 0 && activeIndex < options.length) {
         event.preventDefault();
@@ -227,7 +246,7 @@ export default function SearchPage() {
                 autoComplete="off"
                 aria-autocomplete="list"
                 aria-expanded={dropdownOpen}
-                aria-controls={suggestionListId}
+                aria-controls={dropdownOpen && options.length > 0 ? suggestionListId : undefined}
                 aria-describedby={keyboardHintId}
                 aria-activedescendant={
                   dropdownOpen && activeIndex >= 0
@@ -305,9 +324,11 @@ export default function SearchPage() {
       {showPreSearchBody && (
         <div className={styles.preSearch}>
           {recents.length > 0 && (
-            <section className={styles.section}>
+            <section className={styles.section} aria-labelledby={recentLabelId}>
               <div className={styles.sectionHead}>
-                <p className={styles.sectionLabel}>Recent searches</p>
+                <h2 className={styles.sectionLabel} id={recentLabelId}>
+                  Recent searches
+                </h2>
                 <button
                   type="button"
                   className={styles.clearRecents}
@@ -320,7 +341,7 @@ export default function SearchPage() {
               <div className={styles.recentRow}>
                 {recents.map((recent) => (
                   <button
-                    key={`${recent.name}-${recent.latitude}-${recent.longitude}`}
+                    key={`${recent.name}-${recent.latitude}-${recent.longitude}-${recent.locationType}`}
                     type="button"
                     className={styles.recentChip}
                     onClick={() => handleChoose(recent)}
@@ -333,9 +354,11 @@ export default function SearchPage() {
             </section>
           )}
 
-          <section className={styles.section}>
+          <section className={styles.section} aria-labelledby={popularLabelId}>
             <div className={styles.sectionHead}>
-              <p className={styles.sectionLabel}>Popular searches</p>
+              <h2 className={styles.sectionLabel} id={popularLabelId}>
+                Popular searches
+              </h2>
             </div>
             <div className={styles.rail}>
               {POPULAR_CITIES.map((city, index) => (
@@ -347,6 +370,24 @@ export default function SearchPage() {
                 />
               ))}
             </div>
+            {TILE_CREDITS.length > 0 && (
+              <p className={styles.railCredit}>
+                Tile photographs:{' '}
+                {TILE_CREDITS.map(({ name, credit }, index) => (
+                  <Fragment key={name}>
+                    {index > 0 && '; '}
+                    {name} ©{' '}
+                    <a href={credit.sourceUrl} target="_blank" rel="noreferrer">
+                      {credit.author}
+                    </a>
+                    ,{' '}
+                    <a href={credit.licenseUrl} target="_blank" rel="noreferrer">
+                      {credit.license}
+                    </a>
+                  </Fragment>
+                ))}
+              </p>
+            )}
           </section>
 
           <ol className={styles.steps} role="list">

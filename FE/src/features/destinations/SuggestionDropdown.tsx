@@ -28,27 +28,33 @@ export default function SuggestionDropdown({
 }: SuggestionDropdownProps) {
   return (
     <div className={styles.panel}>
-      <ul id={id} role="listbox" aria-label="Location suggestions" className={styles.list}>
-        {suggestions.map((suggestion, index) => (
-          <li
-            key={`${suggestion.name}-${suggestion.latitude}-${suggestion.longitude}-${index}`}
-            id={suggestionOptionId(id, index)}
-            role="option"
-            aria-selected={index === activeIndex}
-            className={index === activeIndex ? `${styles.item} ${styles.active}` : styles.item}
-            onMouseDown={(event) => {
-              event.preventDefault();
-              onChoose(suggestion);
-            }}
-          >
-            <MapPinGlyph />
-            <span className={styles.name}>{suggestion.name}</span>
-            <span className={styles.pill}>{suggestion.countryCode}</span>
-            <span className={styles.pill}>{suggestion.locationType}</span>
-          </li>
-        ))}
-      </ul>
-      {suggestions.length === 0 && <p className={styles.empty}>No attractions found.</p>}
+      {suggestions.length > 0 && (
+        <ul id={id} role="listbox" aria-label="Location suggestions" className={styles.list}>
+          {suggestions.map((suggestion, index) => (
+            <li
+              key={`${suggestion.name}-${suggestion.latitude}-${suggestion.longitude}-${index}`}
+              id={suggestionOptionId(id, index)}
+              role="option"
+              aria-selected={index === activeIndex}
+              className={index === activeIndex ? `${styles.item} ${styles.active}` : styles.item}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => onChoose(suggestion)}
+            >
+              <MapPinGlyph />
+              <span className={styles.name}>{suggestion.name}</span>
+              {suggestion.countryCode !== '' && (
+                <span className={styles.pill}>{suggestion.countryCode}</span>
+              )}
+              <span className={styles.pill}>{suggestion.locationType}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {suggestions.length === 0 && (
+        <p role="status" className={styles.empty}>
+          No matching locations found.
+        </p>
+      )}
     </div>
   );
 }

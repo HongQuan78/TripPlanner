@@ -12,19 +12,23 @@ export default function PopularTile({
   gradientClass: string;
   onSelect: () => void;
 }) {
-  const { imgRef, loaded, markLoaded } = useImageLoaded(city.imageUrl);
+  const imageUrl = city.imageUrl === null || city.imageUrl === '' ? null : city.imageUrl;
+  const { imgRef, loaded, markLoaded } = useImageLoaded(imageUrl);
   const [failed, setFailed] = useState(false);
-  const showImage = city.imageUrl !== null && !failed;
 
   return (
     <button type="button" className={`${styles.tile} ${gradientClass}`} onClick={onSelect}>
-      {showImage && (
+      {imageUrl !== null && !failed && (
         <img
           ref={imgRef}
           className={loaded ? styles.tileImage : `${styles.tileImage} ${styles.tileImageHidden}`}
-          src={city.imageUrl ?? undefined}
+          src={imageUrl}
           alt=""
           aria-hidden="true"
+          width={640}
+          height={400}
+          loading="lazy"
+          decoding="async"
           data-testid="tile-image"
           data-loaded={loaded}
           onLoad={markLoaded}
